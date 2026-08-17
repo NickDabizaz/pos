@@ -6,19 +6,19 @@ type SortIndicatorProps = {
 
 export default function SortIndicator({ direction }: SortIndicatorProps) {
   return (
-    <span aria-hidden="true" className="flex flex-col -space-y-1">
+    <span aria-hidden="true" className="flex shrink-0 flex-col -space-y-1">
       <Chevron
         className={
           direction === "ascending"
-            ? "text-slate-950"
-            : "text-slate-300 group-hover:text-slate-500"
+            ? "text-primary"
+            : "text-muted-foreground/30 group-hover:text-muted-foreground/70"
         }
       />
       <Chevron
         className={
           direction === "descending"
-            ? "text-slate-950"
-            : "text-slate-300 group-hover:text-slate-500"
+            ? "text-primary"
+            : "text-muted-foreground/30 group-hover:text-muted-foreground/70"
         }
         down
       />
@@ -35,7 +35,7 @@ function Chevron({
 }) {
   return (
     <svg
-      className={`size-3 transition-colors ${className}`}
+      className={`size-2.5 transition-colors duration-150 ${className}`}
       fill="none"
       viewBox="0 0 12 12"
     >
@@ -44,7 +44,7 @@ function Chevron({
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.5"
+        strokeWidth="1.75"
       />
     </svg>
   );

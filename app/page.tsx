@@ -23,74 +23,88 @@ const products: Product[] = Array.from({ length: 27 }, (_, index) => ({
 }));
 
 const columns: DataTableColumn<Product>[] = [
-  { type: "rowNumber", width: "72px" },
+  { type: "rowNumber", width: "64px" },
   {
     key     : "name",
     label   : "Nama Produk",
-    width   : "240px",
-    minWidth: "180px",
     maxWidth: "480px",
+    minWidth: "180px",
+    width   : "240px",
   },
-  { key: "category", label: "Kategori", width: "160px" },
   {
-    key: "price",
-    label: "Harga",
-    align: "right",
-    width: "180px",
+    key  : "category",
+    label: "Kategori",
+    width: "150px",
+  },
+  {
+    align : "right",
     format: {
-      type: "currency",
       decimalPlaces: 2,
+      type         : "currency",
     },
+    key   : "price",
+    label : "Harga",
+    width : "180px",
   },
   {
-    key: "stock",
-    label: "Stok",
-    align: "center",
-    width: "100px",
+    align : "center",
     format: {
-      type: "quantity",
       decimalPlaces: 0,
+      type         : "quantity",
     },
+    key   : "stock",
+    label : "Stok",
+    width : "80px",
   },
   {
-    key: "status",
-    label: "Status",
-    align: "center",
-    width: "140px",
-    sortable: false,
-    render: (value) => (
+    align   : "center",
+    key     : "status",
+    label   : "Status",
+    render  : (value) => (
       <span
-        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
           value === "Aktif"
-            ? "bg-emerald-50 text-emerald-700"
-            : "bg-rose-50 text-rose-700"
+            ? "border border-status-active-border bg-status-active-bg text-status-active-fg"
+            : "border border-status-danger-border bg-status-danger-bg text-status-danger-fg"
         }`}
       >
+        <span
+          className={`size-1.5 rounded-full ${
+            value === "Aktif"
+              ? "bg-status-active-dot"
+              : "bg-status-danger-dot"
+          }`}
+        />
         {value}
       </span>
     ),
+    sortable: false,
+    width   : "80px",
   },
   {
-    key: "internalCode",
+    hide : true,
+    key  : "internalCode",
     label: "Kode Internal",
-    hide: true,
     width: "160px",
   },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-8 lg:px-12">
+    <main className="min-h-screen bg-background px-4 py-10 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-7">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-emerald-700">
-            Data Produk
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+        <div className="mb-6 flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-muted-foreground shadow-xs">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              Inventaris POS
+            </span>
+          </div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Daftar Produk
           </h1>
-          <p className="mt-2 text-slate-600">
-            Contoh penggunaan komponen tabel global dengan pagination.
+          <p className="text-sm text-muted-foreground">
+            Katalog produk dan stok barang aktif dalam sistem kasir POS.
           </p>
         </div>
 

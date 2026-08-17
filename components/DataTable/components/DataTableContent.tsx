@@ -20,6 +20,7 @@ type DataTableContentProps<T extends object> = {
   emptyMessage : string;
   formatCell   : CellFormatter;
   onSort       : (key: keyof T) => void;
+  pageSize    ?: number;
   rowKey      ?: keyof T;
   rows         : T[];
   sortDirection: SortDirection | null;
@@ -52,6 +53,7 @@ export default function DataTableContent<T extends object>({
   emptyMessage,
   formatCell,
   onSort,
+  pageSize,
   rowKey,
   rows,
   sortDirection,
@@ -71,9 +73,9 @@ export default function DataTableContent<T extends object>({
   } = useDataTableColumnResize();
 
   return (
-    <div className="relative max-w-full overflow-x-auto overscroll-x-contain">
+    <div className="custom-scrollbar relative max-w-full overflow-x-auto overscroll-x-contain">
       <table
-        className="min-w-full table-fixed border-collapse text-sm text-slate-700"
+        className="min-w-full table-fixed border-collapse text-sm text-foreground"
         ref={tableRef}
         style={
           tableWidth !== null
@@ -96,7 +98,7 @@ export default function DataTableContent<T extends object>({
           })}
           <col style={tableWidth === null ? { width: 0 } : undefined} />
         </colgroup>
-        <thead className="border-y border-slate-200 bg-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <thead className="border-b border-table-header-border bg-table-header text-[11px] font-semibold uppercase tracking-wider text-table-header-fg">
           <tr>
             {visibleColumns.map((column) => {
               const columnId = getColumnId(column);
@@ -114,13 +116,13 @@ export default function DataTableContent<T extends object>({
                   aria-sort={
                     isSortable ? (activeDirection ?? "none") : undefined
                   }
-                  className={`relative whitespace-nowrap bg-slate-100 px-5 py-3.5 ${alignmentClasses[getColumnAlignment(column)]}`}
+                  className={`relative whitespace-nowrap bg-table-header px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-table-header-fg ${alignmentClasses[getColumnAlignment(column)]}`}
                   data-column-id={columnId}
                   key={columnId}
                 >
                   {isSortable ? (
                     <button
-                      className={`group flex w-full min-w-0 items-center overflow-hidden rounded-sm transition-colors hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${justificationClasses[getColumnAlignment(column)]}`}
+                      className={`group -mx-1.5 flex w-[calc(100%+0.75rem)] min-w-0 items-center overflow-hidden rounded-md px-1.5 py-1 text-table-header-fg transition-colors hover:bg-slate-200/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${justificationClasses[getColumnAlignment(column)]}`}
                       onClick={() => onSort(column.key)}
                       type="button"
                     >
@@ -134,7 +136,7 @@ export default function DataTableContent<T extends object>({
                     </button>
                   ) : (
                     <span
-                      className="inline-block max-w-full truncate align-middle"
+                      className="inline-block max-w-full truncate align-middle text-table-header-fg"
                       data-column-content
                     >
                       {columnLabel}
@@ -155,14 +157,14 @@ export default function DataTableContent<T extends object>({
                 </th>
               );
             })}
-            <th aria-hidden="true" className="bg-slate-100 p-0" />
+            <th aria-hidden="true" className="bg-table-header p-0" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-table-border bg-card">
           {rows.length === 0 ? (
             <tr>
               <td
-                className="px-5 py-12 text-center text-slate-500"
+                className="px-4 py-12 text-center text-sm text-muted-foreground"
                 colSpan={Math.max(1, visibleColumns.length + 1)}
               >
                 {emptyMessage}
@@ -191,7 +193,11 @@ export default function DataTableContent<T extends object>({
                   {visibleColumns.map((column) => (
                     <td
                       key={getColumnId(column)}
-                      className={`px-5 py-4 ${alignmentClasses[getColumnAlignment(column)]}`}
+                      className={`px-4 py-3 text-sm text-slate-700 ${alignmentClasses[getColumnAlignment(column)]} ${
+                        isRowNumberColumn(column)
+                          ? "font-mono text-xs text-muted-foreground"
+                          : ""
+                      }`}
                     >
                       {isRowNumberColumn(column)
                         ? absoluteIndex + 1
@@ -208,6 +214,25 @@ export default function DataTableContent<T extends object>({
                 </tr>
               );
             })
+          )}
+          {pageSize !== undefined && rows.length > 0 && rows.length < pageSize && (
+            Array.from({ length: pageSize - rows.length }).map((_, spacerIndex) => (
+              <tr
+                aria-hidden="true"
+                className="pointer-events-none select-none"
+                key={`spacer-${spacerIndex}`}
+              >
+                {visibleColumns.map((column) => (
+                  <td
+                    className={`px-4 py-3 text-sm text-transparent ${alignmentClasses[getColumnAlignment(column)]}`}
+                    key={getColumnId(column)}
+                  >
+                    &nbsp;
+                  </td>
+                ))}
+                <td aria-hidden="true" className="p-0" />
+              </tr>
+            ))
           )}
         </tbody>
       </table>
@@ -279,14 +304,14 @@ function getRowIdentifier<T extends object>(
 
 function getRowClassName(clickable: boolean, isSelected: boolean) {
   if (!clickable) {
-    return undefined;
+    return "transition-colors duration-150";
   }
 
   if (isSelected) {
-    return "cursor-pointer bg-slate-200 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500";
+    return "cursor-pointer bg-table-row-selected font-medium text-foreground transition-colors duration-150 hover:bg-table-row-selected focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
   }
 
-  return "cursor-pointer transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500";
+  return "cursor-pointer transition-colors duration-150 hover:bg-table-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 }
 
 function selectRowWithKeyboard(

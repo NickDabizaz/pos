@@ -40,7 +40,7 @@ export default function DataTable<T extends object>({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ${className}`.trim()}
+      className={`overflow-hidden rounded-2xl border border-border bg-card shadow-xs ring-1 ring-slate-950/5 ${className}`.trim()}
     >
       <DataTableContent
         clickable     = {clickable}
@@ -49,6 +49,7 @@ export default function DataTable<T extends object>({
         emptyMessage  = {emptyMessage}
         formatCell    = {formatCell}
         onSort        = {sorting.toggleSort}
+        pageSize      = {pagination.pageSize}
         rowKey        = {rowKey}
         rows          = {pagination.rows}
         sortDirection = {sorting.sortDirection}

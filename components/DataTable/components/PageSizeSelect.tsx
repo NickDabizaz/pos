@@ -40,12 +40,12 @@ export default function PageSizeSelect({
   return (
     <div className="relative" ref={containerRef}>
       <button
-        aria-label="Jumlah baris per halaman"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        className="flex h-9 min-w-18 items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-2.5 text-sm font-semibold text-slate-900 shadow-sm shadow-slate-900/5 transition hover:border-slate-500 hover:bg-slate-50 focus-visible:border-slate-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-200"
-        onClick={() => setIsOpen((current) => !current)}
-        onKeyDown={(event) => {
+        aria-expanded   = {isOpen}
+        aria-haspopup   = "listbox"
+        aria-label      = "Jumlah baris per halaman"
+        className       = "flex h-8 min-w-16 items-center justify-between gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-medium text-foreground shadow-xs transition-all hover:border-border-strong hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick         = {() => setIsOpen((current) => !current)}
+        onKeyDown       = {(event) => {
           if (event.key === "Escape") {
             setIsOpen(false);
           }
@@ -55,12 +55,12 @@ export default function PageSizeSelect({
             setIsOpen(true);
           }
         }}
-        type="button"
+        type            = "button"
       >
-        <span>{value}</span>
+        <span className="tabular-nums">{value}</span>
         <svg
           aria-hidden="true"
-          className={`size-4 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`size-3.5 text-muted-foreground transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
         >
@@ -77,7 +77,7 @@ export default function PageSizeSelect({
       {isOpen && (
         <div
           aria-label="Jumlah baris per halaman"
-          className="absolute bottom-full left-0 z-30 mb-2 min-w-full overflow-hidden rounded-lg border border-slate-200 bg-white p-1 shadow-xl shadow-slate-900/10"
+          className="absolute bottom-full left-0 z-30 mb-1.5 min-w-full overflow-hidden rounded-xl border border-border bg-card p-1 shadow-lg ring-1 ring-black/5"
           role="listbox"
         >
           {options.map((option) => {
@@ -86,21 +86,21 @@ export default function PageSizeSelect({
             return (
               <button
                 aria-selected={isSelected}
-                className={`flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500 ${
+                className={`flex w-full items-center justify-between gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
                   isSelected
-                    ? "bg-slate-950 text-white"
-                    : "text-slate-700 hover:bg-slate-100"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 }`}
                 key={option}
                 onClick={() => selectPageSize(option)}
                 role="option"
                 type="button"
               >
-                <span>{option}</span>
+                <span className="tabular-nums">{option}</span>
                 {isSelected && (
                   <svg
                     aria-hidden="true"
-                    className="size-4 text-white"
+                    className="size-3.5 text-primary-foreground"
                     fill="none"
                     viewBox="0 0 24 24"
                   >

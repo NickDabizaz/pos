@@ -1,17 +1,21 @@
+"use client";
+
+import { useState } from "react";
+
 import PageSizeSelect from "@/components/DataTable/components/PageSizeSelect";
 
 type PaginationControlsProps = {
   availablePageSizes: number[];
+  changePageSize    : (pageSize: number) => void;
   currentPage       : number;
   firstVisibleRow   : number;
+  goToNextPage      : () => void;
+  goToPage          : (page: number) => void;
+  goToPreviousPage  : () => void;
   lastVisibleRow    : number;
   pageSize          : number;
   totalPages        : number;
   totalRows         : number;
-  changePageSize    : (pageSize: number) => void;
-  goToNextPage      : () => void;
-  goToPage          : (page: number) => void;
-  goToPreviousPage  : () => void;
 };
 
 export default function PaginationControls({
@@ -27,97 +31,154 @@ export default function PaginationControls({
   goToPage,
   goToPreviousPage,
 }: PaginationControlsProps) {
-  const pageItems = createPageItems(currentPage, totalPages);
+  const [syncedPage, setSyncedPage] = useState(currentPage);
+  const [typedPage, setTypedPage]   = useState(String(currentPage));
+
+  if (syncedPage !== currentPage) {
+    setSyncedPage(currentPage);
+    setTypedPage(String(currentPage));
+  }
+
+  function handlePageSubmit() {
+    const parsed = Number.parseInt(typedPage, 10);
+
+    if (Number.isNaN(parsed)) {
+      setTypedPage(String(currentPage));
+      return;
+    }
+
+    const clamped = Math.min(Math.max(1, parsed), totalPages);
+    setTypedPage(String(clamped));
+
+    if (clamped !== currentPage) {
+      goToPage(clamped);
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-5 border-t border-slate-200 bg-slate-50/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+    <div className="flex flex-col gap-3.5 border-t border-table-header-border bg-table-header/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 text-xs text-muted-foreground">
         <PageSizeSelect
           onChange = {changePageSize}
           options  = {availablePageSizes}
           value    = {pageSize}
         />
-        <span className="font-medium text-slate-600">baris per halaman</span>
-        <span aria-hidden="true" className="hidden h-4 w-px bg-slate-300 sm:block" />
-        <span className="text-slate-500">
+        <span className="font-medium text-table-header-fg">baris per halaman</span>
+        <span aria-hidden="true" className="hidden h-3.5 w-px bg-border sm:block" />
+        <span>
           Menampilkan{" "}
-          <strong className="font-semibold text-slate-700">
+          <strong className="font-semibold text-foreground tabular-nums">
             {firstVisibleRow}-{lastVisibleRow}
           </strong>{" "}
-          dari {totalRows}
+          dari{" "}
+          <strong className="font-semibold text-foreground tabular-nums">
+            {totalRows}
+          </strong>
         </span>
       </div>
 
       <nav
         aria-label="Navigasi halaman tabel"
-        className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0"
+        className="flex items-center gap-1.5"
       >
         <button
-          type="button"
-          className="h-10 rounded-lg bg-slate-200/80 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-300/80 disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={currentPage === 1}
-          onClick={goToPreviousPage}
+          aria-label = "Halaman pertama"
+          className  = "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-xs transition-all hover:border-border-strong hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-border disabled:hover:bg-card"
+          disabled   = {currentPage === 1}
+          onClick    = {() => goToPage(1)}
+          title      = "Halaman pertama"
+          type       = "button"
         >
-          Sebelumnya
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24">
+            <path
+              d="m11 17-5-5 5-5m7 10-5-5 5-5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
         </button>
 
-        {pageItems.map((item) =>
-          typeof item === "number" ? (
-            <button
-              aria-current={item === currentPage ? "page" : undefined}
-              className={`h-10 min-w-10 rounded-lg px-3 text-sm font-semibold transition ${
-                item === currentPage
-                  ? "bg-slate-950 text-white shadow-sm shadow-slate-950/20"
-                  : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-100"
-              }`}
-              key={item}
-              onClick={() => goToPage(item)}
-              type="button"
-            >
-              {item}
-            </button>
-          ) : (
-            <span
-              aria-hidden="true"
-              className="flex h-10 min-w-10 items-center justify-center text-sm font-bold tracking-widest text-slate-400"
-              key={item}
-            >
-              ...
-            </span>
-          ),
-        )}
+        <button
+          aria-label = "Halaman sebelumnya"
+          className  = "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-xs transition-all hover:border-border-strong hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-border disabled:hover:bg-card"
+          disabled   = {currentPage === 1}
+          onClick    = {goToPreviousPage}
+          title      = "Halaman sebelumnya"
+          type       = "button"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24">
+            <path
+              d="m15 19-7-7 7-7"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1 text-xs shadow-xs transition-colors focus-within:border-border-strong focus-within:ring-1 focus-within:ring-slate-950/5">
+          <input
+            aria-label  = "Ketik nomor halaman"
+            className   = "h-6 w-7 rounded bg-secondary/60 px-0.5 text-center font-bold text-foreground tabular-nums transition-colors hover:bg-secondary focus:bg-secondary focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            max         = {totalPages}
+            min         = {1}
+            onBlur      = {handlePageSubmit}
+            onChange    = {(event) => setTypedPage(event.target.value)}
+            onKeyDown   = {(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handlePageSubmit();
+              }
+            }}
+            type        = "number"
+            value       = {typedPage}
+          />
+          <span className="pr-0.5 font-medium text-muted-foreground">
+            / <strong className="font-semibold text-foreground tabular-nums">{totalPages}</strong>
+          </span>
+        </div>
 
         <button
-          type="button"
-          className="h-10 rounded-lg bg-slate-200/80 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-300/80 disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={currentPage === totalPages}
-          onClick={goToNextPage}
+          aria-label = "Halaman selanjutnya"
+          className  = "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-xs transition-all hover:border-border-strong hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-border disabled:hover:bg-card"
+          disabled   = {currentPage === totalPages}
+          onClick    = {goToNextPage}
+          title      = "Halaman selanjutnya"
+          type       = "button"
         >
-          Selanjutnya
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24">
+            <path
+              d="m9 5 7 7-7 7"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
+        </button>
+
+        <button
+          aria-label = "Halaman terakhir"
+          className  = "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-foreground shadow-xs transition-all hover:border-border-strong hover:bg-secondary/60 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-border disabled:hover:bg-card"
+          disabled   = {currentPage === totalPages}
+          onClick    = {() => goToPage(totalPages)}
+          title      = "Halaman terakhir"
+          type       = "button"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24">
+            <path
+              d="m6 17 5-5-5-5m7 10 5-5-5-5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
         </button>
       </nav>
     </div>
   );
-}
-
-function createPageItems(currentPage: number, totalPages: number) {
-  const visiblePages = new Set(
-    [1, currentPage - 1, currentPage, currentPage + 1, totalPages].filter(
-      (page) => page >= 1 && page <= totalPages,
-    ),
-  );
-  const sortedPages = Array.from(visiblePages).sort((a, b) => a - b);
-  const items: Array<number | string> = [];
-
-  sortedPages.forEach((page, index) => {
-    const previousPage = sortedPages[index - 1];
-
-    if (previousPage && page - previousPage > 1) {
-      items.push(`ellipsis-${previousPage}-${page}`);
-    }
-
-    items.push(page);
-  });
-
-  return items;
 }
