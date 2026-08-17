@@ -57,6 +57,10 @@ const columns: DataTableColumn<Product>[] = [
 - Sorting uses the raw field value and runs before client-side pagination.
 - `clickable` defaults to `true`; selected rows use the module's Tailwind state styles.
 - Pagination is client-side and resets to page one when the data array changes.
+- Row selection is single-row and toggles: clicking the selected row deselects it.
+- `onRowClick?: (row: T | null) => void` fires on every row click with the row that just became selected, or `null` when the click deselected it. Ignored when `clickable` is `false`.
+- `onRowDoubleClick?: (row: T) => void` fires on row double-click; only wired up when both `clickable` and `onRowDoubleClick` are set.
+- When `onRowDoubleClick` is set, a single click is held for 250ms before it toggles selection; a second click on the same row within that window cancels the pending toggle instead, so a double-click opens `onRowDoubleClick` without flashing the selection state. Without `onRowDoubleClick`, clicks toggle selection immediately. Keyboard activation (Enter/Space) always toggles immediately, regardless of `onRowDoubleClick`.
 
 ## Structure and ownership
 

@@ -37,14 +37,16 @@ export type DataTableColumn<T extends object> =
     }[keyof T];
 
 export type DataTableProps<T extends object> = {
-  data            : T[];
-  columns         : DataTableColumn<T>[];
-  rowKey         ?: keyof T;
-  clickable      ?: boolean;
-  initialPageSize?: number;
-  pageSizeOptions?: number[];
-  locale         ?: string;
-  currency       ?: string;
-  emptyMessage   ?: string;
-  className      ?: string;
+  data             : T[];
+  columns          : DataTableColumn<T>[];
+  rowKey          ?: keyof T;
+  clickable       ?: boolean;
+  initialPageSize ?: number;
+  pageSizeOptions ?: number[];
+  locale          ?: string;
+  currency        ?: string;
+  emptyMessage    ?: string;
+  className       ?: string;
+  onRowClick      ?: (row: T | null) => void;
+  onRowDoubleClick?: (row: T) => void;
 };

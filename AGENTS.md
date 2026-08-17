@@ -31,6 +31,22 @@ Place a reusable module with complex behavior under
 data. Before creating or changing a table, read `components/DataTable/AGENTS.md`
 and reuse this module.
 
+## Testing
+
+Tests use Vitest (`npm test`). Never place a `*.test.ts` file next to the code
+it tests — put it in a `__tests__/` folder alongside the file(s) it covers,
+keeping the same base name:
+
+```text
+lib/server/menu/
+├── service.ts
+└── __tests__/
+    └── service.test.ts
+```
+
+This keeps directory listings free of test/non-test clutter and makes it
+obvious which folder is safe to skim for implementation only.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

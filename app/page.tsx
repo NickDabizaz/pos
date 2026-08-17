@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import ComboGrid, { type ComboGridColumn } from "@/components/ComboGrid";
 import DataTable, { type DataTableColumn } from "@/components/DataTable";
 import SideBar, { type MenuNode } from "@/components/SideBar";
+import { menuRoutes } from "@/lib/menuRoutes";
 
 type Product = {
   category    : string;
@@ -126,6 +128,7 @@ const comboGridColumns: ComboGridColumn<Product>[] = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [selectedProductId, setSelectedProductId] = useState<number>();
   const [activeMenu, setActiveMenu]               = useState<MenuNode>();
   const selectedProduct = products.find(({ id }) => id === selectedProductId);
@@ -136,7 +139,15 @@ export default function Home() {
         activeKey      = {activeMenu?.kodemenu}
         apiUrl         = "/api/menu/tree"
         onLogoClick    = {() => setActiveMenu(undefined)}
-        onSelectAction = {(node) => setActiveMenu(node)}
+        onSelectAction = {(node) => {
+          setActiveMenu(node);
+
+          const route = menuRoutes[node.kodemenu];
+
+          if (route) {
+            router.push(route);
+          }
+        }}
       />
 
       <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-10">

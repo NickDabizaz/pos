@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import ColumnResizeHandle from "@/components/DataTable/components/ColumnResizeHandle";
 import SortIndicator from "@/components/DataTable/components/SortIndicator";
@@ -14,18 +14,20 @@ import type { SortDirection } from "@/components/DataTable/lib/useDataTableSorti
 type RowIdentifier = number | string;
 
 type DataTableContentProps<T extends object> = {
-  clickable    : boolean;
-  columns      : DataTableColumn<T>[];
-  dataSource   : T[];
-  emptyMessage : string;
-  formatCell   : CellFormatter;
-  onSort       : (key: keyof T) => void;
-  pageSize    ?: number;
-  rowKey      ?: keyof T;
-  rows         : T[];
-  sortDirection: SortDirection | null;
-  sortKey      : keyof T | null;
-  startIndex   : number;
+  clickable        : boolean;
+  columns          : DataTableColumn<T>[];
+  dataSource       : T[];
+  emptyMessage     : string;
+  formatCell       : CellFormatter;
+  onRowClick      ?: (row: T | null) => void;
+  onRowDoubleClick?: (row: T) => void;
+  onSort           : (key: keyof T) => void;
+  pageSize        ?: number;
+  rowKey          ?: keyof T;
+  rows             : T[];
+  sortDirection    : SortDirection | null;
+  sortKey          : keyof T | null;
+  startIndex       : number;
 };
 
 type RowSelection<T> = {
@@ -33,6 +35,13 @@ type RowSelection<T> = {
   dataSource : T[];
   selectedRow: RowIdentifier | null;
 };
+
+type PendingClick = {
+  identifier: RowIdentifier;
+  timeoutId : ReturnType<typeof setTimeout>;
+};
+
+const DOUBLE_CLICK_WINDOW_MS = 250;
 
 const alignmentClasses: Record<ColumnAlignment, string> = {
   left  : "text-left",
@@ -52,6 +61,8 @@ export default function DataTableContent<T extends object>({
   dataSource,
   emptyMessage,
   formatCell,
+  onRowClick,
+  onRowDoubleClick,
   onSort,
   pageSize,
   rowKey,
@@ -62,6 +73,16 @@ export default function DataTableContent<T extends object>({
 }: DataTableContentProps<T>) {
   const visibleColumns = columns.filter((column) => !column.hide);
   const [selectedRow, selectRow] = useRowSelection(dataSource, clickable);
+  const pendingClickRef = useRef<PendingClick | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingClickRef.current) {
+        clearTimeout(pendingClickRef.current.timeoutId);
+      }
+    };
+  }, []);
+
   const {
     columnWidths,
     tableRef,
@@ -175,14 +196,45 @@ export default function DataTableContent<T extends object>({
               const absoluteIndex = startIndex + rowIndex;
               const identifier = getRowIdentifier(row, rowKey, absoluteIndex);
               const isSelected = clickable && selectedRow === identifier;
-              const activateRow = () => selectRow(identifier);
+              const activateRow = () => {
+                const nextIdentifier = isSelected ? null : identifier;
+                selectRow(nextIdentifier);
+                onRowClick?.(nextIdentifier === null ? null : row);
+              };
+              const handleClick = () => {
+                if (!onRowDoubleClick) {
+                  activateRow();
+                  return;
+                }
+
+                const pending = pendingClickRef.current;
+
+                if (pending) {
+                  clearTimeout(pending.timeoutId);
+
+                  if (pending.identifier === identifier) {
+                    pendingClickRef.current = null;
+                    return;
+                  }
+                }
+
+                pendingClickRef.current = {
+                  identifier,
+                  timeoutId: setTimeout(() => {
+                    pendingClickRef.current = null;
+                    activateRow();
+                  }, DOUBLE_CLICK_WINDOW_MS),
+                };
+              };
+              const handleDoubleClick = () => onRowDoubleClick?.(row);
 
               return (
                 <tr
                   aria-selected={clickable ? isSelected : undefined}
                   className={getRowClassName(clickable, isSelected)}
                   key={identifier}
-                  onClick={clickable ? activateRow : undefined}
+                  onClick={clickable ? handleClick : undefined}
+                  onDoubleClick={clickable && onRowDoubleClick ? handleDoubleClick : undefined}
                   onKeyDown={
                     clickable
                       ? (event) => selectRowWithKeyboard(event, activateRow)
@@ -254,7 +306,7 @@ function useRowSelection<T>(dataSource: T[], clickable: boolean) {
     setSelection({ clickable, dataSource, selectedRow: null });
   }
 
-  function selectRow(selectedRow: RowIdentifier) {
+  function selectRow(selectedRow: RowIdentifier | null) {
     setSelection({ clickable, dataSource, selectedRow });
   }
 
