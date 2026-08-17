@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { formatRupiah } from "@/app/pos/lib/calculations";
 import type { ShiftSession } from "@/app/pos/lib/types";
+import { formatRupiah } from "@/lib/format";
 
 type PosHeaderProps = {
   onBarcodeScanAction ?: (barcode: string) => void;

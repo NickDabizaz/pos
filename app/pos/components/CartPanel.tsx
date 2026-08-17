@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { formatRupiah } from "@/app/pos/lib/calculations";
+import { formatRupiah } from "@/lib/format";
 import type { CartItem } from "@/app/pos/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 

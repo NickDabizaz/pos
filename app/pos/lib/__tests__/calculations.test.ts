@@ -4,10 +4,10 @@ import {
   calculateChange,
   calculateGrandTotal,
   calculateSubtotal,
-  formatRupiah,
   generateQuickCashSuggestions,
 } from "@/app/pos/lib/calculations";
 import type { CartItem } from "@/app/pos/lib/types";
+import { formatRupiah } from "@/lib/format";
 
 describe("calculations", () => {
   const sampleItems: CartItem[] = [

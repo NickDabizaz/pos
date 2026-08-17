@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import CartPanel from "@/app/pos/components/CartPanel";
 import ModalAwalDialog from "@/app/pos/components/ModalAwalDialog";
@@ -16,15 +16,13 @@ import type {
   ShiftSession,
   TransactionSummary,
 } from "@/app/pos/lib/types";
+import { fetchBarangList } from "@/lib/client/barang";
+import { fetchActiveShift, openShift, recordShiftTransaction } from "@/lib/client/shift";
+import type { OpenShiftInput } from "@/lib/server/shift/types";
 
 async function fetchBarangCatalog(): Promise<Barang[]> {
   try {
-    const res = await fetch("/api/master/barang", {
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    const list: Barang[] = json.data ?? [];
+    const list = await fetchBarangList();
     return list.filter((b) => b.status === 1);
   } catch {
     return [];
@@ -33,6 +31,8 @@ async function fetchBarangCatalog(): Promise<Barang[]> {
 
 export default function PosPage() {
   const [session, setSession]                   = useState<ShiftSession | null>(null);
+  const [isOpeningShift, setIsOpeningShift]     = useState(false);
+  const [shiftError, setShiftError]             = useState<string | null>(null);
   const [products, setProducts]                 = useState<Barang[]>([]);
   const [isLoading, setIsLoading]               = useState(true);
   const [searchQuery, setSearchQuery]           = useState("");
@@ -42,16 +42,41 @@ export default function PosPage() {
 
   const cart = usePosCart();
 
-  const loadProducts = useCallback(async () => {
-    setIsLoading(true);
-    const data = await fetchBarangCatalog();
-    setProducts(data);
-    setIsLoading(false);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadInitialData() {
+      const [productData, activeShift] = await Promise.all([
+        fetchBarangCatalog(),
+        fetchActiveShift().catch(() => null),
+      ]);
+
+      if (isMounted) {
+        setProducts(productData);
+        setSession(activeShift);
+        setIsLoading(false);
+      }
+    }
+
+    loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+  async function handleOpenShift(input: OpenShiftInput) {
+    setIsOpeningShift(true);
+    setShiftError(null);
+
+    try {
+      setSession(await openShift(input));
+    } catch (error) {
+      setShiftError(error instanceof Error ? error.message : "Gagal membuka shift");
+    } finally {
+      setIsOpeningShift(false);
+    }
+  }
 
   // Keyboard Shortcuts (F2: focus search, F4: pay, Esc: cancel modal)
   usePosKeyboardShortcuts({
@@ -83,7 +108,7 @@ export default function PosPage() {
   }
 
   // Handle successful checkout
-  function handleCompletePayment(paymentData: {
+  async function handleCompletePayment(paymentData: {
     amountPaid    : number;
     change        : number;
     paymentMethod : PaymentMethod;
@@ -109,6 +134,16 @@ export default function PosPage() {
 
     setCompletedTx(summary);
     setIsPaymentOpen(false);
+
+    try {
+      const updatedShift = await recordShiftTransaction({
+        paymentMethod: paymentData.paymentMethod,
+        grandTotal   : cart.grandTotal,
+      });
+      setSession(updatedShift);
+    } catch {
+      // Shift totals will resync the next time the active shift is (re)loaded.
+    }
   }
 
   function handleNewOrder() {
@@ -156,8 +191,10 @@ export default function PosPage() {
 
       {/* Modal Awal (Blocking Shift Gate) */}
       <ModalAwalDialog
-        isOpen         = {!session?.isOpen}
-        onSubmitAction = {(newSession) => setSession(newSession)}
+        errorMessage   = {shiftError}
+        isOpen         = {session?.status !== "OPEN"}
+        isSubmitting   = {isOpeningShift}
+        onSubmitAction = {handleOpenShift}
       />
 
       {/* Payment Multi-Method Modal */}

@@ -2,17 +2,24 @@
 
 import { type FormEvent, useState } from "react";
 
-import { formatRupiah } from "@/app/pos/lib/calculations";
-import type { ShiftSession } from "@/app/pos/lib/types";
+import type { OpenShiftInput } from "@/lib/server/shift/types";
+import { formatRupiah } from "@/lib/format";
 
 type ModalAwalDialogProps = {
-  isOpen        : boolean;
-  onSubmitAction: (session: ShiftSession) => void;
+  errorMessage  ?: string | null;
+  isOpen         : boolean;
+  isSubmitting  ?: boolean;
+  onSubmitAction : (input: OpenShiftInput) => void;
 };
 
 const quickNominals = [100000, 200000, 300000, 500000, 1000000];
 
-export default function ModalAwalDialog({ isOpen, onSubmitAction }: ModalAwalDialogProps) {
+export default function ModalAwalDialog({
+  errorMessage,
+  isOpen,
+  isSubmitting = false,
+  onSubmitAction,
+}: ModalAwalDialogProps) {
   const [kasirName, setKasirName]   = useState("Kasir 1");
   const [modalAwal, setModalAwal]   = useState<number>(200000);
   const [inputVal, setInputVal]     = useState("200000");
@@ -44,14 +51,9 @@ export default function ModalAwalDialog({ isOpen, onSubmitAction }: ModalAwalDia
       return;
     }
 
-    const shiftCode = `SFT-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`;
-
     onSubmitAction({
-      isOpen   : true,
       kasirName: kasirName.trim(),
       modalAwal: modalAwal,
-      openedAt : new Date(),
-      shiftCode: shiftCode,
     });
   }
 
@@ -76,9 +78,9 @@ export default function ModalAwalDialog({ isOpen, onSubmitAction }: ModalAwalDia
           </div>
         </div>
 
-        {validationError && (
+        {(validationError || errorMessage) && (
           <div className="mb-4 rounded-xl border border-status-danger-border bg-status-danger-bg p-3 text-xs font-medium text-status-danger-fg">
-            {validationError}
+            {validationError ?? errorMessage}
           </div>
         )}
 
@@ -147,10 +149,11 @@ export default function ModalAwalDialog({ isOpen, onSubmitAction }: ModalAwalDia
 
           <div className="pt-2">
             <button
-              className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary-hover active:scale-[0.99]"
+              className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
               type="submit"
             >
-              Mulai Shift Kasir
+              {isSubmitting ? "Membuka Shift..." : "Mulai Shift Kasir"}
             </button>
           </div>
         </form>

@@ -1,12 +1,6 @@
+import { matchesSearch } from "@/lib/textSearch";
 import type { Barang } from "@/app/master/barang/lib/types";
 
 export function filterBarang(items: Barang[], query: string): Barang[] {
-  const normalizedQuery = query.trim().toLowerCase();
-
-  return items.filter(
-    (item) =>
-      normalizedQuery === "" ||
-      item.namabarang.toLowerCase().includes(normalizedQuery) ||
-      item.kodebarang.toLowerCase().includes(normalizedQuery),
-  );
+  return items.filter((item) => matchesSearch([item.namabarang, item.kodebarang], query));
 }

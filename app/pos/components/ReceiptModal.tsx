@@ -1,7 +1,7 @@
 "use client";
 
-import { formatRupiah } from "@/app/pos/lib/calculations";
 import type { TransactionSummary } from "@/app/pos/lib/types";
+import { formatRupiah } from "@/lib/format";
 
 type ReceiptModalProps = {
   isOpen          : boolean;

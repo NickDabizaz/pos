@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import ProductCard from "@/app/pos/components/ProductCard";
 import type { Barang } from "@/app/pos/lib/types";
+import { matchesSearch } from "@/lib/textSearch";
 
 type ProductGridProps = {
   isLoading      : boolean;
@@ -18,16 +19,11 @@ export default function ProductGrid({
   products,
   searchQuery,
 }: ProductGridProps) {
-  // Filter items by search query (name or barcode)
-  const filteredProducts = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    if (!query) return products;
-    return products.filter(
-      (p) =>
-        p.namabarang.toLowerCase().includes(query) ||
-        p.kodebarang.toLowerCase().includes(query),
-    );
-  }, [products, searchQuery]);
+  // Filter items by search query (name or kode)
+  const filteredProducts = useMemo(
+    () => products.filter((p) => matchesSearch([p.namabarang, p.kodebarang], searchQuery)),
+    [products, searchQuery],
+  );
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

@@ -1,22 +1,15 @@
 import type { Barang } from "@/lib/server/barang/types";
+import type { PaymentMethod as ShiftPaymentMethod, Shift } from "@/lib/server/shift/types";
 
 export type { Barang };
-
-export type ShiftSession = {
-  isOpen    : boolean;
-  kasirName : string;
-  modalAwal : number;
-  openedAt  : Date;
-  shiftCode : string;
-};
+export type { Shift as ShiftSession };
+export type PaymentMethod = ShiftPaymentMethod;
 
 export type CartItem = {
   barang : Barang;
   qty    : number;
   note  ?: string;
 };
-
-export type PaymentMethod = "TUNAI" | "QRIS" | "TRANSFER";
 
 export type TransactionSummary = {
   amountPaid    : number;

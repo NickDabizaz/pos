@@ -2,7 +2,7 @@
 
 import { type ReactElement, useState } from "react";
 
-import { formatRupiah } from "@/app/pos/lib/calculations";
+import { formatRupiah } from "@/lib/format";
 import type { Barang } from "@/app/pos/lib/types";
 
 type ProductCardProps = {

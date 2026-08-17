@@ -24,18 +24,6 @@ export function calculateChange(grandTotal: number, amountPaid: number): number 
 }
 
 /**
- * Formats a numeric value into Indonesian Rupiah currency string.
- */
-export function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    currency            : "IDR",
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
-    style               : "currency",
-  }).format(amount);
-}
-
-/**
  * Generates quick cash bill suggestions based on the grand total.
  */
 export function generateQuickCashSuggestions(grandTotal: number): number[] {

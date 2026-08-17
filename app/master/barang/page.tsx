@@ -8,6 +8,7 @@ import BarangFormModal from "@/app/master/barang/components/BarangFormModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { filterBarang } from "@/app/master/barang/lib/filterBarang";
 import type { Barang } from "@/app/master/barang/lib/types";
+import { fetchBarangList } from "@/lib/client/barang";
 
 type ModalState =
   | { mode: "create" }
@@ -17,19 +18,6 @@ type ApiResponse<T> = {
   data   ?: T;
   message : string;
 };
-
-async function fetchBarangList(): Promise<Barang[]> {
-  const response = await fetch("/api/master/barang", {
-    headers: { Accept: "application/json" },
-  });
-  const json: ApiResponse<Barang[]> = await response.json();
-
-  if (!response.ok) {
-    throw new Error(json.message);
-  }
-
-  return json.data ?? [];
-}
 
 const emptyBarang: Barang = {
   kodebarang: "",

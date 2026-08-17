@@ -2,12 +2,9 @@
 
 import { useMemo, useState } from "react";
 
-import {
-  calculateChange,
-  formatRupiah,
-  generateQuickCashSuggestions,
-} from "@/app/pos/lib/calculations";
-import type { PaymentMethod, TransactionSummary } from "@/app/pos/lib/types";
+import { calculateChange, generateQuickCashSuggestions } from "@/app/pos/lib/calculations";
+import type { PaymentMethod } from "@/app/pos/lib/types";
+import { formatRupiah } from "@/lib/format";
 
 type PaymentModalProps = {
   grandTotal      : number;
