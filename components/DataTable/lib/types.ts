@@ -47,6 +47,7 @@ export type DataTableProps<T extends object> = {
   currency        ?: string;
   emptyMessage    ?: string;
   className             ?: string;
+  getRowClassNameAction ?: (row: T) => string;
   onRowClickAction      ?: (row: T | null) => void;
   onRowDoubleClickAction?: (row: T) => void;
 };

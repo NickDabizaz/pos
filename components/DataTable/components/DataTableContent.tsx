@@ -19,6 +19,7 @@ type DataTableContentProps<T extends object> = {
   dataSource             : T[];
   emptyMessage           : string;
   formatCell             : CellFormatter;
+  getRowClassNameAction ?: (row: T) => string;
   onRowClickAction      ?: (row: T | null) => void;
   onRowDoubleClickAction?: (row: T) => void;
   onSort                 : (key: keyof T) => void;
@@ -54,6 +55,7 @@ export default function DataTableContent<T extends object>({
   dataSource,
   emptyMessage,
   formatCell,
+  getRowClassNameAction,
   onRowClickAction,
   onRowDoubleClickAction,
   onSort,
@@ -189,7 +191,7 @@ export default function DataTableContent<T extends object>({
               return (
                 <tr
                   aria-selected={clickable ? isSelected : undefined}
-                  className={getRowClassName(clickable, isSelected)}
+                  className={`${getRowClassName(clickable, isSelected)} ${getRowClassNameAction?.(row) ?? ""}`.trim()}
                   key={identifier}
                   onClick={clickable ? activateRow : undefined}
                   onDoubleClick={clickable && onRowDoubleClickAction ? handleDoubleClick : undefined}

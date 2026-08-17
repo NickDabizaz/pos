@@ -26,6 +26,7 @@ export default function DataTable<T extends object>({
   currency        = "IDR",
   emptyMessage    = "Tidak ada data",
   className       = "",
+  getRowClassNameAction,
   onRowClickAction,
   onRowDoubleClickAction,
 }: DataTableProps<T>) {
@@ -50,6 +51,7 @@ export default function DataTable<T extends object>({
         dataSource             = {sorting.sortedData}
         emptyMessage           = {emptyMessage}
         formatCell             = {formatCell}
+        getRowClassNameAction  = {getRowClassNameAction}
         onRowClickAction       = {onRowClickAction}
         onRowDoubleClickAction = {onRowDoubleClickAction}
         onSort                 = {sorting.toggleSort}

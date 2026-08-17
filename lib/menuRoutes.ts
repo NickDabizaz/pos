@@ -7,7 +7,9 @@ export const menuRoutes: Record<string, string> = {
   C6T8H: "/master/customer", // Master > Customer
   S4L1I: "/master/supplier", // Master > Supplier
   VJK44: "/master/lokasi",   // Master > Lokasi
-  Q4Z8X: "/pos",             // Penjualan > Kasir POS
+  Q4Z8X: "/pos",             // Kasir POS
+  P8R4C: "/pembelian",       // Pembelian
+  J1N6D: "/penjualan",       // Penjualan
   T5B8L: "/tutup-kasir",     // Keuangan > Tutup Kasir
 };
 

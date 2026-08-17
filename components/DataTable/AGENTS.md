@@ -59,6 +59,7 @@ const columns: DataTableColumn<Product>[] = [
 - Pagination is client-side and resets to page one when the data array changes.
 - Row selection is single-row and toggles: clicking the selected row deselects it.
 - `onRowClickAction?: (row: T | null) => void` fires on every row click with the row that just became selected, or `null` when the click deselected it. Ignored when `clickable` is `false`.
+- `getRowClassNameAction?: (row: T) => string` appends extra classes to a row's `<tr>` (e.g. a red tint for a cancelled record) on top of the built-in selection/hover styles.
 - `onRowDoubleClickAction?: (row: T) => void` fires on row double-click; only wired up when both `clickable` and `onRowDoubleClickAction` are set. Clicks always toggle selection immediately (no debounce) — a native double-click briefly toggles selection twice (select, then deselect) before `onRowDoubleClickAction` fires, which is an accepted trade-off for instant single-click feedback. Keyboard activation (Enter/Space) always toggles immediately.
 
 ## Structure and ownership
