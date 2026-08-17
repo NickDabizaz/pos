@@ -20,9 +20,9 @@ export default function SideBar({
   defaultCollapsed = false,
   initialItems,
   logoSrc          = "/logo.png",
-  onLogoClick,
+  onLogoClickAction,
   onSelectAction,
-  onToggleCollapse,
+  onToggleCollapseAction,
   title            = "KASIR POS",
   userProfile,
 }: SideBarProps) {
@@ -46,7 +46,7 @@ export default function SideBar({
 
   function handleToggleCollapse() {
     toggleCollapse();
-    onToggleCollapse?.(!isCollapsed);
+    onToggleCollapseAction?.(!isCollapsed);
   }
 
   function handleSelect(node: MenuNode) {
@@ -55,8 +55,8 @@ export default function SideBar({
   }
 
   function handleLogoClick() {
-    if (onLogoClick) {
-      onLogoClick();
+    if (onLogoClickAction) {
+      onLogoClickAction();
     } else {
       setActiveKey(undefined);
     }
@@ -70,11 +70,11 @@ export default function SideBar({
       } ${className}`.trim()}
     >
       <SideBarHeader
-        isCollapsed      = {isCollapsed}
-        logoSrc          = {logoSrc}
-        onLogoClick      = {handleLogoClick}
-        onToggleCollapse = {handleToggleCollapse}
-        title            = {title}
+        isCollapsed            = {isCollapsed}
+        logoSrc                = {logoSrc}
+        onLogoClickAction      = {handleLogoClick}
+        onToggleCollapseAction = {handleToggleCollapse}
+        title                  = {title}
       />
 
       {isLoading ? (

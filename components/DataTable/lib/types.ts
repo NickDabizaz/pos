@@ -46,7 +46,7 @@ export type DataTableProps<T extends object> = {
   locale          ?: string;
   currency        ?: string;
   emptyMessage    ?: string;
-  className       ?: string;
-  onRowClick      ?: (row: T | null) => void;
-  onRowDoubleClick?: (row: T) => void;
+  className             ?: string;
+  onRowClickAction      ?: (row: T | null) => void;
+  onRowDoubleClickAction?: (row: T) => void;
 };

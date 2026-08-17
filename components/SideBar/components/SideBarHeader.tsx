@@ -1,18 +1,18 @@
 import Image from "next/image";
 
 type SideBarHeaderProps = {
-  isCollapsed     : boolean;
-  logoSrc        ?: string;
-  onLogoClick    ?: () => void;
-  onToggleCollapse: () => void;
-  title          ?: string;
+  isCollapsed           : boolean;
+  logoSrc              ?: string;
+  onLogoClickAction    ?: () => void;
+  onToggleCollapseAction: () => void;
+  title                ?: string;
 };
 
 export default function SideBarHeader({
   isCollapsed,
   logoSrc = "/logo.png",
-  onLogoClick,
-  onToggleCollapse,
+  onLogoClickAction,
+  onToggleCollapseAction,
   title = "KASIR POS",
 }: SideBarHeaderProps) {
   return (
@@ -20,7 +20,7 @@ export default function SideBarHeader({
       <button
         aria-label = {`Buka beranda ${title}`}
         className  = "group flex min-w-0 items-center gap-2.5 rounded-xl p-1 text-left transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onClick    = {onLogoClick}
+        onClick    = {onLogoClickAction}
         type       = "button"
       >
         <div className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-card p-1 shadow-xs transition-transform group-hover:scale-105">
@@ -54,7 +54,7 @@ export default function SideBarHeader({
       <button
         aria-label = {isCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
         className  = "flex size-7 items-center justify-center rounded-lg text-muted-foreground/80 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onClick    = {onToggleCollapse}
+        onClick    = {onToggleCollapseAction}
         title      = {isCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
         type       = "button"
       >

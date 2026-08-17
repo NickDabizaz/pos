@@ -14,11 +14,11 @@ export type SideBarProps = {
   className       ?: string;
   defaultCollapsed?: boolean;
   initialItems    ?: MenuNode[];
-  logoSrc         ?: string;
-  onLogoClick     ?: () => void;
-  onSelectAction  ?: (node: MenuNode) => void;
-  onToggleCollapse?: (collapsed: boolean) => void;
-  title           ?: string;
+  logoSrc               ?: string;
+  onLogoClickAction     ?: () => void;
+  onSelectAction        ?: (node: MenuNode) => void;
+  onToggleCollapseAction?: (collapsed: boolean) => void;
+  title                 ?: string;
   userProfile     ?: {
     avatarUrl ?: string;
     branchName?: string;

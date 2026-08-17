@@ -58,8 +58,8 @@ const columns: DataTableColumn<Product>[] = [
 - `clickable` defaults to `true`; selected rows use the module's Tailwind state styles.
 - Pagination is client-side and resets to page one when the data array changes.
 - Row selection is single-row and toggles: clicking the selected row deselects it.
-- `onRowClick?: (row: T | null) => void` fires on every row click with the row that just became selected, or `null` when the click deselected it. Ignored when `clickable` is `false`.
-- `onRowDoubleClick?: (row: T) => void` fires on row double-click; only wired up when both `clickable` and `onRowDoubleClick` are set. Clicks always toggle selection immediately (no debounce) — a native double-click briefly toggles selection twice (select, then deselect) before `onRowDoubleClick` fires, which is an accepted trade-off for instant single-click feedback. Keyboard activation (Enter/Space) always toggles immediately.
+- `onRowClickAction?: (row: T | null) => void` fires on every row click with the row that just became selected, or `null` when the click deselected it. Ignored when `clickable` is `false`.
+- `onRowDoubleClickAction?: (row: T) => void` fires on row double-click; only wired up when both `clickable` and `onRowDoubleClickAction` are set. Clicks always toggle selection immediately (no debounce) — a native double-click briefly toggles selection twice (select, then deselect) before `onRowDoubleClickAction` fires, which is an accepted trade-off for instant single-click feedback. Keyboard activation (Enter/Space) always toggles immediately.
 
 ## Structure and ownership
 

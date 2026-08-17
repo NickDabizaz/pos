@@ -26,8 +26,8 @@ export default function DataTable<T extends object>({
   currency        = "IDR",
   emptyMessage    = "Tidak ada data",
   className       = "",
-  onRowClick,
-  onRowDoubleClick,
+  onRowClickAction,
+  onRowDoubleClickAction,
 }: DataTableProps<T>) {
   const sorting = useDataTableSorting(data, locale);
   const pagination = useDataTablePagination(
@@ -45,20 +45,20 @@ export default function DataTable<T extends object>({
       className={`overflow-hidden rounded-2xl border border-border bg-card shadow-xs ring-1 ring-slate-950/5 ${className}`.trim()}
     >
       <DataTableContent
-        clickable        = {clickable}
-        columns          = {columns}
-        dataSource       = {sorting.sortedData}
-        emptyMessage     = {emptyMessage}
-        formatCell       = {formatCell}
-        onRowClick       = {onRowClick}
-        onRowDoubleClick = {onRowDoubleClick}
-        onSort           = {sorting.toggleSort}
-        pageSize         = {pagination.pageSize}
-        rowKey           = {rowKey}
-        rows             = {pagination.rows}
-        sortDirection    = {sorting.sortDirection}
-        sortKey          = {sorting.sortKey}
-        startIndex       = {pagination.startIndex}
+        clickable              = {clickable}
+        columns                = {columns}
+        dataSource             = {sorting.sortedData}
+        emptyMessage           = {emptyMessage}
+        formatCell             = {formatCell}
+        onRowClickAction       = {onRowClickAction}
+        onRowDoubleClickAction = {onRowDoubleClickAction}
+        onSort                 = {sorting.toggleSort}
+        pageSize               = {pagination.pageSize}
+        rowKey                 = {rowKey}
+        rows                   = {pagination.rows}
+        sortDirection          = {sorting.sortDirection}
+        sortKey                = {sorting.sortKey}
+        startIndex             = {pagination.startIndex}
       />
       <PaginationControls
         availablePageSizes = {pagination.availablePageSizes}

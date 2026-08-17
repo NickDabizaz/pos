@@ -136,10 +136,10 @@ export default function Home() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       <SideBar
-        activeKey      = {activeMenu?.kodemenu}
-        apiUrl         = "/api/menu/tree"
-        onLogoClick    = {() => setActiveMenu(undefined)}
-        onSelectAction = {(node) => {
+        activeKey         = {activeMenu?.kodemenu}
+        apiUrl            = "/api/menu/tree"
+        onLogoClickAction = {() => setActiveMenu(undefined)}
+        onSelectAction    = {(node) => {
           setActiveMenu(node);
 
           const route = menuRoutes[node.kodemenu];

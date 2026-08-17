@@ -14,20 +14,20 @@ import type { SortDirection } from "@/components/DataTable/lib/useDataTableSorti
 type RowIdentifier = number | string;
 
 type DataTableContentProps<T extends object> = {
-  clickable        : boolean;
-  columns          : DataTableColumn<T>[];
-  dataSource       : T[];
-  emptyMessage     : string;
-  formatCell       : CellFormatter;
-  onRowClick      ?: (row: T | null) => void;
-  onRowDoubleClick?: (row: T) => void;
-  onSort           : (key: keyof T) => void;
-  pageSize        ?: number;
-  rowKey          ?: keyof T;
-  rows             : T[];
-  sortDirection    : SortDirection | null;
-  sortKey          : keyof T | null;
-  startIndex       : number;
+  clickable              : boolean;
+  columns                : DataTableColumn<T>[];
+  dataSource             : T[];
+  emptyMessage           : string;
+  formatCell             : CellFormatter;
+  onRowClickAction      ?: (row: T | null) => void;
+  onRowDoubleClickAction?: (row: T) => void;
+  onSort                 : (key: keyof T) => void;
+  pageSize              ?: number;
+  rowKey                ?: keyof T;
+  rows                   : T[];
+  sortDirection          : SortDirection | null;
+  sortKey                : keyof T | null;
+  startIndex             : number;
 };
 
 type RowSelection<T> = {
@@ -54,8 +54,8 @@ export default function DataTableContent<T extends object>({
   dataSource,
   emptyMessage,
   formatCell,
-  onRowClick,
-  onRowDoubleClick,
+  onRowClickAction,
+  onRowDoubleClickAction,
   onSort,
   pageSize,
   rowKey,
@@ -182,9 +182,9 @@ export default function DataTableContent<T extends object>({
               const activateRow = () => {
                 const nextIdentifier = isSelected ? null : identifier;
                 selectRow(nextIdentifier);
-                onRowClick?.(nextIdentifier === null ? null : row);
+                onRowClickAction?.(nextIdentifier === null ? null : row);
               };
-              const handleDoubleClick = () => onRowDoubleClick?.(row);
+              const handleDoubleClick = () => onRowDoubleClickAction?.(row);
 
               return (
                 <tr
@@ -192,7 +192,7 @@ export default function DataTableContent<T extends object>({
                   className={getRowClassName(clickable, isSelected)}
                   key={identifier}
                   onClick={clickable ? activateRow : undefined}
-                  onDoubleClick={clickable && onRowDoubleClick ? handleDoubleClick : undefined}
+                  onDoubleClick={clickable && onRowDoubleClickAction ? handleDoubleClick : undefined}
                   onKeyDown={
                     clickable
                       ? (event) => selectRowWithKeyboard(event, activateRow)
