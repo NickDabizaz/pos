@@ -5,6 +5,8 @@
  */
 export const menuRoutes: Record<string, string> = {
   B2H5G: "/master/barang", // Master > Barang
+  Q4Z8X: "/pos",           // Kasir POS
+  T5B8L: "/tutup-kasir",   // Keuangan > Tutup Kasir
 };
 
 export function findKodemenuForPath(pathname: string): string | undefined {
