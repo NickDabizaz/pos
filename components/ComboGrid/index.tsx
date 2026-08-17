@@ -32,12 +32,18 @@ export default function ComboGrid<T extends object>({
   const dropdownId     = useId();
   const searchableKeys = searchKeys ?? [labelKey];
   const {
+    closeDropdown,
     displayValue,
+    highlightedIndex,
     isOpen,
+    navigateNext,
+    navigatePrevious,
+    openDropdown,
     query,
     rows,
-    setIsOpen,
+    setHighlightedIndex,
     setQuery,
+    updateQuery,
   } = useComboGrid({
     data,
     labelKey,
@@ -49,69 +55,90 @@ export default function ComboGrid<T extends object>({
   useEffect(() => {
     function closeOnOutsideClick(event: MouseEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
+        closeDropdown();
       }
     }
 
     document.addEventListener("mousedown", closeOnOutsideClick);
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
-  }, [setIsOpen]);
+  }, [closeDropdown]);
 
   function selectRow(row: T) {
     onChangeAction?.(row[valueKey], row);
     setQuery("");
-    setIsOpen(false);
+    closeDropdown();
     inputRef.current?.focus();
   }
+
+  const activeDescendant =
+    isOpen && highlightedIndex >= 0
+      ? `combo-grid-row-${highlightedIndex}`
+      : undefined;
 
   return (
     <div className={`relative ${className}`.trim()} ref={containerRef}>
       <ComboGridInput
-        disabled       = {disabled}
-        dropdownId     = {dropdownId}
-        inputClassName = {inputClassName}
-        inputRef       = {inputRef}
-        isOpen         = {isOpen}
-        label          = {label}
-        onChange = {(event) => {
+        activeDescendant = {activeDescendant}
+        disabled         = {disabled}
+        dropdownId       = {dropdownId}
+        inputClassName   = {inputClassName}
+        inputRef         = {inputRef}
+        isOpen           = {isOpen}
+        label            = {label}
+        onChange         = {(event) => {
           const nextQuery = event.target.value;
 
-          setQuery(nextQuery);
-          setIsOpen(true);
+          updateQuery(nextQuery);
 
           if (!nextQuery) {
             onChangeAction?.(undefined, undefined);
           }
         }}
-        onKeyDown = {(event) => {
+        onKeyDown        = {(event) => {
           if (event.key === "Escape") {
-            setIsOpen(false);
-          }
-          if (event.key === "ArrowDown") {
+            closeDropdown();
+          } else if (event.key === "ArrowDown") {
             event.preventDefault();
-            setIsOpen(true);
+            navigateNext();
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            navigatePrevious();
+          } else if (event.key === "Enter") {
+            if (isOpen && highlightedIndex >= 0 && rows[highlightedIndex]) {
+              event.preventDefault();
+              selectRow(rows[highlightedIndex]);
+            }
           }
         }}
-        onToggle = {() => {
-          setQuery("");
-          setIsOpen((open) => !open);
+        onToggle         = {() => {
+          if (isOpen) {
+            closeDropdown();
+          } else {
+            setQuery("");
+            openDropdown();
+          }
         }}
-        placeholder    = {placeholder}
-        required       = {required}
-        value          = {isOpen ? query : displayValue}
+        placeholder      = {placeholder}
+        required         = {required}
+        value            = {isOpen ? query : displayValue}
       />
 
       {isOpen ? (
-        <div className={`absolute z-20 mt-2 w-full min-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-slate-950/10 ${dropdownClassName}`.trim()} id={dropdownId}>
+        <div
+          className={`absolute z-20 mt-2 w-full min-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-xl shadow-slate-950/10 ${dropdownClassName}`.trim()}
+          id={dropdownId}
+        >
           <ComboGridTable
-            columns        = {columns}
-            currency       = "IDR"
-            emptyMessage   = {emptyMessage}
-            locale         = "id-ID"
-            onSelect       = {selectRow}
-            rows           = {rows}
-            selectedValue  = {value}
-            valueKey       = {valueKey}
+            columns          = {columns}
+            currency         = "IDR"
+            emptyMessage     = {emptyMessage}
+            highlightedIndex = {highlightedIndex}
+            locale           = "id-ID"
+            onHoverRow       = {setHighlightedIndex}
+            onSelect         = {selectRow}
+            rows             = {rows}
+            selectedValue    = {value}
+            valueKey         = {valueKey}
           />
         </div>
       ) : null}
