@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+
+import ComboGrid, { type ComboGridColumn } from "@/components/ComboGrid";
 import DataTable, { type DataTableColumn } from "@/components/DataTable";
 
 type Product = {
@@ -89,7 +92,42 @@ const columns: DataTableColumn<Product>[] = [
   },
 ];
 
+const comboGridColumns: ComboGridColumn<Product>[] = [
+  {
+    key  : "internalCode",
+    label: "Kode",
+    width: "140px",
+  },
+  {
+    key  : "name",
+    label: "Nama Produk",
+    width: "240px",
+  },
+  {
+    key  : "category",
+    label: "Kategori",
+    width: "150px",
+  },
+  {
+    align : "right",
+    format: "currency",
+    key   : "price",
+    label : "Harga",
+    width : "180px",
+  },
+  {
+    align : "center",
+    format: "quantity",
+    key   : "stock",
+    label : "Stok",
+    width : "80px",
+  },
+];
+
 export default function Home() {
+  const [selectedProductId, setSelectedProductId] = useState<number>();
+  const selectedProduct = products.find(({ id }) => id === selectedProductId);
+
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
@@ -107,6 +145,37 @@ export default function Home() {
             Katalog produk dan stok barang aktif dalam sistem kasir POS.
           </p>
         </div>
+
+        <section className="mb-8 rounded-2xl border border-border bg-card p-5 shadow-xs ring-1 ring-slate-950/5 sm:p-6">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Contoh penggunaan
+            </p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">
+              Tambah produk ke transaksi
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Cari berdasarkan kode, nama, atau kategori, lalu pilih satu baris.
+            </p>
+          </div>
+          <ComboGrid
+            className       = "max-w-2xl"
+            columns         = {comboGridColumns}
+            data            = {products}
+            label           = "Produk"
+            labelKey        = "name"
+            onChangeAction  = {(value) => setSelectedProductId(value as number)}
+            placeholder     = "Ketik nama atau kode produk..."
+            searchKeys      = {["name", "internalCode", "category"]}
+            value           = {selectedProductId}
+            valueKey        = "id"
+          />
+          <p aria-live="polite" className="mt-3 text-sm text-muted-foreground">
+            {selectedProduct
+              ? `Nilai tersimpan: ${selectedProduct.id} · ${selectedProduct.name}`
+              : "Belum ada produk yang dipilih."}
+          </p>
+        </section>
 
         <DataTable columns={columns} data={products} rowKey="id" />
       </div>

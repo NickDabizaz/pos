@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 
 import PageSizeSelect from "@/components/DataTable/components/PageSizeSelect";
