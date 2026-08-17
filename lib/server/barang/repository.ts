@@ -1,14 +1,14 @@
 import type { Barang } from "@/lib/server/barang/types";
 
 const seedBarang: Barang[] = [
-  { kodebarang: "BRG-0001", namabarang: "Beras 5kg", satuan: "Karung", hargabeli: 55000, hargajual: 65000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0002", namabarang: "Teh Botol", satuan: "Botol", hargabeli: 3000, hargajual: 5000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0003", namabarang: "Minyak Goreng 2L", satuan: "Botol", hargabeli: 28000, hargajual: 34000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0004", namabarang: "Pulpen Standar", satuan: "Pcs", hargabeli: 1500, hargajual: 2500, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0005", namabarang: "Kopi Sachet", satuan: "Pcs", hargabeli: 1000, hargajual: 2000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0006", namabarang: "Buku Tulis 38 Lembar", satuan: "Pcs", hargabeli: 2500, hargajual: 4000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0007", namabarang: "Gula Pasir 1kg", satuan: "Bungkus", hargabeli: 13000, hargajual: 16000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0008", namabarang: "Sabun Cuci Piring", satuan: "Botol", hargabeli: 8000, hargajual: 11000, pakaiStok: false, status: 0 },
+  { kodebarang: "BRG-0001", namabarang: "Beras 5kg", barcode: "8991002100017", satuan: "Karung", hargabeli: 55000, hargajual: 65000, pakaiStok: true, status: 1 },
+  { kodebarang: "BRG-0002", namabarang: "Teh Botol", barcode: "8991002100024", satuan: "Botol", hargabeli: 3000, hargajual: 5000, pakaiStok: true, status: 1 },
+  { kodebarang: "BRG-0003", namabarang: "Minyak Goreng 2L", barcode: "8991002100031", satuan: "Botol", hargabeli: 28000, hargajual: 34000, pakaiStok: true, status: 1 },
+  { kodebarang: "BRG-0004", namabarang: "Pulpen Standar", barcode: "8991002100048", satuan: "Pcs", hargabeli: 1500, hargajual: 2500, pakaiStok: true, status: 1 },
+  { kodebarang: "BRG-0005", namabarang: "Kopi Sachet", barcode: "8991002100055", satuan: "Pcs", hargabeli: 1000, hargajual: 2000, pakaiStok: true, status: 1 },
+  { kodebarang: "BRG-0006", namabarang: "Buku Tulis 38 Lembar", barcode: "8991002100062", satuan: "Pcs", hargabeli: 2500, hargajual: 4000, pakaiStok: true, status: 1 },
+  { kodebarang: "BRG-0007", namabarang: "Gula Pasir 1kg", barcode: "8991002100079", satuan: "Bungkus", hargabeli: 13000, hargajual: 16000, pakaiStok: true, status: 1 },
+  { kodebarang: "BRG-0008", namabarang: "Sabun Cuci Piring", barcode: "8991002100086", satuan: "Botol", hargabeli: 8000, hargajual: 11000, pakaiStok: false, status: 0 },
 ];
 
 let barangStore: Barang[] = [...seedBarang];

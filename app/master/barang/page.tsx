@@ -34,6 +34,7 @@ async function fetchBarangList(): Promise<Barang[]> {
 const emptyBarang: Barang = {
   kodebarang: "",
   namabarang: "",
+  barcode   : "",
   satuan    : "",
   hargabeli : 0,
   hargajual : 0,
@@ -54,6 +55,11 @@ const columns: DataTableColumn<Barang>[] = [
     maxWidth: "480px",
     minWidth: "180px",
     width   : "240px",
+  },
+  {
+    key  : "barcode",
+    label: "Barcode",
+    width: "160px",
   },
   {
     key  : "satuan",
@@ -223,7 +229,7 @@ export default function MasterBarangPage() {
           Master Barang
         </h1>
         <p className="text-sm text-muted-foreground">
-          Kelola data barang: tambah, ubah, dan hapus item.
+          Kelola data barang yang digunakan pada transaksi.
         </p>
       </div>
 
@@ -268,12 +274,12 @@ export default function MasterBarangPage() {
         </p>
       ) : (
         <DataTable
-          columns          = {columns}
-          data             = {filteredItems}
-          emptyMessage     = {isLoading ? "Memuat data..." : "Tidak ada barang yang cocok"}
-          onRowClick       = {(row) => setSelected(row)}
-          onRowDoubleClick = {(row) => setModalState({ mode: "edit", values: row })}
-          rowKey           = "kodebarang"
+          columns                = {columns}
+          data                   = {filteredItems}
+          emptyMessage           = {isLoading ? "Memuat data..." : "Tidak ada barang yang cocok"}
+          onRowClickAction       = {(row) => setSelected(row)}
+          onRowDoubleClickAction = {(row) => setModalState({ mode: "edit", values: row })}
+          rowKey                 = "kodebarang"
         />
       )}
 

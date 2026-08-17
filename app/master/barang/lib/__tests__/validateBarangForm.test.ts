@@ -6,6 +6,7 @@ import type { Barang } from "@/app/master/barang/lib/types";
 const validValues: Barang = {
   kodebarang: "BRG-0001",
   namabarang: "Beras 5kg",
+  barcode   : "8991002100017",
   satuan    : "Karung",
   hargabeli : 55000,
   hargajual : 65000,

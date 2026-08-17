@@ -13,6 +13,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const barang: Barang = {
       kodebarang: String(body.kodebarang ?? idbarang),
       namabarang: String(body.namabarang ?? ""),
+      barcode   : String(body.barcode ?? ""),
       satuan    : String(body.satuan ?? ""),
       hargabeli : Number(body.hargabeli),
       hargajual : Number(body.hargajual),

@@ -15,6 +15,7 @@ import type { Barang } from "@/lib/server/barang/types";
 const newBarang: Barang = {
   kodebarang: "BRG-9999",
   namabarang: "Item Baru",
+  barcode   : "8991002199999",
   satuan    : "Pcs",
   hargabeli : 1000,
   hargajual : 1500,

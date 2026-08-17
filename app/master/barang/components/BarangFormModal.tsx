@@ -113,6 +113,16 @@ export default function BarangFormModal({
             />
           </FormField>
 
+          <FormField error={errors.barcode} htmlFor="barcode" label="Barcode">
+            <input
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+              id="barcode"
+              onChange={handleTextChange("barcode")}
+              type="text"
+              value={values.barcode}
+            />
+          </FormField>
+
           <FormField error={errors.satuan} htmlFor="satuan" label="Satuan">
             <input
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
