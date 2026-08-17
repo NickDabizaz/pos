@@ -8,16 +8,11 @@ import BarangFormModal from "@/app/master/barang/components/BarangFormModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { filterBarang } from "@/app/master/barang/lib/filterBarang";
 import type { Barang } from "@/app/master/barang/lib/types";
-import { fetchBarangList } from "@/lib/client/barang";
+import { createBarang, deleteBarang, fetchBarangList, updateBarang } from "@/lib/client/barang";
 
 type ModalState =
   | { mode: "create" }
   | { mode: "edit"; values: Barang };
-
-type ApiResponse<T> = {
-  data   ?: T;
-  message : string;
-};
 
 const emptyBarang: Barang = {
   kodebarang: "",
@@ -131,30 +126,21 @@ export default function MasterBarangPage() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    let ignore = false;
 
-    async function loadInitialBarang() {
-      try {
-        const data = await fetchBarangList();
-
-        if (isMounted) {
-          setItems(data);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setLoadError(error instanceof Error ? error.message : "Gagal memuat data barang");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadInitialBarang();
+    fetchBarangList()
+      .then((data) => {
+        if (!ignore) setItems(data);
+      })
+      .catch((error) => {
+        if (!ignore) setLoadError(error instanceof Error ? error.message : "Gagal memuat data barang");
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
 
     return () => {
-      isMounted = false;
+      ignore = true;
     };
   }, []);
 
@@ -167,14 +153,7 @@ export default function MasterBarangPage() {
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/master/barang/${selected.kodebarang}`, {
-        method: "DELETE",
-      });
-      const json: ApiResponse<never> = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.message);
-      }
+      await deleteBarang(selected.kodebarang);
 
       setSelected(null);
       setIsConfirmingDelete(false);
@@ -188,22 +167,12 @@ export default function MasterBarangPage() {
 
   async function handleFormSubmit(values: Barang, autoGenerateKode: boolean) {
     const isEdit = modalState?.mode === "edit";
-    const url = isEdit
-      ? `/api/master/barang/${modalState.values.kodebarang}`
-      : "/api/master/barang";
-    const response = await fetch(url, {
-      method : isEdit ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body   : JSON.stringify(isEdit ? values : { ...values, autoGenerateKode }),
-    });
-    const json: ApiResponse<Barang> = await response.json();
-
-    if (!response.ok) {
-      throw new Error(json.message);
-    }
+    const saved = isEdit
+      ? await updateBarang(modalState.values.kodebarang, values)
+      : await createBarang({ ...values, autoGenerateKode });
 
     if (isEdit && selected?.kodebarang === modalState.values.kodebarang) {
-      setSelected(json.data ?? null);
+      setSelected(saved);
     }
 
     setModalState(null);

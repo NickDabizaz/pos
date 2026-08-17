@@ -8,6 +8,8 @@ import type {
 
 export class ShiftAlreadyOpenError extends Error {}
 export class NoActiveShiftError extends Error {}
+export class ShiftAlreadyClosedTodayError extends Error {}
+export class ShiftNotClosedTodayError extends Error {}
 
 function generateShiftCode(): string {
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -15,14 +17,35 @@ function generateShiftCode(): string {
   return `SFT-${dateStr}-${randomSuffix}`;
 }
 
+function isSameDay(isoDate: string, reference: Date): boolean {
+  const date = new Date(isoDate);
+  return (
+    date.getFullYear() === reference.getFullYear() &&
+    date.getMonth() === reference.getMonth() &&
+    date.getDate() === reference.getDate()
+  );
+}
+
 export function getActiveShift(): Shift | null {
   const shift = getCurrentShift();
   return shift && shift.status === "OPEN" ? shift : null;
 }
 
+/** The shift opened today, whether still open or already closed. One shift per day. */
+export function getShiftForToday(): Shift | null {
+  const shift = getCurrentShift();
+  return shift && isSameDay(shift.openedAt, new Date()) ? shift : null;
+}
+
 export function openShift(input: OpenShiftInput): Shift {
   if (getActiveShift()) {
     throw new ShiftAlreadyOpenError("Shift sudah dibuka, tutup shift sebelumnya terlebih dahulu");
+  }
+
+  if (getShiftForToday()) {
+    throw new ShiftAlreadyClosedTodayError(
+      "Shift hari ini sudah ditutup. Batalkan penutupan shift untuk melanjutkan, bukan membuka shift baru.",
+    );
   }
 
   const shift: Shift = {
@@ -56,6 +79,30 @@ export function recordShiftTransaction(input: RecordShiftTransactionInput): Shif
 
   setCurrentShift(updated);
   return updated;
+}
+
+/** Undoes today's shift closure, resuming the same shift instead of starting a new one. */
+export function cancelCloseShift(): Shift {
+  if (getActiveShift()) {
+    throw new ShiftNotClosedTodayError("Shift sedang aktif, tidak ada penutupan yang perlu dibatalkan");
+  }
+
+  const shift = getShiftForToday();
+
+  if (!shift) {
+    throw new ShiftNotClosedTodayError("Tidak ada penutupan shift hari ini yang bisa dibatalkan");
+  }
+
+  const resumed: Shift = {
+    ...shift,
+    status   : "OPEN",
+    closedAt : undefined,
+    kasAktual: undefined,
+    catatan  : undefined,
+  };
+
+  setCurrentShift(resumed);
+  return resumed;
 }
 
 export function closeShift(input: CloseShiftInput): Shift {

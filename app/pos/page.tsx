@@ -10,14 +10,10 @@ import ProductGrid from "@/app/pos/components/ProductGrid";
 import ReceiptModal from "@/app/pos/components/ReceiptModal";
 import { usePosCart } from "@/app/pos/lib/usePosCart";
 import { usePosKeyboardShortcuts } from "@/app/pos/lib/usePosKeyboardShortcuts";
-import type {
-  Barang,
-  PaymentMethod,
-  ShiftSession,
-  TransactionSummary,
-} from "@/app/pos/lib/types";
+import type { Barang, PaymentMethod, TransactionSummary } from "@/app/pos/lib/types";
 import { fetchBarangList } from "@/lib/client/barang";
-import { fetchActiveShift, openShift, recordShiftTransaction } from "@/lib/client/shift";
+import { cancelCloseShift, openShift, recordShiftTransaction } from "@/lib/client/shift";
+import { useShiftSession } from "@/lib/client/useShiftSession";
 import type { OpenShiftInput } from "@/lib/server/shift/types";
 
 async function fetchBarangCatalog(): Promise<Barang[]> {
@@ -30,7 +26,8 @@ async function fetchBarangCatalog(): Promise<Barang[]> {
 }
 
 export default function PosPage() {
-  const [session, setSession]                   = useState<ShiftSession | null>(null);
+  const { isLoading: isShiftLoading, loadError: shiftLoadError, setShift: setSession, shift: session } =
+    useShiftSession();
   const [isOpeningShift, setIsOpeningShift]     = useState(false);
   const [shiftError, setShiftError]             = useState<string | null>(null);
   const [products, setProducts]                 = useState<Barang[]>([]);
@@ -45,20 +42,12 @@ export default function PosPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadInitialData() {
-      const [productData, activeShift] = await Promise.all([
-        fetchBarangCatalog(),
-        fetchActiveShift().catch(() => null),
-      ]);
-
+    fetchBarangCatalog().then((data) => {
       if (isMounted) {
-        setProducts(productData);
-        setSession(activeShift);
+        setProducts(data);
         setIsLoading(false);
       }
-    }
-
-    loadInitialData();
+    });
 
     return () => {
       isMounted = false;
@@ -73,6 +62,19 @@ export default function PosPage() {
       setSession(await openShift(input));
     } catch (error) {
       setShiftError(error instanceof Error ? error.message : "Gagal membuka shift");
+    } finally {
+      setIsOpeningShift(false);
+    }
+  }
+
+  async function handleCancelCloseShift() {
+    setIsOpeningShift(true);
+    setShiftError(null);
+
+    try {
+      setSession(await cancelCloseShift());
+    } catch (error) {
+      setShiftError(error instanceof Error ? error.message : "Gagal membatalkan penutupan shift");
     } finally {
       setIsOpeningShift(false);
     }
@@ -191,10 +193,12 @@ export default function PosPage() {
 
       {/* Modal Awal (Blocking Shift Gate) */}
       <ModalAwalDialog
-        errorMessage   = {shiftError}
-        isOpen         = {session?.status !== "OPEN"}
-        isSubmitting   = {isOpeningShift}
-        onSubmitAction = {handleOpenShift}
+        closedShift         = {session?.status === "CLOSED" ? session : null}
+        errorMessage        = {shiftError ?? shiftLoadError}
+        isOpen              = {!isShiftLoading && session?.status !== "OPEN"}
+        isSubmitting        = {isOpeningShift}
+        onCancelCloseAction = {handleCancelCloseShift}
+        onSubmitAction      = {handleOpenShift}
       />
 
       {/* Payment Multi-Method Modal */}

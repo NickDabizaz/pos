@@ -16,7 +16,18 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function TutupKasirPage() {
   const router = useRouter();
-  const { closeError, closeShift, closedShift, isClosing, isLoading, loadError, shift } = useTutupKasir();
+  const {
+    cancelClose,
+    cancelCloseError,
+    closeError,
+    closedShift,
+    closeShift,
+    isCancelingClose,
+    isClosing,
+    isLoading,
+    loadError,
+    shift,
+  } = useTutupKasir();
 
   const [kasAktualInput, setKasAktualInput] = useState("0");
   const [catatan, setCatatan]               = useState("");
@@ -64,7 +75,12 @@ export default function TutupKasirPage() {
       </div>
 
       {closedShift ? (
-        <ShiftClosedPanel onBackAction={() => router.push("/pos")} />
+        <ShiftClosedPanel
+          cancelError    = {cancelCloseError}
+          isCanceling    = {isCancelingClose}
+          onBackAction   = {() => router.push("/pos")}
+          onCancelAction = {cancelClose}
+        />
       ) : loadError ? (
         <p className="rounded-2xl border border-status-danger-border bg-status-danger-bg px-4 py-3 text-sm text-status-danger-fg">
           {loadError}

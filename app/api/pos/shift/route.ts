@@ -1,10 +1,15 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { getActiveShift, openShift, ShiftAlreadyOpenError } from "@/lib/server/shift/service";
+import {
+  getShiftForToday,
+  openShift,
+  ShiftAlreadyClosedTodayError,
+  ShiftAlreadyOpenError,
+} from "@/lib/server/shift/service";
 
 export async function GET() {
   return successResponse({
-    message: "Data shift aktif berhasil diambil",
-    data   : getActiveShift(),
+    message: "Data shift hari ini berhasil diambil",
+    data   : getShiftForToday(),
   });
 }
 
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
       data      : shift,
     });
   } catch (error) {
-    if (error instanceof ShiftAlreadyOpenError) {
+    if (error instanceof ShiftAlreadyOpenError || error instanceof ShiftAlreadyClosedTodayError) {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

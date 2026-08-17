@@ -1,17 +1,25 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetShiftStoreForTests } from "@/lib/server/shift/repository";
 import {
+  cancelCloseShift,
   closeShift,
   getActiveShift,
+  getShiftForToday,
   NoActiveShiftError,
   openShift,
   recordShiftTransaction,
+  ShiftAlreadyClosedTodayError,
   ShiftAlreadyOpenError,
+  ShiftNotClosedTodayError,
 } from "@/lib/server/shift/service";
 
 beforeEach(() => {
   resetShiftStoreForTests();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("getActiveShift", () => {
@@ -85,5 +93,90 @@ describe("closeShift", () => {
 
   it("throws when there is no active shift", () => {
     expect(() => closeShift({ kasAktual: 100000 })).toThrow(NoActiveShiftError);
+  });
+});
+
+describe("one-shift-per-day rule", () => {
+  it("rejects opening a new shift after today's shift has been closed", () => {
+    openShift({ kasirName: "Budi", modalAwal: 200000 });
+    closeShift({ kasAktual: 200000 });
+
+    expect(() => openShift({ kasirName: "Sari", modalAwal: 100000 })).toThrow(
+      ShiftAlreadyClosedTodayError,
+    );
+  });
+
+  it("allows opening a brand new shift once the closed shift is from a previous day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-16T10:00:00.000Z"));
+    openShift({ kasirName: "Budi", modalAwal: 200000 });
+    closeShift({ kasAktual: 200000 });
+
+    vi.setSystemTime(new Date("2026-08-17T09:00:00.000Z"));
+    const shift = openShift({ kasirName: "Sari", modalAwal: 100000 });
+
+    expect(shift.kasirName).toBe("Sari");
+    expect(shift.status).toBe("OPEN");
+  });
+
+  describe("getShiftForToday", () => {
+    it("returns null when no shift has been opened today", () => {
+      expect(getShiftForToday()).toBeNull();
+    });
+
+    it("returns the closed shift when it was opened earlier today", () => {
+      openShift({ kasirName: "Budi", modalAwal: 200000 });
+      const closed = closeShift({ kasAktual: 200000 });
+
+      expect(getShiftForToday()).toEqual(closed);
+    });
+
+    it("returns null when the last shift was opened on a previous day", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-08-16T10:00:00.000Z"));
+      openShift({ kasirName: "Budi", modalAwal: 200000 });
+      closeShift({ kasAktual: 200000 });
+
+      vi.setSystemTime(new Date("2026-08-17T09:00:00.000Z"));
+      expect(getShiftForToday()).toBeNull();
+    });
+  });
+
+  describe("cancelCloseShift", () => {
+    it("resumes today's closed shift, keeping accumulated sales and clearing close-out fields", () => {
+      openShift({ kasirName: "Budi", modalAwal: 200000 });
+      recordShiftTransaction({ paymentMethod: "TUNAI", grandTotal: 50000 });
+      const closed = closeShift({ kasAktual: 250000, catatan: "Pas" });
+
+      const resumed = cancelCloseShift();
+
+      expect(resumed.status).toBe("OPEN");
+      expect(resumed.shiftCode).toBe(closed.shiftCode);
+      expect(resumed.penjualanTunai).toBe(50000);
+      expect(resumed.closedAt).toBeUndefined();
+      expect(resumed.kasAktual).toBeUndefined();
+      expect(resumed.catatan).toBeUndefined();
+      expect(getActiveShift()).toEqual(resumed);
+    });
+
+    it("throws when there is no closure to cancel today", () => {
+      expect(() => cancelCloseShift()).toThrow(ShiftNotClosedTodayError);
+    });
+
+    it("throws when the only closed shift is from a previous day", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-08-16T10:00:00.000Z"));
+      openShift({ kasirName: "Budi", modalAwal: 200000 });
+      closeShift({ kasAktual: 200000 });
+
+      vi.setSystemTime(new Date("2026-08-17T09:00:00.000Z"));
+      expect(() => cancelCloseShift()).toThrow(ShiftNotClosedTodayError);
+    });
+
+    it("throws when a shift is already open", () => {
+      openShift({ kasirName: "Budi", modalAwal: 200000 });
+
+      expect(() => cancelCloseShift()).toThrow(ShiftNotClosedTodayError);
+    });
   });
 });

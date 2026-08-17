@@ -1,3 +1,4 @@
+import { parseResponse } from "@/lib/client/apiResponse";
 import type {
   CloseShiftInput,
   OpenShiftInput,
@@ -5,22 +6,8 @@ import type {
   Shift,
 } from "@/lib/server/shift/types";
 
-type ApiResponse<T> = {
-  data   ?: T;
-  message : string;
-};
-
-async function parseResponse<T>(response: Response): Promise<T> {
-  const json: ApiResponse<T> = await response.json();
-
-  if (!response.ok) {
-    throw new Error(json.message);
-  }
-
-  return json.data as T;
-}
-
-export async function fetchActiveShift(): Promise<Shift | null> {
+/** The shift relevant to today: open, closed-but-reopenable, or null if none was opened today. */
+export async function fetchCurrentShift(): Promise<Shift | null> {
   const response = await fetch("/api/pos/shift", {
     headers: { Accept: "application/json" },
   });
@@ -33,6 +20,14 @@ export async function openShift(input: OpenShiftInput): Promise<Shift> {
     method : "POST",
     headers: { "Content-Type": "application/json" },
     body   : JSON.stringify(input),
+  });
+
+  return parseResponse<Shift>(response);
+}
+
+export async function cancelCloseShift(): Promise<Shift> {
+  const response = await fetch("/api/pos/shift/cancel-close", {
+    method: "POST",
   });
 
   return parseResponse<Shift>(response);
