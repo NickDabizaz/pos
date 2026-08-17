@@ -1,0 +1,10 @@
+model menu {
+  kodemenu  String  @id @db.VarChar(10)
+  kodeinduk String? @db.VarChar(10)
+  namamenu  String  @db.VarChar(100)
+  jenis     String  @db.VarChar(10)
+  urutan    String? @db.VarChar(20)
+  status    Int     @default(1) @db.SmallInt
+
+  @@index([kodeinduk], map: "kodeinduk")
+}
