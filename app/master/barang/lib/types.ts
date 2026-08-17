@@ -1,11 +1,11 @@
 export type Barang = {
   kodebarang: string;
   namabarang: string;
-  kategori  : string;
   satuan    : string;
   hargabeli : number;
   hargajual : number;
-  stok      : number;
+  pakaiStok : boolean;
+  status    : 0 | 1;
 };
 
 export type BarangFormErrors = Partial<Record<keyof Barang, string>>;

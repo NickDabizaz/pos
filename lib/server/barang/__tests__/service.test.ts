@@ -15,11 +15,11 @@ import type { Barang } from "@/lib/server/barang/types";
 const newBarang: Barang = {
   kodebarang: "BRG-9999",
   namabarang: "Item Baru",
-  kategori  : "ATK",
   satuan    : "Pcs",
   hargabeli : 1000,
   hargajual : 1500,
-  stok      : 10,
+  pakaiStok : true,
+  status    : 1,
 };
 
 beforeEach(() => {

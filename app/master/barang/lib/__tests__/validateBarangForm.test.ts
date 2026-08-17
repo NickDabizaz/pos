@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { validateBarangForm } from "@/app/modules/master/barang/lib/validateBarangForm";
-import type { Barang } from "@/app/modules/master/barang/lib/types";
+import { validateBarangForm } from "@/app/master/barang/lib/validateBarangForm";
+import type { Barang } from "@/app/master/barang/lib/types";
 
 const validValues: Barang = {
   kodebarang: "BRG-0001",
   namabarang: "Beras 5kg",
-  kategori  : "Makanan",
   satuan    : "Karung",
   hargabeli : 55000,
   hargajual : 65000,
-  stok      : 40,
+  pakaiStok : true,
+  status    : 1,
 };
 
 describe("validateBarangForm", () => {
@@ -23,14 +23,12 @@ describe("validateBarangForm", () => {
       ...validValues,
       kodebarang: "  ",
       namabarang: "",
-      kategori  : "",
       satuan    : "",
     });
 
     expect(errors).toEqual({
       kodebarang: "Kode barang wajib diisi",
       namabarang: "Nama barang wajib diisi",
-      kategori  : "Kategori wajib dipilih",
       satuan    : "Satuan wajib diisi",
     });
   });
@@ -40,13 +38,11 @@ describe("validateBarangForm", () => {
       ...validValues,
       hargabeli: -1,
       hargajual: -1,
-      stok     : -1,
     });
 
     expect(errors).toEqual({
       hargabeli: "Harga beli tidak boleh negatif",
       hargajual: "Harga jual tidak boleh negatif",
-      stok     : "Stok tidak boleh negatif",
     });
   });
 
@@ -55,13 +51,11 @@ describe("validateBarangForm", () => {
       ...validValues,
       hargabeli: NaN,
       hargajual: NaN,
-      stok     : NaN,
     });
 
     expect(errors).toEqual({
       hargabeli: "Harga beli wajib diisi",
       hargajual: "Harga jual wajib diisi",
-      stok     : "Stok wajib diisi",
     });
   });
 
@@ -79,7 +73,6 @@ describe("validateBarangForm", () => {
       ...validValues,
       hargabeli: 0,
       hargajual: 0,
-      stok     : 0,
     });
 
     expect(errors).toEqual({});

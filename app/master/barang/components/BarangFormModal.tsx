@@ -1,21 +1,19 @@
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 
-import type { Barang, BarangFormErrors } from "@/app/modules/master/barang/lib/types";
-import { validateBarangForm } from "@/app/modules/master/barang/lib/validateBarangForm";
+import type { Barang, BarangFormErrors } from "@/app/master/barang/lib/types";
+import { validateBarangForm } from "@/app/master/barang/lib/validateBarangForm";
 
 type BarangFormModalProps = {
-  initialValues  : Barang;
-  kategoriOptions: string[];
-  mode           : "create" | "edit";
-  onCancel       : () => void;
-  onSubmit       : (values: Barang, autoGenerateKode: boolean) => Promise<void>;
+  initialValues: Barang;
+  mode         : "create" | "edit";
+  onCancel     : () => void;
+  onSubmit     : (values: Barang, autoGenerateKode: boolean) => Promise<void>;
 };
 
-type NumericField = "hargabeli" | "hargajual" | "stok";
+type NumericField = "hargabeli" | "hargajual";
 
 export default function BarangFormModal({
   initialValues,
-  kategoriOptions,
   mode,
   onCancel,
   onSubmit,
@@ -27,7 +25,7 @@ export default function BarangFormModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleTextChange(field: keyof Barang) {
-    return (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    return (event: ChangeEvent<HTMLInputElement>) => {
       setValues((previous) => ({ ...previous, [field]: event.target.value }));
     };
   }
@@ -115,35 +113,17 @@ export default function BarangFormModal({
             />
           </FormField>
 
+          <FormField error={errors.satuan} htmlFor="satuan" label="Satuan">
+            <input
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+              id="satuan"
+              onChange={handleTextChange("satuan")}
+              type="text"
+              value={values.satuan}
+            />
+          </FormField>
+
           <div className="grid grid-cols-2 gap-4">
-            <FormField error={errors.kategori} htmlFor="kategori" label="Kategori">
-              <select
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                id="kategori"
-                onChange={handleTextChange("kategori")}
-                value={values.kategori}
-              >
-                <option value="">Pilih kategori</option>
-                {kategoriOptions.map((kategori) => (
-                  <option key={kategori} value={kategori}>
-                    {kategori}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-
-            <FormField error={errors.satuan} htmlFor="satuan" label="Satuan">
-              <input
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                id="satuan"
-                onChange={handleTextChange("satuan")}
-                type="text"
-                value={values.satuan}
-              />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
             <FormField error={errors.hargabeli} htmlFor="hargabeli" label="Harga Beli">
               <input
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
@@ -165,18 +145,29 @@ export default function BarangFormModal({
                 value={Number.isNaN(values.hargajual) ? "" : values.hargajual}
               />
             </FormField>
-
-            <FormField error={errors.stok} htmlFor="stok" label="Stok">
-              <input
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                id="stok"
-                min={0}
-                onChange={handleNumberChange("stok")}
-                type="number"
-                value={Number.isNaN(values.stok) ? "" : values.stok}
-              />
-            </FormField>
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              checked={values.pakaiStok}
+              onChange={(event) =>
+                setValues((previous) => ({ ...previous, pakaiStok: event.target.checked }))
+              }
+              type="checkbox"
+            />
+            Pakai Stok
+          </label>
+
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              checked={values.status === 1}
+              onChange={(event) =>
+                setValues((previous) => ({ ...previous, status: event.target.checked ? 1 : 0 }))
+              }
+              type="checkbox"
+            />
+            Aktif
+          </label>
 
           <div className="mt-2 flex justify-end gap-3">
             <button

@@ -31,6 +31,12 @@ Place a reusable module with complex behavior under
 data. Before creating or changing a table, read `components/DataTable/AGENTS.md`
 and reuse this module.
 
+## ConfirmDialog
+
+`ConfirmDialog` is the project's global module for confirming a destructive
+or consequential action. Before building a confirm popup, read
+`components/ConfirmDialog/AGENTS.md` and reuse this module.
+
 ## Testing
 
 Tests use Vitest (`npm test`). Never place a `*.test.ts` file next to the code

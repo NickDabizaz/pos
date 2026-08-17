@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useState } from "react";
 
 import ColumnResizeHandle from "@/components/DataTable/components/ColumnResizeHandle";
 import SortIndicator from "@/components/DataTable/components/SortIndicator";
@@ -36,13 +36,6 @@ type RowSelection<T> = {
   selectedRow: RowIdentifier | null;
 };
 
-type PendingClick = {
-  identifier: RowIdentifier;
-  timeoutId : ReturnType<typeof setTimeout>;
-};
-
-const DOUBLE_CLICK_WINDOW_MS = 250;
-
 const alignmentClasses: Record<ColumnAlignment, string> = {
   left  : "text-left",
   center: "text-center",
@@ -73,16 +66,6 @@ export default function DataTableContent<T extends object>({
 }: DataTableContentProps<T>) {
   const visibleColumns = columns.filter((column) => !column.hide);
   const [selectedRow, selectRow] = useRowSelection(dataSource, clickable);
-  const pendingClickRef = useRef<PendingClick | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (pendingClickRef.current) {
-        clearTimeout(pendingClickRef.current.timeoutId);
-      }
-    };
-  }, []);
-
   const {
     columnWidths,
     tableRef,
@@ -201,31 +184,6 @@ export default function DataTableContent<T extends object>({
                 selectRow(nextIdentifier);
                 onRowClick?.(nextIdentifier === null ? null : row);
               };
-              const handleClick = () => {
-                if (!onRowDoubleClick) {
-                  activateRow();
-                  return;
-                }
-
-                const pending = pendingClickRef.current;
-
-                if (pending) {
-                  clearTimeout(pending.timeoutId);
-
-                  if (pending.identifier === identifier) {
-                    pendingClickRef.current = null;
-                    return;
-                  }
-                }
-
-                pendingClickRef.current = {
-                  identifier,
-                  timeoutId: setTimeout(() => {
-                    pendingClickRef.current = null;
-                    activateRow();
-                  }, DOUBLE_CLICK_WINDOW_MS),
-                };
-              };
               const handleDoubleClick = () => onRowDoubleClick?.(row);
 
               return (
@@ -233,7 +191,7 @@ export default function DataTableContent<T extends object>({
                   aria-selected={clickable ? isSelected : undefined}
                   className={getRowClassName(clickable, isSelected)}
                   key={identifier}
-                  onClick={clickable ? handleClick : undefined}
+                  onClick={clickable ? activateRow : undefined}
                   onDoubleClick={clickable && onRowDoubleClick ? handleDoubleClick : undefined}
                   onKeyDown={
                     clickable

@@ -22,11 +22,11 @@ export async function POST(request: Request) {
     const barang: Barang = {
       kodebarang: autoGenerateKode ? generateKodeBarang() : String(body.kodebarang ?? ""),
       namabarang: String(body.namabarang ?? ""),
-      kategori  : String(body.kategori ?? ""),
       satuan    : String(body.satuan ?? ""),
       hargabeli : Number(body.hargabeli),
       hargajual : Number(body.hargajual),
-      stok      : Number(body.stok),
+      pakaiStok : Boolean(body.pakaiStok),
+      status    : Number(body.status) === 1 ? 1 : 0,
     };
 
     const created = createBarang(barang);
