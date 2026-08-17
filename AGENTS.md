@@ -1,3 +1,36 @@
+# POS Boilerplate
+
+This repository is a Next.js boilerplate for building a Point of Sale (POS)
+application. Use TypeScript for application code and Tailwind CSS for styling.
+
+## Global modules
+
+Place a reusable module with complex behavior under
+`components/<ModuleName>/` using this structure:
+
+```text
+<ModuleName>/
+├── index.tsx
+├── components/
+│   └── <PascalCase>.tsx
+└── lib/
+    ├── <camelCase>.ts
+    └── types.ts
+```
+
+- Use `PascalCase` for module folders and React component files.
+- Use `camelCase` for hooks, formatters, and other TypeScript implementation files.
+- Keep `index.tsx` as the module's public interface; consumers import from the module root.
+- Keep UI implementation in `components/` and non-UI implementation in `lib/`.
+- Align `:` vertically within adjacent TypeScript property declarations and object literals.
+- Add a scoped `AGENTS.md` inside a global module when agents need module-specific instructions.
+
+## DataTable
+
+`DataTable` is the project's global module for displaying structured tabular
+data. Before creating or changing a table, read `components/DataTable/AGENTS.md`
+and reuse this module.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

@@ -1,6 +1,6 @@
 "use client";
 
-import DataTable, { type DataTableColumn } from "@/components/data-table";
+import DataTable, { type DataTableColumn } from "@/components/DataTable";
 
 type Product = {
   id: number;
@@ -23,24 +23,41 @@ const products: Product[] = Array.from({ length: 27 }, (_, index) => ({
 }));
 
 const columns: DataTableColumn<Product>[] = [
-  { key: "name", label: "Nama Produk", width: "30%" },
-  { key: "category", label: "Kategori" },
+  { type: "rowNumber", width: "72px" },
+  {
+    key     : "name",
+    label   : "Nama Produk",
+    width   : "240px",
+    minWidth: "180px",
+    maxWidth: "480px",
+  },
+  { key: "category", label: "Kategori", width: "160px" },
   {
     key: "price",
     label: "Harga",
     align: "right",
-    render: (value) =>
-      new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        maximumFractionDigits: 0,
-      }).format(value),
+    width: "180px",
+    format: {
+      type: "currency",
+      decimalPlaces: 2,
+    },
   },
-  { key: "stock", label: "Stok", align: "center" },
+  {
+    key: "stock",
+    label: "Stok",
+    align: "center",
+    width: "100px",
+    format: {
+      type: "quantity",
+      decimalPlaces: 0,
+    },
+  },
   {
     key: "status",
     label: "Status",
     align: "center",
+    width: "140px",
+    sortable: false,
     render: (value) => (
       <span
         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -53,7 +70,12 @@ const columns: DataTableColumn<Product>[] = [
       </span>
     ),
   },
-  { key: "internalCode", label: "Kode Internal", hide: true },
+  {
+    key: "internalCode",
+    label: "Kode Internal",
+    hide: true,
+    width: "160px",
+  },
 ];
 
 export default function Home() {
@@ -72,12 +94,7 @@ export default function Home() {
           </p>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={products}
-          rowKey="id"
-          showRowNumber
-        />
+        <DataTable columns={columns} data={products} rowKey="id" />
       </div>
     </main>
   );
