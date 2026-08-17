@@ -59,6 +59,16 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
+  // Lokasi / Gudang / Cabang / Rak
+  if (name.includes("lokasi") || name.includes("gudang") || name.includes("outlet") || name.includes("cabang") || name.includes("rak") || code.includes("lok")) {
+    return (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
+        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="12" cy="10" r="3" />
+      </svg>
+    );
+  }
+
   // Pembelian / Purchase / Order
   if (name.includes("beli") || name.includes("pembelian") || code.includes("beli") || code.includes("buy")) {
     return (
