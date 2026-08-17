@@ -81,7 +81,12 @@ export default function DataTable<T extends object>({
   const safeInitialPageSize = initialPageSize > 0 ? initialPageSize : 10;
   const [pagination, setPagination] = useState({ data, page: 1 });
   const [pageSize, setPageSize] = useState(safeInitialPageSize);
-  const page = pagination.data === data ? pagination.page : 1;
+
+  if (pagination.data !== data) {
+    setPagination({ data, page: 1 });
+  }
+
+  const page = pagination.page;
 
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hide),
