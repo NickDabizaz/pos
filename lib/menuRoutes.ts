@@ -11,6 +11,7 @@ export const menuRoutes: Record<string, string> = {
   P8R4C: "/pembelian",       // Pembelian
   J1N6D: "/penjualan",       // Penjualan
   T5B8L: "/tutup-kasir",     // Keuangan > Tutup Kasir
+  K9V4M: "/kas",             // Akuntansi > Kas
 };
 
 export function findKodemenuForPath(pathname: string): string | undefined {
