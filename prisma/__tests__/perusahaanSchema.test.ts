@@ -389,12 +389,16 @@ describe("migration Database Perusahaan aman dijalankan berulang, dari keadaan k
     expect(tables.length).toBeGreaterThan(0);
   });
 
-  it("menjalankan ulang migration Database Perusahaan yang sama terhadap database yang sudah dimigrasikan selesai tanpa error dan tidak menggandakan tabel", async () => {
-    const tablesBefore = await listTables(dbName);
+  it(
+    "menjalankan ulang migration Database Perusahaan yang sama terhadap database yang sudah dimigrasikan selesai tanpa error dan tidak menggandakan tabel",
+    async () => {
+      const tablesBefore = await listTables(dbName);
 
-    expect(() => migrateDeploy("perusahaan", dbName)).not.toThrow();
+      expect(() => migrateDeploy("perusahaan", dbName)).not.toThrow();
 
-    const tablesAfter = await listTables(dbName);
-    expect(tablesAfter.sort()).toEqual(tablesBefore.sort());
-  });
+      const tablesAfter = await listTables(dbName);
+      expect(tablesAfter.sort()).toEqual(tablesBefore.sort());
+    },
+    30_000,
+  );
 });

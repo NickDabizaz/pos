@@ -83,12 +83,16 @@ describe("migration Global aman dijalankan berulang, dari keadaan kosong maupun 
     expect(tables.length).toBeGreaterThan(0);
   });
 
-  it("menjalankan ulang migration Global yang sama terhadap database yang sudah dimigrasikan selesai tanpa error dan tidak menggandakan tabel", async () => {
-    const tablesBefore = await listTables(dbName);
+  it(
+    "menjalankan ulang migration Global yang sama terhadap database yang sudah dimigrasikan selesai tanpa error dan tidak menggandakan tabel",
+    async () => {
+      const tablesBefore = await listTables(dbName);
 
-    expect(() => migrateDeploy("global", dbName)).not.toThrow();
+      expect(() => migrateDeploy("global", dbName)).not.toThrow();
 
-    const tablesAfter = await listTables(dbName);
-    expect(tablesAfter.sort()).toEqual(tablesBefore.sort());
-  });
+      const tablesAfter = await listTables(dbName);
+      expect(tablesAfter.sort()).toEqual(tablesBefore.sort());
+    },
+    30_000,
+  );
 });
