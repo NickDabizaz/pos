@@ -1,0 +1,16 @@
+/// Master data. status: 0 = nonaktif, 1 = aktif. pakaistok menandai barang dipakai untuk
+/// pencatatan stok, meski stok sendiri belum diimplementasikan.
+model barang {
+  idbarang   Int     @id @default(autoincrement())
+  kodebarang String  @unique @db.VarChar(20)
+  namabarang String  @db.VarChar(100)
+  barcode    String? @db.VarChar(50)
+  satuan     String  @db.VarChar(20)
+  hargabeli  Decimal @db.Decimal(14, 2)
+  hargajual  Decimal @db.Decimal(14, 2)
+  pakaistok  Boolean @default(false)
+  status     Int     @default(1) @db.SmallInt
+
+  jualdtl jualdtl[]
+  belidtl belidtl[]
+}

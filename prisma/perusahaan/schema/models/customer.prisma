@@ -1,0 +1,12 @@
+/// Master data. status: 0 = nonaktif, 1 = aktif.
+model customer {
+  idcustomer   Int     @id @default(autoincrement())
+  kodecustomer String  @unique @db.VarChar(20)
+  namacustomer String  @db.VarChar(100)
+  telepon      String? @db.VarChar(20)
+  email        String? @db.VarChar(100)
+  alamat       String? @db.VarChar(255)
+  status       Int     @default(1) @db.SmallInt
+
+  jual jual[]
+}

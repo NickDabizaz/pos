@@ -1,3 +1,4 @@
+/// status: 0 = nonaktif, 1 = aktif.
 model menu {
   kodemenu  String  @id @db.VarChar(10)
   kodeinduk String? @db.VarChar(10)
@@ -5,6 +6,8 @@ model menu {
   jenis     String  @db.VarChar(10)
   urutan    String? @db.VarChar(20)
   status    Int     @default(1) @db.SmallInt
+
+  usermenus usermenu[]
 
   @@index([kodeinduk], map: "kodeinduk")
 }

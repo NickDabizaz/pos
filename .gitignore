@@ -42,4 +42,12 @@ next-env.d.ts
 
 .agents
 .claude
-/lib/generated/prisma
+/lib/generated/prisma-global
+/lib/generated/prisma-perusahaan
+
+# agent-only docs (local, never pushed)
+/docs/
+.scratch/
+AGENTS.md
+CLAUDE.md
+CONTEXT.md

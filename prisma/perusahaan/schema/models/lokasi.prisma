@@ -1,0 +1,14 @@
+/// Master data. status: 0 = nonaktif, 1 = aktif.
+model lokasi {
+  idlokasi   Int     @id @default(autoincrement())
+  kodelokasi String  @unique @db.VarChar(20)
+  namalokasi String  @db.VarChar(100)
+  keterangan String? @db.VarChar(255)
+  status     Int     @default(1) @db.SmallInt
+
+  jual          jual[]
+  beli          beli[]
+  kas           kas[]
+  modalawal     modalawal[]
+  setorankasir  setorankasir[]
+}

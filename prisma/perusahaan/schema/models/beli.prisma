@@ -1,0 +1,39 @@
+/// Pembelian (transaksi masuk barang dari Supplier). status: "S" = tersimpan, "D" = dibatalkan.
+model beli {
+  idbeli      Int      @id @default(autoincrement())
+  kodebeli    String   @unique @db.VarChar(30)
+  tgltrans    DateTime @db.Date
+  idsupplier  Int
+  idlokasi    Int
+  total       Decimal  @db.Decimal(14, 2)
+  diskon      Decimal  @db.Decimal(14, 2)
+  ppn         Decimal  @db.Decimal(14, 2)
+  grandtotal  Decimal  @db.Decimal(14, 2)
+  status      String   @default("S") @db.VarChar(1)
+  alasanbatal String?  @db.VarChar(255)
+
+  supplier supplier  @relation(fields: [idsupplier], references: [idsupplier])
+  lokasi   lokasi    @relation(fields: [idlokasi], references: [idlokasi])
+  details  belidtl[]
+
+  @@index([idsupplier], map: "idsupplier")
+  @@index([idlokasi], map: "idlokasi")
+}
+
+model belidtl {
+  idbeli   Int
+  urutan   Int
+  idbarang Int
+  qty      Decimal @db.Decimal(14, 2)
+  harga    Decimal @db.Decimal(14, 2)
+  pakaippn String  @db.VarChar(10)
+  diskon   Decimal @db.Decimal(14, 2)
+  ppn      Decimal @db.Decimal(14, 2)
+  subtotal Decimal @db.Decimal(14, 2)
+
+  beli   beli   @relation(fields: [idbeli], references: [idbeli])
+  barang barang @relation(fields: [idbarang], references: [idbarang])
+
+  @@id([idbeli, urutan])
+  @@index([idbarang], map: "idbarang")
+}

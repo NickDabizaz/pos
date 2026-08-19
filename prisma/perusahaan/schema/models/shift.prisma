@@ -1,0 +1,33 @@
+/// Shift tidak punya tabel sendiri (lihat ADR 0004): identitasnya adalah pasangan tgltrans + idlokasi.
+/// modalawal menandai Shift terbuka; setorankasir menandai Shift tertutup. idkasir menunjuk Pengguna
+/// di Database Global lewat satu jalur lookup, tanpa foreign key lintas database (lihat ADR 0001).
+model modalawal {
+  idmodalawal Int      @id @default(autoincrement())
+  tgltrans    DateTime @db.Date
+  idlokasi    Int
+  idkasir     String   @db.VarChar(36)
+  nominal     Decimal  @db.Decimal(14, 2)
+  createdat   DateTime @default(now())
+
+  lokasi lokasi @relation(fields: [idlokasi], references: [idlokasi])
+
+  @@unique([tgltrans, idlokasi], map: "tgltrans_idlokasi")
+}
+
+/// Ringkasan uang saat Shift ditutup. selisih = kasaktual dikurangi jumlah tunai yang seharusnya
+/// ada menurut sistem (totaltunai).
+model setorankasir {
+  idsetorankasir Int      @id @default(autoincrement())
+  tgltrans       DateTime @db.Date
+  idlokasi       Int
+  totaltunai     Decimal  @db.Decimal(14, 2)
+  totalnontunai  Decimal  @db.Decimal(14, 2)
+  kasaktual      Decimal  @db.Decimal(14, 2)
+  selisih        Decimal  @db.Decimal(14, 2)
+  catatan        String?  @db.VarChar(255)
+  createdat      DateTime @default(now())
+
+  lokasi lokasi @relation(fields: [idlokasi], references: [idlokasi])
+
+  @@unique([tgltrans, idlokasi], map: "tgltrans_idlokasi")
+}

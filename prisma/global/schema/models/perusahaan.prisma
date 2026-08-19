@@ -1,0 +1,71 @@
+/// Status Perusahaan: 0 = belum bayar (baru mendaftar, belum ada Langganan lunas), 1 = aktif.
+model perusahaan {
+  idperusahaan   Int      @id @default(autoincrement())
+  kodeperusahaan String   @unique @db.VarChar(20)
+  namaperusahaan String   @db.VarChar(100)
+  namadatabase   String   @unique @db.VarChar(64)
+  status         Int      @default(0) @db.SmallInt
+  createdat      DateTime @default(now())
+
+  subscriptions    subscription[]
+  userperusahaans  userperusahaan[]
+  usermenus        usermenu[]
+}
+
+/// Status Langganan: 1 = aktif. Baris hanya dibuat setelah pembayaran dikonfirmasi lunas,
+/// sehingga tidak ada kosakata pending/gagal di sini.
+model subscription {
+  idsubscription  Int      @id @default(autoincrement())
+  idperusahaan    Int
+  namapaket       String   @db.VarChar(100)
+  hargapaket      Decimal  @db.Decimal(14, 2)
+  masaberlakuhari Int
+  tglmulai        DateTime @db.Date
+  tglselesai      DateTime @db.Date
+  status          Int      @default(1) @db.SmallInt
+  createdat       DateTime @default(now())
+
+  perusahaan perusahaan        @relation(fields: [idperusahaan], references: [idperusahaan])
+  details    subscriptiondtl[]
+
+  @@index([idperusahaan], map: "idperusahaan")
+}
+
+model subscriptiondtl {
+  idsubscription Int
+  urutan         Int
+  keterangan     String  @db.VarChar(100)
+  nominal        Decimal @db.Decimal(14, 2)
+
+  subscription subscription @relation(fields: [idsubscription], references: [idsubscription])
+
+  @@id([idsubscription, urutan])
+}
+
+/// Hak Menu: izin satu Pengguna atas satu Menu di dalam satu Perusahaan. Hanya berlaku
+/// untuk karyawan; Owner melewatinya lewat isowner di userperusahaan. status: 0 = nonaktif, 1 = aktif.
+model usermenu {
+  iduser       String @db.VarChar(36)
+  idperusahaan Int
+  kodemenu     String @db.VarChar(10)
+  status       Int    @default(1) @db.SmallInt
+
+  perusahaan perusahaan @relation(fields: [idperusahaan], references: [idperusahaan])
+  menu       menu       @relation(fields: [kodemenu], references: [kodemenu])
+
+  @@id([iduser, idperusahaan, kodemenu])
+  @@index([kodemenu], map: "kodemenu")
+}
+
+/// Keanggotaan: kaitan antara satu Pengguna dan satu Perusahaan. isowner menandai Pengguna
+/// yang mendaftarkan Perusahaan; Owner selalu punya akses penuh dan tidak tunduk pada Hak Menu.
+model userperusahaan {
+  iduser       String   @db.VarChar(36)
+  idperusahaan Int
+  isowner      Boolean  @default(false)
+  createdat    DateTime @default(now())
+
+  perusahaan perusahaan @relation(fields: [idperusahaan], references: [idperusahaan])
+
+  @@id([iduser, idperusahaan])
+}

@@ -7,11 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate:global": "prisma generate --config prisma/global/prisma.config.ts",
+    "db:generate:perusahaan": "prisma generate --config prisma/perusahaan/prisma.config.ts",
+    "db:generate": "npm run db:generate:global && npm run db:generate:perusahaan",
+    "db:migrate:global": "prisma migrate dev --config prisma/global/prisma.config.ts",
+    "db:migrate:perusahaan": "prisma migrate dev --config prisma/perusahaan/prisma.config.ts",
+    "db:migrate": "npm run db:migrate:global && npm run db:migrate:perusahaan",
+    "db:deploy:global": "prisma migrate deploy --config prisma/global/prisma.config.ts",
+    "db:deploy:perusahaan": "prisma migrate deploy --config prisma/perusahaan/prisma.config.ts",
+    "db:deploy": "npm run db:deploy:global && npm run db:deploy:perusahaan"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "better-auth": "^1.7.1",
     "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -23,6 +33,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "mariadb": "^3.5.3",
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
     "typescript": "^5",

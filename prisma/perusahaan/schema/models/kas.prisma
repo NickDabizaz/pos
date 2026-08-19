@@ -1,0 +1,29 @@
+/// Pencatatan uang masuk/keluar di luar Penjualan & Pembelian. jenis: "MASUK" atau "KELUAR".
+/// status: "S" = tersimpan, "D" = dibatalkan. grandtotal selalu sama dengan jumlah seluruh rinciannya.
+model kas {
+  idkas       Int      @id @default(autoincrement())
+  kodekas     String   @unique @db.VarChar(30)
+  tgltrans    DateTime @db.Date
+  jenis       String   @db.VarChar(10)
+  idlokasi    Int
+  grandtotal  Decimal  @db.Decimal(14, 2)
+  keterangan  String?  @db.VarChar(255)
+  status      String   @default("S") @db.VarChar(1)
+  alasanbatal String?  @db.VarChar(255)
+
+  lokasi  lokasi   @relation(fields: [idlokasi], references: [idlokasi])
+  details kasdtl[]
+
+  @@index([idlokasi], map: "idlokasi")
+}
+
+model kasdtl {
+  idkas      Int
+  urutan     Int
+  keterangan String  @db.VarChar(255)
+  nominal    Decimal @db.Decimal(14, 2)
+
+  kas kas @relation(fields: [idkas], references: [idkas])
+
+  @@id([idkas, urutan])
+}

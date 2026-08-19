@@ -1,0 +1,11 @@
+/// Pengaturan milik satu Perusahaan, disimpan sebagai pasangan kunci-nilai per modul.
+/// Sengaja tanpa kolom idperusahaan: setiap Perusahaan sudah punya Database Perusahaan sendiri
+/// (lihat ADR 0001), jadi isolasi antar Perusahaan adalah sifat bawaan database ini, bukan sesuatu
+/// yang perlu diulang di setiap baris config.
+model config {
+  modul  String @db.VarChar(30)
+  config String @db.VarChar(30)
+  nilai  String @db.VarChar(255)
+
+  @@id([modul, config])
+}
