@@ -1,3 +1,20 @@
+/// Empat tabel di bawah ini dikelola oleh Better Auth (lihat lib/auth.ts), bukan tabel
+/// domain aplikasi — nama kolomnya mengikuti konvensi resmi library-nya, kecuali `iduser`
+/// yang sengaja di-remap (lihat lib/auth.ts) supaya konsisten dengan FK Pengguna di tabel
+/// lain (usermenu.iduser, userperusahaan.iduser). `id` milik User/Session/Account/
+/// Verification sendiri tidak bisa di-remap — itu primary key bawaan Better Auth.
+///
+/// Alur & relasinya:
+///   User          satu Pengguna. `id`-nya = `iduser` di Session/Account, dan di
+///                 usermenu/userperusahaan.
+///   Session       satu sesi login aktif (satu browser/perangkat). Baris terhapus saat
+///                 logout atau `expiresAt` lewat.
+///   Account       satu metode login milik satu User. Login email+password (tiket 04):
+///                 `providerId` = "credential", `password` simpan hash-nya. Login sosial
+///                 nanti (Google dst, tiket 06): baris baru per provider, User & Session
+///                 tidak berubah.
+///   Verification  token sekali-pakai (verifikasi email, reset password) — dicari lewat
+///                 `identifier` (biasanya email), tidak berelasi langsung ke User.
 model User {
   id            String    @id
   name          String    @db.Text
@@ -21,20 +38,21 @@ model Session {
   updatedAt DateTime @updatedAt
   ipAddress String?  @db.Text
   userAgent String?  @db.Text
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  iduser    String
+  user      User     @relation(fields: [iduser], references: [id], onDelete: Cascade)
 
   @@unique([token])
-  @@index([userId])
+  @@index([iduser])
   @@map("session")
 }
 
 model Account {
   id                    String    @id
+  issuer                String
   accountId             String    @db.Text
   providerId            String    @db.Text
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  iduser                String
+  user                  User      @relation(fields: [iduser], references: [id], onDelete: Cascade)
   accessToken           String?   @db.Text
   refreshToken          String?   @db.Text
   idToken               String?   @db.Text
@@ -45,7 +63,8 @@ model Account {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  @@index([userId])
+  @@unique([issuer, accountId(length: 191)])
+  @@index([iduser])
   @@map("account")
 }
 

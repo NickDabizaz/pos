@@ -21,9 +21,9 @@ CREATE TABLE `session` (
     `updatedAt` DATETIME(3) NOT NULL,
     `ipAddress` TEXT NULL,
     `userAgent` TEXT NULL,
-    `userId` VARCHAR(191) NOT NULL,
+    `iduser` VARCHAR(191) NOT NULL,
 
-    INDEX `session_userId_idx`(`userId`),
+    INDEX `session_iduser_idx`(`iduser`),
     UNIQUE INDEX `session_token_key`(`token`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -31,9 +31,10 @@ CREATE TABLE `session` (
 -- CreateTable
 CREATE TABLE `account` (
     `id` VARCHAR(191) NOT NULL,
+    `issuer` VARCHAR(191) NOT NULL,
     `accountId` TEXT NOT NULL,
     `providerId` TEXT NOT NULL,
-    `userId` VARCHAR(191) NOT NULL,
+    `iduser` VARCHAR(191) NOT NULL,
     `accessToken` TEXT NULL,
     `refreshToken` TEXT NULL,
     `idToken` TEXT NULL,
@@ -44,7 +45,8 @@ CREATE TABLE `account` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    INDEX `account_userId_idx`(`userId`),
+    UNIQUE INDEX `account_issuer_accountId_key`(`issuer`, `accountId`(191)),
+    INDEX `account_iduser_idx`(`iduser`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -136,10 +138,10 @@ CREATE TABLE `userperusahaan` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `session` ADD CONSTRAINT `session_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `session` ADD CONSTRAINT `session_iduser_fkey` FOREIGN KEY (`iduser`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `account` ADD CONSTRAINT `account_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `account` ADD CONSTRAINT `account_iduser_fkey` FOREIGN KEY (`iduser`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `subscription` ADD CONSTRAINT `subscription_idperusahaan_fkey` FOREIGN KEY (`idperusahaan`) REFERENCES `perusahaan`(`idperusahaan`) ON DELETE RESTRICT ON UPDATE CASCADE;
