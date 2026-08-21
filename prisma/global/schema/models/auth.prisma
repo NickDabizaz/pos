@@ -2,7 +2,10 @@
 /// domain aplikasi — nama kolomnya mengikuti konvensi resmi library-nya, kecuali `iduser`
 /// yang sengaja di-remap (lihat lib/auth.ts) supaya konsisten dengan FK Pengguna di tabel
 /// lain (usermenu.iduser, userperusahaan.iduser). `id` milik User/Session/Account/
-/// Verification sendiri tidak bisa di-remap — itu primary key bawaan Better Auth.
+/// Verification sendiri tidak bisa di-remap — itu primary key bawaan Better Auth. `User.id`
+/// bertipe `VarChar(36)`, sama seperti `usermenu.iduser`/`userperusahaan.iduser`, supaya
+/// kedua tabel itu bisa punya FK sungguhan ke User (lihat perusahaan.prisma) — tanpa ini FK
+/// tidak bisa dipasang karena tipe kolomnya tidak cocok.
 ///
 /// Alur & relasinya:
 ///   User          satu Pengguna. `id`-nya = `iduser` di Session/Account, dan di
@@ -16,15 +19,17 @@
 ///   Verification  token sekali-pakai (verifikasi email, reset password) — dicari lewat
 ///                 `identifier` (biasanya email), tidak berelasi langsung ke User.
 model User {
-  id            String    @id
-  name          String    @db.Text
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?   @db.Text
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id              String           @id @db.VarChar(36)
+  name            String           @db.Text
+  email           String
+  emailVerified   Boolean          @default(false)
+  image           String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sessions        Session[]
+  accounts        Account[]
+  userperusahaans userperusahaan[]
+  usermenus       usermenu[]
 
   @@unique([email])
   @@map("user")
@@ -38,7 +43,7 @@ model Session {
   updatedAt DateTime @updatedAt
   ipAddress String?  @db.Text
   userAgent String?  @db.Text
-  iduser    String
+  iduser    String   @db.VarChar(36)
   user      User     @relation(fields: [iduser], references: [id], onDelete: Cascade)
 
   @@unique([token])
@@ -51,7 +56,7 @@ model Account {
   issuer                String
   accountId             String    @db.Text
   providerId            String    @db.Text
-  iduser                String
+  iduser                String    @db.VarChar(36)
   user                  User      @relation(fields: [iduser], references: [id], onDelete: Cascade)
   accessToken           String?   @db.Text
   refreshToken          String?   @db.Text

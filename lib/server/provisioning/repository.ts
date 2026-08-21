@@ -11,14 +11,17 @@ import type { ConfigRow, TenantClient } from "@/lib/server/provisioning/types";
 /** MariaDB errno untuk `CREATE DATABASE` pada database yang sudah ada. */
 const ER_DB_CREATE_EXISTS = 1007;
 
-/** Root repo, dipakai sebagai cwd saat menjalankan `prisma migrate deploy` lewat CLI asli. */
-const REPO_ROOT = path.resolve(__dirname, "../../..");
-
 /**
- * Satu-satunya sumber kebenaran untuk parameter koneksi admin (host/port/user/password) yang
- * dipakai modul provisioning ini — baik untuk `CREATE`/`DROP DATABASE` lewat `mariadb` maupun
- * untuk client tenant Prisma dan `DATABASE_URL` migration CLI.
+ * Root repo sebagai cwd untuk CLI Prisma. Pakai `process.cwd()`, bukan `__dirname` — begitu
+ * berkas ini dibundel Turbopack, `__dirname` menunjuk path virtual yang tidak ada di disk.
  */
+const REPO_ROOT = process.cwd();
+
+/** Entry CLI Prisma, dijalankan lewat `node` langsung agar tidak bergantung pada `npx`
+ * menemukan `cmd.exe` di env proses. */
+const PRISMA_CLI_ENTRY = path.join(REPO_ROOT, "node_modules", "prisma", "build", "index.js");
+
+/** Sumber kebenaran tunggal untuk parameter koneksi admin (host/port/user/password). */
 function adminConnectionConfig() {
   return {
     host          : process.env.DB_HOST ?? "localhost",
@@ -63,13 +66,12 @@ export async function dropTenantDatabase(namadatabase: string): Promise<void> {
 /** Menjalankan seluruh migration tenant (`prisma/perusahaan`) lewat CLI Prisma asli. */
 export function migrateTenantDatabase(namadatabase: string): void {
   execFileSync(
-    "npx",
-    ["prisma", "migrate", "deploy", "--config", "prisma/perusahaan/prisma.config.ts"],
+    process.execPath,
+    [PRISMA_CLI_ENTRY, "migrate", "deploy", "--config", "prisma/perusahaan/prisma.config.ts"],
     {
       cwd  : REPO_ROOT,
       env  : { ...process.env, PERUSAHAAN_DATABASE_URL: tenantDatabaseUrl(namadatabase) },
       stdio: "pipe",
-      shell: true,
     },
   );
 }

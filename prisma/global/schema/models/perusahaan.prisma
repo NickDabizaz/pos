@@ -50,6 +50,7 @@ model usermenu {
   kodemenu     String @db.VarChar(10)
   status       Int    @default(1) @db.SmallInt
 
+  user       User       @relation(fields: [iduser], references: [id], onDelete: Cascade)
   perusahaan perusahaan @relation(fields: [idperusahaan], references: [idperusahaan])
   menu       menu       @relation(fields: [kodemenu], references: [kodemenu])
 
@@ -65,6 +66,7 @@ model userperusahaan {
   isowner      Boolean  @default(false)
   createdat    DateTime @default(now())
 
+  user       User       @relation(fields: [iduser], references: [id], onDelete: Cascade)
   perusahaan perusahaan @relation(fields: [idperusahaan], references: [idperusahaan])
 
   @@id([iduser, idperusahaan])

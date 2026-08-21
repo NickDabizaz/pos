@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE `user` (
-    `id` VARCHAR(191) NOT NULL,
+    `id` VARCHAR(36) NOT NULL,
     `name` TEXT NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `emailVerified` BOOLEAN NOT NULL DEFAULT false,
@@ -21,7 +21,7 @@ CREATE TABLE `session` (
     `updatedAt` DATETIME(3) NOT NULL,
     `ipAddress` TEXT NULL,
     `userAgent` TEXT NULL,
-    `iduser` VARCHAR(191) NOT NULL,
+    `iduser` VARCHAR(36) NOT NULL,
 
     INDEX `session_iduser_idx`(`iduser`),
     UNIQUE INDEX `session_token_key`(`token`),
@@ -34,7 +34,7 @@ CREATE TABLE `account` (
     `issuer` VARCHAR(191) NOT NULL,
     `accountId` TEXT NOT NULL,
     `providerId` TEXT NOT NULL,
-    `iduser` VARCHAR(191) NOT NULL,
+    `iduser` VARCHAR(36) NOT NULL,
     `accessToken` TEXT NULL,
     `refreshToken` TEXT NULL,
     `idToken` TEXT NULL,
@@ -150,10 +150,16 @@ ALTER TABLE `subscription` ADD CONSTRAINT `subscription_idperusahaan_fkey` FOREI
 ALTER TABLE `subscriptiondtl` ADD CONSTRAINT `subscriptiondtl_idsubscription_fkey` FOREIGN KEY (`idsubscription`) REFERENCES `subscription`(`idsubscription`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `usermenu` ADD CONSTRAINT `usermenu_iduser_fkey` FOREIGN KEY (`iduser`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `usermenu` ADD CONSTRAINT `usermenu_idperusahaan_fkey` FOREIGN KEY (`idperusahaan`) REFERENCES `perusahaan`(`idperusahaan`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `usermenu` ADD CONSTRAINT `usermenu_kodemenu_fkey` FOREIGN KEY (`kodemenu`) REFERENCES `menu`(`kodemenu`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `userperusahaan` ADD CONSTRAINT `userperusahaan_iduser_fkey` FOREIGN KEY (`iduser`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `userperusahaan` ADD CONSTRAINT `userperusahaan_idperusahaan_fkey` FOREIGN KEY (`idperusahaan`) REFERENCES `perusahaan`(`idperusahaan`) ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -11,7 +11,11 @@ const DB_PORT = Number(process.env.DB_PORT ?? 3306);
 const DB_USER = process.env.DB_USER ?? "root";
 const DB_PASSWORD = process.env.DB_PASSWORD ?? "";
 
-const REPO_ROOT = path.resolve(__dirname, "../..");
+/** Sama seperti `REPO_ROOT` di `lib/server/provisioning/repository.ts` — lihat komentar di sana. */
+const REPO_ROOT = process.cwd();
+
+/** Sama seperti `PRISMA_CLI_ENTRY` di `lib/server/provisioning/repository.ts`. */
+const PRISMA_CLI_ENTRY = path.join(REPO_ROOT, "node_modules", "prisma", "build", "index.js");
 
 export type PrismaSchema = "global" | "perusahaan";
 
@@ -54,13 +58,12 @@ export async function dropDatabase(name: string): Promise<void> {
 /** Runs `prisma migrate deploy` for the given schema against the given database, via the real CLI. */
 export function migrateDeploy(schema: PrismaSchema, name: string): void {
   execFileSync(
-    "npx",
-    ["prisma", "migrate", "deploy", "--config", `prisma/${schema}/prisma.config.ts`],
+    process.execPath,
+    [PRISMA_CLI_ENTRY, "migrate", "deploy", "--config", `prisma/${schema}/prisma.config.ts`],
     {
       cwd  : REPO_ROOT,
       env  : { ...process.env, [SCHEMA_ENV_VAR[schema]]: databaseUrl(name) },
       stdio: "pipe",
-      shell: true,
     },
   );
 }

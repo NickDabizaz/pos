@@ -1,6 +1,6 @@
 import type { auth } from "@/lib/auth";
 
-type AuthInstance = typeof auth;
+export type AuthInstance = typeof auth;
 
 export type UserSession = NonNullable<Awaited<ReturnType<AuthInstance["api"]["getSession"]>>>;
 
