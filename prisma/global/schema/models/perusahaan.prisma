@@ -13,10 +13,13 @@ model perusahaan {
 }
 
 /// Status Langganan: 1 = aktif. Baris hanya dibuat setelah pembayaran dikonfirmasi lunas,
-/// sehingga tidak ada kosakata pending/gagal di sini.
+/// sehingga tidak ada kosakata pending/gagal di sini. `orderid` menyimpan order_id transaksi
+/// Midtrans yang melunasi Langganan ini — dipakai untuk menolak notifikasi settlement duplikat
+/// untuk order_id yang sama tanpa perlu tabel transaksi terpisah (lihat tiket 09).
 model subscription {
   idsubscription  Int      @id @default(autoincrement())
   idperusahaan    Int
+  orderid         String   @unique @db.VarChar(100)
   namapaket       String   @db.VarChar(100)
   hargapaket      Decimal  @db.Decimal(14, 2)
   masaberlakuhari Int

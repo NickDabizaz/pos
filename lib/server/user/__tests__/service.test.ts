@@ -39,6 +39,7 @@ describe("listMembershipsForUser mengembalikan seluruh Perusahaan milik satu Pen
         kodeperusahaan: "PSH-0001",
         namaperusahaan: "Toko Satu",
         isowner       : true,
+        status        : 0,
       },
     ]);
   });

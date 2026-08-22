@@ -8,4 +8,5 @@ export type PerusahaanMembership = {
   kodeperusahaan: string;
   namaperusahaan: string;
   isowner       : boolean;
+  status        : number;
 };

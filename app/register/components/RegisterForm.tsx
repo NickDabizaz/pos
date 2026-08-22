@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 import PasswordInput from "@/components/PasswordInput";
 
 import {
@@ -41,9 +42,10 @@ export default function RegisterForm() {
     setIsSubmitting(true);
 
     const { error: signUpError } = await authClient.signUp.email({
-      email   : values.email,
-      name    : values.name,
-      password: values.password,
+      email      : values.email,
+      name       : values.name,
+      password   : values.password,
+      callbackURL: "/verifikasi-email",
     });
 
     setIsSubmitting(false);
@@ -134,6 +136,14 @@ export default function RegisterForm() {
             {isSubmitting ? "Memproses..." : "Daftar"}
           </button>
         </form>
+
+        <div className="my-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">atau</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <GoogleSignInButton label="Daftar dengan Google" onError={setSubmitError} />
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Sudah punya akun?{" "}

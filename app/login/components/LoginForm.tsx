@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 import PasswordInput from "@/components/PasswordInput";
 
 import { validateLoginForm, type LoginFormErrors, type LoginFormValues } from "@/app/login/lib/validateLoginForm";
@@ -93,6 +94,11 @@ export default function LoginForm() {
               onChange={handleChange("password")}
               value={values.password}
             />
+            <p className="mt-1 text-right text-xs">
+              <Link className="font-medium text-primary hover:underline" href="/lupa-password">
+                Lupa password?
+              </Link>
+            </p>
           </FormField>
 
           <button
@@ -103,6 +109,14 @@ export default function LoginForm() {
             {isSubmitting ? "Memproses..." : "Masuk"}
           </button>
         </form>
+
+        <div className="my-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">atau</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <GoogleSignInButton onError={setSubmitError} />
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Belum punya akun?{" "}

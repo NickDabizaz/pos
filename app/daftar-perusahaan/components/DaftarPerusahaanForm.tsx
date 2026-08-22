@@ -35,7 +35,7 @@ export default function DaftarPerusahaanForm() {
 
     try {
       await daftarPerusahaan(values);
-      router.push("/");
+      router.push("/subscription");
       router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Gagal mendaftarkan Perusahaan. Coba lagi.");

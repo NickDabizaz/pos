@@ -13,6 +13,20 @@ export const getCurrentSession = cache(async (): Promise<UserSession | null> => 
   return findSession(auth, await headers());
 });
 
+export class EmailBelumTerverifikasiError extends Error {}
+
+/**
+ * Melempar {@link EmailBelumTerverifikasiError} kalau Pengguna dalam sesi ini belum
+ * memverifikasi emailnya. Dipakai aksi yang mensyaratkan email terverifikasi (tiket 05) —
+ * `session` selalu diambil ulang lewat `findSession`/`getCurrentSession` per permintaan,
+ * jadi Pengguna yang baru saja verifikasi di tengah sesi langsung lolos tanpa login ulang.
+ */
+export function ensureEmailTerverifikasi(session: UserSession): void {
+  if (!session.user.emailVerified) {
+    throw new EmailBelumTerverifikasiError("Email Anda belum terverifikasi");
+  }
+}
+
 /** Melempar ke /login kalau belum ada sesi. */
 export async function requireSession(): Promise<UserSession> {
   const session = await getCurrentSession();
@@ -48,7 +62,7 @@ export async function resolveDaftarPerusahaanAccess(
 
   const memberships = await listMembershipsForUser(globalDb, session.user.id);
   if (memberships.length > 0) {
-    redirect("/");
+    redirect(memberships[0].status === 1 ? "/" : "/subscription");
   }
 
   return session;
@@ -85,4 +99,29 @@ export async function resolveSudahPunyaPerusahaanAccess(
 /** Pembungkus produksi {@link resolveSudahPunyaPerusahaanAccess}. */
 export async function requireSudahPunyaPerusahaan(): Promise<UserSession> {
   return resolveSudahPunyaPerusahaanAccess(auth, prisma, await headers());
+}
+
+/**
+ * Melempar ke /login kalau belum ada sesi, ke /daftar-perusahaan kalau belum punya
+ * Keanggotaan, dan ke /subscription kalau Perusahaannya belum aktif (`status !== 1`) —
+ * dipakai halaman yang mensyaratkan Perusahaan aktif sepenuhnya (mis. Dashboard).
+ */
+export async function resolvePerusahaanAktifAccess(
+  instance      : AuthInstance,
+  globalDb      : GlobalClient,
+  requestHeaders: Headers,
+): Promise<UserSession> {
+  const session = await resolveSudahPunyaPerusahaanAccess(instance, globalDb, requestHeaders);
+
+  const memberships = await listMembershipsForUser(globalDb, session.user.id);
+  if (memberships[0].status !== 1) {
+    redirect("/subscription");
+  }
+
+  return session;
+}
+
+/** Pembungkus produksi {@link resolvePerusahaanAktifAccess}. */
+export async function requirePerusahaanAktif(): Promise<UserSession> {
+  return resolvePerusahaanAktifAccess(auth, prisma, await headers());
 }

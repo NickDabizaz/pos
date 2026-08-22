@@ -1,6 +1,6 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSession } from "@/lib/server/auth/guard";
+import { EmailBelumTerverifikasiError, ensureEmailTerverifikasi, getCurrentSession } from "@/lib/server/auth/guard";
 import { provisionDatabase } from "@/lib/server/provisioning/service";
 import {
   daftarPerusahaan,
@@ -21,6 +21,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    ensureEmailTerverifikasi(session);
+
     const body = await request.json();
     const generateKode = Boolean(body.generateKode);
 
@@ -39,6 +41,9 @@ export async function POST(request: Request) {
       data      : perusahaan,
     });
   } catch (error) {
+    if (error instanceof EmailBelumTerverifikasiError) {
+      return errorResponse({ statusCode: 403, message: error.message });
+    }
     if (error instanceof SudahMemilikiPerusahaanError || error instanceof NamaPerusahaanSudahDipakaiError || error instanceof KodePerusahaanBentrokError) {
       return errorResponse({ statusCode: 409, message: error.message });
     }

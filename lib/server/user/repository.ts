@@ -15,5 +15,6 @@ export async function findMembershipsByUser(db: GlobalClient, iduser: string): P
     kodeperusahaan: row.perusahaan.kodeperusahaan,
     namaperusahaan: row.perusahaan.namaperusahaan,
     isowner       : row.isowner,
+    status        : row.perusahaan.status,
   }));
 }

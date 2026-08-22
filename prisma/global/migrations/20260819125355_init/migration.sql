@@ -94,6 +94,7 @@ CREATE TABLE `perusahaan` (
 CREATE TABLE `subscription` (
     `idsubscription` INTEGER NOT NULL AUTO_INCREMENT,
     `idperusahaan` INTEGER NOT NULL,
+    `orderid` VARCHAR(100) NOT NULL,
     `namapaket` VARCHAR(100) NOT NULL,
     `hargapaket` DECIMAL(14, 2) NOT NULL,
     `masaberlakuhari` INTEGER NOT NULL,
@@ -102,6 +103,7 @@ CREATE TABLE `subscription` (
     `status` SMALLINT NOT NULL DEFAULT 1,
     `createdat` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    UNIQUE INDEX `subscription_orderid_key`(`orderid`),
     INDEX `idperusahaan`(`idperusahaan`),
     PRIMARY KEY (`idsubscription`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
