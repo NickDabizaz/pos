@@ -55,7 +55,9 @@ export function findAllPembelian(): Pembelian[] {
 }
 
 export function findPembelianByKode(kodebeli: string): Pembelian | undefined {
-  return pembelianStore.find((item) => item.kodebeli === kodebeli);
+  const found = pembelianStore.find((item) => item.kodebeli === kodebeli);
+
+  return found;
 }
 
 export function insertPembelian(pembelian: Pembelian): void {

@@ -1,13 +1,6 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
 import { prisma } from "@/lib/prisma";
-import {
-  handleMidtransNotification,
-  JumlahTidakSesuaiError,
-  OrderTidakDikenalError,
-  PaketTidakDitemukanError,
-  PerusahaanTidakDitemukanError,
-  SignatureTidakValidError,
-} from "@/lib/server/subscription/service";
+import { handleMidtransNotification } from "@/lib/server/subscription/service";
 import type { MidtransNotificationPayload } from "@/lib/server/subscription/types";
 
 export async function POST(request: Request) {
@@ -22,16 +15,19 @@ export async function POST(request: Request) {
       data      : hasil,
     });
   } catch (error) {
-    if (error instanceof SignatureTidakValidError) {
+    if (error instanceof Error && error.message.includes("Signature notifikasi")) {
       return errorResponse({ statusCode: 401, message: error.message });
     }
-    if (error instanceof OrderTidakDikenalError) {
+    if (error instanceof Error && error.message.includes("tidak pernah dibuat")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
-    if (error instanceof PerusahaanTidakDitemukanError || error instanceof PaketTidakDitemukanError) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Perusahaan dengan id") || error.message.includes("Paket Subscription"))
+    ) {
       return errorResponse({ statusCode: 400, message: error.message });
     }
-    if (error instanceof JumlahTidakSesuaiError) {
+    if (error instanceof Error && error.message.includes("tidak sesuai harga")) {
       return errorResponse({ statusCode: 400, message: error.message });
     }
 

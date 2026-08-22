@@ -8,5 +8,7 @@ export async function findSession(
   instance      : AuthInstance,
   requestHeaders: Headers,
 ): Promise<UserSession | null> {
-  return instance.api.getSession({ headers: requestHeaders });
+  const session = await instance.api.getSession({ headers: requestHeaders });
+
+  return session;
 }

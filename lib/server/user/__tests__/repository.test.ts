@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaClient } from "@/lib/generated/prisma-global/client";
-import { listMembershipsForUser } from "@/lib/server/user/service";
+import { findPerusahaanByUser } from "@/lib/server/user/repository";
 import { setUpMigratedDatabase } from "@/prisma/__tests__/testDatabase";
 
 let prisma: PrismaClient;
@@ -23,7 +23,7 @@ function createPerusahaan(kodeperusahaan: string, namaperusahaan: string, namada
   return prisma.perusahaan.create({ data: { kodeperusahaan, namaperusahaan, namadatabase } });
 }
 
-describe("listMembershipsForUser mengembalikan seluruh Perusahaan milik satu Pengguna", () => {
+describe("findPerusahaanByUser mengembalikan seluruh Perusahaan milik satu Pengguna", () => {
   it("mengembalikan Perusahaan yang diikuti beserta status isowner-nya", async () => {
     const user = await createUser("user-satu", "satu@norvyn.test");
     const perusahaan = await createPerusahaan("PSH-0001", "Toko Satu", "pos_test_toko_satu");
@@ -31,7 +31,7 @@ describe("listMembershipsForUser mengembalikan seluruh Perusahaan milik satu Pen
       data: { iduser: user.id, idperusahaan: perusahaan.idperusahaan, isowner: true },
     });
 
-    const memberships = await listMembershipsForUser(prisma, user.id);
+    const memberships = await findPerusahaanByUser(prisma, user.id);
 
     expect(memberships).toEqual([
       {
@@ -47,7 +47,7 @@ describe("listMembershipsForUser mengembalikan seluruh Perusahaan milik satu Pen
   it("mengembalikan daftar kosong untuk Pengguna yang belum menjadi anggota Perusahaan manapun", async () => {
     const user = await createUser("user-tanpa-perusahaan", "duabelas@norvyn.test");
 
-    expect(await listMembershipsForUser(prisma, user.id)).toEqual([]);
+    expect(await findPerusahaanByUser(prisma, user.id)).toEqual([]);
   });
 });
 

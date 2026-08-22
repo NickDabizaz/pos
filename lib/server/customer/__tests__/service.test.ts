@@ -1,15 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetCustomerStoreForTests } from "@/lib/server/customer/repository";
-import {
-  createCustomer,
-  CustomerNotFoundError,
-  deleteCustomer,
-  DuplicateKodeError,
-  generateKodeCustomer,
-  listCustomer,
-  updateCustomer,
-} from "@/lib/server/customer/service";
+import { findAllCustomer, resetCustomerStoreForTests } from "@/lib/server/customer/repository";
+import { createCustomer, deleteCustomer, generateKodeCustomer, updateCustomer } from "@/lib/server/customer/service";
 import type { Customer } from "@/lib/server/customer/types";
 
 const newCustomer: Customer = {
@@ -26,16 +18,16 @@ beforeEach(() => {
 });
 
 describe("createCustomer", () => {
-  it("adds the item and it shows up in listCustomer", () => {
+  it("adds the item and it shows up in findAllCustomer", () => {
     createCustomer(newCustomer);
 
-    expect(listCustomer()).toContainEqual(newCustomer);
+    expect(findAllCustomer()).toContainEqual(newCustomer);
   });
 
   it("rejects a kodecustomer that already exists", () => {
     createCustomer(newCustomer);
 
-    expect(() => createCustomer(newCustomer)).toThrow(DuplicateKodeError);
+    expect(() => createCustomer(newCustomer)).toThrow(/sudah digunakan/);
   });
 });
 
@@ -49,28 +41,28 @@ describe("updateCustomer", () => {
     });
 
     expect(updated.namacustomer).toBe("Pelanggan Terupdate");
-    expect(listCustomer()).toContainEqual({
+    expect(findAllCustomer()).toContainEqual({
       ...newCustomer,
       namacustomer: "Pelanggan Terupdate",
     });
   });
 
   it("throws when the kodecustomer does not exist", () => {
-    expect(() => updateCustomer("CUST-MISSING", newCustomer)).toThrow(CustomerNotFoundError);
+    expect(() => updateCustomer("CUST-MISSING", newCustomer)).toThrow(/tidak ditemukan/);
   });
 });
 
 describe("deleteCustomer", () => {
-  it("removes the item from listCustomer", () => {
+  it("removes the item from findAllCustomer", () => {
     createCustomer(newCustomer);
 
     deleteCustomer(newCustomer.kodecustomer);
 
-    expect(listCustomer()).not.toContainEqual(newCustomer);
+    expect(findAllCustomer()).not.toContainEqual(newCustomer);
   });
 
   it("throws when the kodecustomer does not exist", () => {
-    expect(() => deleteCustomer("CUST-MISSING")).toThrow(CustomerNotFoundError);
+    expect(() => deleteCustomer("CUST-MISSING")).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -79,6 +71,6 @@ describe("generateKodeCustomer", () => {
     const generated = generateKodeCustomer();
 
     expect(generated).toMatch(/^CUST-AUTO-\d+$/);
-    expect(listCustomer().some((item) => item.kodecustomer === generated)).toBe(false);
+    expect(findAllCustomer().some((item) => item.kodecustomer === generated)).toBe(false);
   });
 });

@@ -1,15 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetPembelianStoreForTests } from "@/lib/server/pembelian/repository";
-import {
-  createPembelian,
-  DuplicateKodeBeliError,
-  generateKodePembelian,
-  getPembelian,
-  listPembelian,
-  PembelianNotFoundError,
-  updatePembelian,
-} from "@/lib/server/pembelian/service";
+import { findAllPembelian, resetPembelianStoreForTests } from "@/lib/server/pembelian/repository";
+import { createPembelian, generateKodePembelian, getPembelian, updatePembelian } from "@/lib/server/pembelian/service";
 import type { Pembelian } from "@/lib/server/pembelian/types";
 
 const newPembelian: Pembelian = {
@@ -32,16 +24,16 @@ beforeEach(() => {
 });
 
 describe("createPembelian", () => {
-  it("adds the item and it shows up in listPembelian", () => {
+  it("adds the item and it shows up in findAllPembelian", () => {
     createPembelian(newPembelian);
 
-    expect(listPembelian()).toContainEqual(newPembelian);
+    expect(findAllPembelian()).toContainEqual(newPembelian);
   });
 
   it("rejects a kodebeli that already exists", () => {
     createPembelian(newPembelian);
 
-    expect(() => createPembelian(newPembelian)).toThrow(DuplicateKodeBeliError);
+    expect(() => createPembelian(newPembelian)).toThrow(/sudah digunakan/);
   });
 });
 
@@ -53,7 +45,7 @@ describe("getPembelian", () => {
   });
 
   it("throws when the kodebeli does not exist", () => {
-    expect(() => getPembelian("PB-MISSING")).toThrow(PembelianNotFoundError);
+    expect(() => getPembelian("PB-MISSING")).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -67,11 +59,11 @@ describe("updatePembelian", () => {
     });
 
     expect(updated.status).toBe("D");
-    expect(listPembelian()).toContainEqual({ ...newPembelian, status: "D" });
+    expect(findAllPembelian()).toContainEqual({ ...newPembelian, status: "D" });
   });
 
   it("throws when the kodebeli does not exist", () => {
-    expect(() => updatePembelian("PB-MISSING", newPembelian)).toThrow(PembelianNotFoundError);
+    expect(() => updatePembelian("PB-MISSING", newPembelian)).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -80,6 +72,6 @@ describe("generateKodePembelian", () => {
     const generated = generateKodePembelian();
 
     expect(generated).toMatch(/^PB-\d{8}-\d{4}$/);
-    expect(listPembelian().some((item) => item.kodebeli === generated)).toBe(false);
+    expect(findAllPembelian().some((item) => item.kodebeli === generated)).toBe(false);
   });
 });

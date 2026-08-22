@@ -1,15 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { PrismaClient } from "@/lib/generated/prisma-global/client";
-import {
-  daftarPerusahaan,
-  KodePerusahaanBentrokError,
-  KodePerusahaanOtomatisHabisError,
-  NamaPerusahaanSudahDipakaiError,
-  NamaPerusahaanTidakValidError,
-  ProvisioningGagalError,
-  SudahMemilikiPerusahaanError,
-} from "@/lib/server/perusahaan/service";
+import { daftarPerusahaan } from "@/lib/server/perusahaan/service";
 import type { DaftarPerusahaanInput } from "@/lib/server/perusahaan/types";
 import { setUpMigratedDatabase } from "@/prisma/__tests__/testDatabase";
 
@@ -111,7 +103,7 @@ describe("Kode Perusahaan digenerate berurutan", () => {
     const deps = buatDeps();
 
     await expect(daftarPerusahaan(prisma, inputFor(iduser, "Toko Kelima"), deps)).rejects.toThrow(
-      KodePerusahaanOtomatisHabisError,
+      /Kode Perusahaan otomatis sudah habis/,
     );
 
     expect(await prisma.perusahaan.count()).toBe(1);
@@ -156,7 +148,7 @@ describe("Kode Perusahaan ketikan Pengguna", () => {
 
     await expect(
       daftarPerusahaan(prisma, inputFor(iduser, "Toko Bentrok", { generateKode: false, kodeperusahaan: "p001" }), deps),
-    ).rejects.toThrow(KodePerusahaanBentrokError);
+    ).rejects.toThrow(/sudah dipakai/);
   });
 
   it("kode ketikan yang bentrok ditolak tanpa memanggil buatDatabase sama sekali", async () => {
@@ -186,7 +178,9 @@ describe("Kode Perusahaan ketikan Pengguna", () => {
     const rejected = hasil.filter((r) => r.status === "rejected");
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
-    expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(KodePerusahaanBentrokError);
+    const reason = (rejected[0] as PromiseRejectedResult).reason;
+    expect(reason).toBeInstanceOf(Error);
+    expect((reason as Error).cause).toBe("KODE_BENTROK");
   });
 });
 
@@ -225,7 +219,7 @@ describe("Nama database diturunkan sistem", () => {
     const deps = buatDeps();
 
     await expect(daftarPerusahaan(prisma, inputFor(iduser, "!!! --- ***"), deps)).rejects.toThrow(
-      NamaPerusahaanTidakValidError,
+      "Nama Perusahaan harus memuat huruf atau angka",
     );
   });
 
@@ -252,7 +246,7 @@ describe("Nama Perusahaan yang sudah dipakai ditolak", () => {
     const deps = buatDeps();
 
     await expect(daftarPerusahaan(prisma, inputFor(kedua, "sumber makmur"), deps)).rejects.toThrow(
-      NamaPerusahaanSudahDipakaiError,
+      /sudah dipakai/,
     );
 
     expect(await prisma.perusahaan.count()).toBe(1);
@@ -290,7 +284,7 @@ describe("Perusahaan baru belum bayar", () => {
   });
 });
 
-describe("Provisioning dipanggil dengan nama database turunan", () => {
+describe("Pembuatan database dipanggil dengan nama database turunan", () => {
   it("pendaftaran Sumber Makmur yang berhasil memanggil buatDatabase tepat sekali dengan nama pos_sumbermakmur", async () => {
     const iduser = await createUser();
     const deps = buatDeps();
@@ -320,7 +314,7 @@ describe("Pendaftaran kedua oleh Pengguna yang sama ditolak", () => {
 
     const deps = buatDeps();
     await expect(daftarPerusahaan(prisma, inputFor(iduser, "Toko Keduanya"), deps)).rejects.toThrow(
-      SudahMemilikiPerusahaanError,
+      "Anda sudah memiliki Perusahaan",
     );
 
     expect(await prisma.perusahaan.count()).toBe(1);
@@ -338,7 +332,7 @@ describe("Kegagalan pembuatan database dapat diulang", () => {
     });
 
     await expect(daftarPerusahaan(prisma, inputFor(iduser, namaperusahaan), depsGagal)).rejects.toThrow(
-      ProvisioningGagalError,
+      /Gagal menyiapkan Database Perusahaan/,
     );
     await expect(daftarPerusahaan(prisma, inputFor(iduser, namaperusahaan), depsGagal)).rejects.toThrow(
       new RegExp(namaperusahaan),

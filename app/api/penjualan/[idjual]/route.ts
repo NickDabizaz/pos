@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { getPenjualan, PenjualanNotFoundError, updatePenjualan } from "@/lib/server/penjualan/service";
+import { getPenjualan, updatePenjualan } from "@/lib/server/penjualan/service";
 import type { Penjualan } from "@/lib/server/penjualan/types";
 import { parseStatusTransaksi, parseTransaksiItems } from "@/lib/server/transaksi/parse";
 
@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       data   : getPenjualan(idjual),
     });
   } catch (error) {
-    if (error instanceof PenjualanNotFoundError) {
+    if (error instanceof Error && error.cause === "NOT_FOUND") {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 
@@ -52,7 +52,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data   : updated,
     });
   } catch (error) {
-    if (error instanceof PenjualanNotFoundError) {
+    if (error instanceof Error && error.cause === "NOT_FOUND") {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 

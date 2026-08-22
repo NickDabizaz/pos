@@ -15,7 +15,9 @@ export function findAllLokasi(): Lokasi[] {
 }
 
 export function findLokasiByKode(kodelokasi: string): Lokasi | undefined {
-  return lokasiStore.find((item) => item.kodelokasi === kodelokasi);
+  const lokasi = lokasiStore.find((item) => item.kodelokasi === kodelokasi);
+
+  return lokasi;
 }
 
 export function insertLokasi(lokasi: Lokasi): void {

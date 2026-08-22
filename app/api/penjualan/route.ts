@@ -1,17 +1,13 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import {
-  createPenjualan,
-  DuplicateKodeJualError,
-  generateKodePenjualan,
-  listPenjualan,
-} from "@/lib/server/penjualan/service";
+import { findAllPenjualan } from "@/lib/server/penjualan/repository";
+import { createPenjualan, generateKodePenjualan } from "@/lib/server/penjualan/service";
 import type { Penjualan } from "@/lib/server/penjualan/types";
 import { parseTransaksiItems } from "@/lib/server/transaksi/parse";
 
 export async function GET() {
   return successResponse({
     message: "Data penjualan berhasil diambil",
-    data   : listPenjualan(),
+    data   : findAllPenjualan(),
   });
 }
 
@@ -41,7 +37,7 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof DuplicateKodeJualError) {
+    if (error instanceof Error && error.cause === "DUPLICATE") {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

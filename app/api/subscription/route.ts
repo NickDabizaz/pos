@@ -1,13 +1,12 @@
 import { successResponse } from "@/lib/apiResponse";
-import { prisma } from "@/lib/prisma";
-import { listPaketLangganan } from "@/lib/server/subscription/service";
+import { PAKET_SUBSCRIPTION } from "@/lib/server/subscription/service";
 
 export async function GET() {
-  const paket = listPaketLangganan(prisma);
+  const paket = PAKET_SUBSCRIPTION;
 
   return successResponse({
     statusCode: 200,
-    message   : "Katalog Paket Langganan",
+    message   : "Katalog Paket Subscription",
     data      : paket,
   });
 }

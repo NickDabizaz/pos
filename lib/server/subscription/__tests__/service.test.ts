@@ -6,12 +6,7 @@ import { PrismaClient } from "@/lib/generated/prisma-global/client";
 import {
   createSnapTransaction,
   handleMidtransNotification,
-  JumlahTidakSesuaiError,
-  listPaketLangganan,
-  OrderTidakDikenalError,
-  PaketTidakDitemukanError,
-  PerusahaanSudahAktifError,
-  SignatureTidakValidError,
+  PAKET_SUBSCRIPTION,
   syncSnapTransaction,
 } from "@/lib/server/subscription/service";
 import type { MidtransClient, MidtransNotificationPayload } from "@/lib/server/subscription/types";
@@ -41,8 +36,8 @@ async function buatPerusahaan(status: number): Promise<number> {
   const perusahaan = await prisma.perusahaan.create({
     data: {
       kodeperusahaan: `LGN${idCounter}`,
-      namaperusahaan: `Toko Langganan ${idCounter}`,
-      namadatabase  : `pos_test_langganan_${idCounter}`,
+      namaperusahaan: `Toko Subscription ${idCounter}`,
+      namadatabase  : `pos_test_subscription_${idCounter}`,
       status,
     },
   });
@@ -83,9 +78,9 @@ afterAll(async () => {
   await tearDown();
 });
 
-describe("Pengguna melihat daftar Paket Langganan beserta harga dan masa berlakunya", () => {
+describe("Pengguna melihat daftar Paket Subscription beserta harga dan masa berlakunya", () => {
   it('katalog berisi "Paket Bulanan" Rp150.000/30 hari dan "Paket Tahunan" Rp1.500.000/365 hari', () => {
-    const katalog = listPaketLangganan(prisma);
+    const katalog = PAKET_SUBSCRIPTION;
 
     const bulanan = katalog.find((paket) => paket.kodepaket === "bulanan");
     const tahunan = katalog.find((paket) => paket.kodepaket === "tahunan");
@@ -113,7 +108,7 @@ describe("Memilih paket membuka pembayaran Snap di mode sandbox", () => {
     const midtransClient = buatMidtransClient();
 
     await expect(createSnapTransaction(prisma, idperusahaan, "tidak-ada", midtransClient)).rejects.toThrow(
-      PaketTidakDitemukanError,
+      /Paket Subscription/,
     );
     expect(midtransClient.createTransaction).not.toHaveBeenCalled();
   });
@@ -123,13 +118,13 @@ describe("Memilih paket membuka pembayaran Snap di mode sandbox", () => {
     const midtransClient = buatMidtransClient();
 
     await expect(createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient)).rejects.toThrow(
-      PerusahaanSudahAktifError,
+      /sudah aktif/,
     );
   });
 });
 
-describe("Konfirmasi lunas membuat Langganan baru dan mengaktifkan Perusahaan", () => {
-  it('notifikasi settlement dengan signature sah untuk order_id yang dikenal membuat satu baris Langganan dan mengubah perusahaan.status menjadi 1', async () => {
+describe("Konfirmasi lunas membuat Subscription baru dan mengaktifkan Perusahaan", () => {
+  it('notifikasi settlement dengan signature sah untuk order_id yang dikenal membuat satu baris Subscription dan mengubah perusahaan.status menjadi 1', async () => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
@@ -139,8 +134,8 @@ describe("Konfirmasi lunas membuat Langganan baru dan mengaktifkan Perusahaan", 
     expect(hasil.activated).toBe(true);
     const perusahaan = await prisma.perusahaan.findUniqueOrThrow({ where: { idperusahaan } });
     expect(perusahaan.status).toBe(1);
-    const langganan = await prisma.subscription.findMany({ where: { idperusahaan } });
-    expect(langganan).toHaveLength(1);
+    const subscription = await prisma.subscription.findMany({ where: { idperusahaan } });
+    expect(subscription).toHaveLength(1);
   });
 
   it("paket 30 hari dibeli tanggal 2026-08-22 menghasilkan tglmulai=2026-08-22 dan tglselesai=2026-09-21", async () => {
@@ -153,9 +148,9 @@ describe("Konfirmasi lunas membuat Langganan baru dan mengaktifkan Perusahaan", 
 
       await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "150000"));
 
-      const langganan = await prisma.subscription.findFirstOrThrow({ where: { idperusahaan } });
-      expect(langganan.tglmulai.toISOString().slice(0, 10)).toBe("2026-08-22");
-      expect(langganan.tglselesai.toISOString().slice(0, 10)).toBe("2026-09-21");
+      const subscription = await prisma.subscription.findFirstOrThrow({ where: { idperusahaan } });
+      expect(subscription.tglmulai.toISOString().slice(0, 10)).toBe("2026-08-22");
+      expect(subscription.tglselesai.toISOString().slice(0, 10)).toBe("2026-09-21");
     } finally {
       vi.useRealTimers();
     }
@@ -171,26 +166,26 @@ describe("Konfirmasi lunas membuat Langganan baru dan mengaktifkan Perusahaan", 
 
       await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "1500000"));
 
-      const langganan = await prisma.subscription.findFirstOrThrow({ where: { idperusahaan } });
-      expect(langganan.tglselesai.toISOString().slice(0, 10)).toBe("2027-08-22");
+      const subscription = await prisma.subscription.findFirstOrThrow({ where: { idperusahaan } });
+      expect(subscription.tglselesai.toISOString().slice(0, 10)).toBe("2027-08-22");
     } finally {
       vi.useRealTimers();
     }
   });
 
-  it("notifikasi untuk order_id yang tidak pernah dibuat lewat createSnapTransaction diabaikan, tidak membuat Langganan apa pun", async () => {
+  it("notifikasi untuk order_id yang tidak pernah dibuat lewat createSnapTransaction diabaikan, tidak membuat Subscription apa pun", async () => {
     const orderidPalsu = "ORDER-BUKAN-DARI-SNAP-123";
 
     await expect(
       handleMidtransNotification(prisma, notifikasiSettlement(orderidPalsu, "150000")),
-    ).rejects.toThrow(OrderTidakDikenalError);
+    ).rejects.toThrow(/tidak pernah dibuat/);
 
     expect(await prisma.subscription.count()).toBe(0);
   });
 });
 
-describe("Notifikasi ganda tidak menghasilkan Langganan ganda", () => {
-  it("notifikasi settlement untuk order_id yang sama diterima dua kali berturut-turut hanya menghasilkan satu baris Langganan", async () => {
+describe("Notifikasi ganda tidak menghasilkan Subscription ganda", () => {
+  it("notifikasi settlement untuk order_id yang sama diterima dua kali berturut-turut hanya menghasilkan satu baris Subscription", async () => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
@@ -204,7 +199,7 @@ describe("Notifikasi ganda tidak menghasilkan Langganan ganda", () => {
     expect(await prisma.subscription.count({ where: { idperusahaan } })).toBe(1);
   });
 
-  it("dua notifikasi settlement untuk order_id yang sama diterima bersamaan tetap hanya menghasilkan satu baris Langganan", async () => {
+  it("dua notifikasi settlement untuk order_id yang sama diterima bersamaan tetap hanya menghasilkan satu baris Subscription", async () => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
@@ -220,13 +215,13 @@ describe("Notifikasi ganda tidak menghasilkan Langganan ganda", () => {
 });
 
 describe("Notifikasi dengan signature tidak sah ditolak", () => {
-  it("notifikasi dengan signature_key yang tidak cocok ditolak, perusahaan.status tidak berubah, tidak ada Langganan tercipta", async () => {
+  it("notifikasi dengan signature_key yang tidak cocok ditolak, perusahaan.status tidak berubah, tidak ada Subscription tercipta", async () => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
     const payload = { ...notifikasiSettlement(snap.orderid, "150000"), signature_key: "signature-ngawur" };
 
-    await expect(handleMidtransNotification(prisma, payload)).rejects.toThrow(SignatureTidakValidError);
+    await expect(handleMidtransNotification(prisma, payload)).rejects.toThrow(/Signature notifikasi/);
 
     const perusahaan = await prisma.perusahaan.findUniqueOrThrow({ where: { idperusahaan } });
     expect(perusahaan.status).toBe(0);
@@ -241,14 +236,12 @@ describe("Notifikasi dengan signature tidak sah ditolak", () => {
     const payload = notifikasiSettlement(snap.orderid, "150000");
     const payloadDiubah = { ...payload, gross_amount: "1" };
 
-    await expect(handleMidtransNotification(prisma, payloadDiubah)).rejects.toThrow(
-      SignatureTidakValidError,
-    );
+    await expect(handleMidtransNotification(prisma, payloadDiubah)).rejects.toThrow(/Signature notifikasi/);
   });
 });
 
 describe("Pembayaran gagal, kedaluwarsa, atau dibatalkan tidak mengaktifkan Perusahaan", () => {
-  it.each(["deny", "expire", "cancel"])('notifikasi transaction_status="%s" tidak mengubah perusahaan.status dan tidak membuat Langganan', async (status) => {
+  it.each(["deny", "expire", "cancel"])('notifikasi transaction_status="%s" tidak mengubah perusahaan.status dan tidak membuat Subscription', async (status) => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
@@ -279,7 +272,7 @@ describe("Pembayaran gagal, kedaluwarsa, atau dibatalkan tidak mengaktifkan Peru
 });
 
 describe("Riwayat pembelian tersimpan utuh", () => {
-  it("pembayaran pertama yang lunas menambah tepat satu baris Langganan lewat INSERT, tidak ada baris lain yang terhapus atau tertimpa", async () => {
+  it("pembayaran pertama yang lunas menambah tepat satu baris Subscription lewat INSERT, tidak ada baris lain yang terhapus atau tertimpa", async () => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
@@ -293,9 +286,8 @@ describe("Riwayat pembelian tersimpan utuh", () => {
 });
 
 describe("Katalog paket kosong menampilkan daftar kosong tanpa error", () => {
-  it("listPaketLangganan selalu mengembalikan array, tidak pernah melempar", () => {
-    expect(() => listPaketLangganan(prisma)).not.toThrow();
-    expect(Array.isArray(listPaketLangganan(prisma))).toBe(true);
+  it("PAKET_SUBSCRIPTION selalu berupa array, tidak pernah melempar", () => {
+    expect(Array.isArray(PAKET_SUBSCRIPTION)).toBe(true);
   });
 });
 
@@ -306,12 +298,12 @@ describe("Jumlah tidak sesuai (defense in depth)", () => {
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
     const payload = notifikasiSettlement(snap.orderid, "999999");
 
-    await expect(handleMidtransNotification(prisma, payload)).rejects.toThrow(JumlahTidakSesuaiError);
+    await expect(handleMidtransNotification(prisma, payload)).rejects.toThrow(/tidak sesuai harga/);
   });
 });
 
-describe("syncSnapTransaction mengaktifkan Langganan lewat status Midtrans langsung, tanpa menunggu webhook", () => {
-  it("order_id yang statusnya settlement di Midtrans membuat Langganan aktif, sama seperti lewat webhook", async () => {
+describe("syncSnapTransaction mengaktifkan Subscription lewat status Midtrans langsung, tanpa menunggu webhook", () => {
+  it("order_id yang statusnya settlement di Midtrans membuat Subscription aktif, sama seperti lewat webhook", async () => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
@@ -324,7 +316,7 @@ describe("syncSnapTransaction mengaktifkan Langganan lewat status Midtrans langs
     expect(perusahaan.status).toBe(1);
   });
 
-  it("dipanggil ulang setelah webhook sudah lebih dulu mengaktifkan tidak membuat Langganan ganda (idempoten)", async () => {
+  it("dipanggil ulang setelah webhook sudah lebih dulu mengaktifkan tidak membuat Subscription ganda (idempoten)", async () => {
     const idperusahaan = await buatPerusahaan(0);
     const midtransClient = buatMidtransClient();
     const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);

@@ -1,14 +1,9 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSession } from "@/lib/server/auth/guard";
-import {
-  createSnapTransaction,
-  PaketTidakDitemukanError,
-  PerusahaanSudahAktifError,
-  PerusahaanTidakDitemukanError,
-} from "@/lib/server/subscription/service";
+import { createSnapTransaction } from "@/lib/server/subscription/service";
 import { createMidtransClient } from "@/lib/server/subscription/midtransClient";
-import { listMembershipsForUser } from "@/lib/server/user/service";
+import { findPerusahaanByUser } from "@/lib/server/user/repository";
 
 export async function POST(request: Request) {
   const session = await getCurrentSession();
@@ -21,7 +16,7 @@ export async function POST(request: Request) {
     const idperusahaan = Number(body.idperusahaan);
     const kodepaket = String(body.kodepaket ?? "");
 
-    const memberships = await listMembershipsForUser(prisma, session.user.id);
+    const memberships = await findPerusahaanByUser(prisma, session.user.id);
     if (!memberships.some((membership) => membership.idperusahaan === idperusahaan)) {
       return errorResponse({ statusCode: 403, message: "Anda bukan anggota Perusahaan ini" });
     }
@@ -34,13 +29,13 @@ export async function POST(request: Request) {
       data      : snap,
     });
   } catch (error) {
-    if (error instanceof PerusahaanTidakDitemukanError) {
+    if (error instanceof Error && error.message.includes("Perusahaan dengan id")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
-    if (error instanceof PerusahaanSudahAktifError) {
+    if (error instanceof Error && error.message.includes("sudah aktif")) {
       return errorResponse({ statusCode: 409, message: error.message });
     }
-    if (error instanceof PaketTidakDitemukanError) {
+    if (error instanceof Error && error.message.includes("Paket Subscription")) {
       return errorResponse({ statusCode: 400, message: error.message });
     }
 

@@ -10,17 +10,23 @@ export async function findPerusahaanMilikUser(db: GlobalClient, iduser: string):
     include: { perusahaan: true },
   });
 
-  return membership ? toRow(membership.perusahaan) : null;
+  const row = membership ? toRow(membership.perusahaan) : null;
+
+  return row;
 }
 
 export async function findPerusahaanByNamadatabase(db: GlobalClient, namadatabase: string): Promise<PerusahaanRow | null> {
   const perusahaan = await db.perusahaan.findUnique({ where: { namadatabase } });
-  return perusahaan ? toRow(perusahaan) : null;
+  const row = perusahaan ? toRow(perusahaan) : null;
+
+  return row;
 }
 
 export async function findPerusahaanByKode(db: GlobalClient, kodeperusahaan: string): Promise<PerusahaanRow | null> {
   const perusahaan = await db.perusahaan.findUnique({ where: { kodeperusahaan } });
-  return perusahaan ? toRow(perusahaan) : null;
+  const row = perusahaan ? toRow(perusahaan) : null;
+
+  return row;
 }
 
 export async function nomorKodeOtomatisBerikutnya(db: GlobalClient): Promise<number> {
@@ -36,7 +42,10 @@ export async function nomorKodeOtomatisBerikutnya(db: GlobalClient): Promise<num
       }
     }
   }
-  return max + 1;
+
+  const nomorBerikutnya = max + 1;
+
+  return nomorBerikutnya;
 }
 
 export async function insertPerusahaanDenganOwner(
@@ -49,10 +58,13 @@ export async function insertPerusahaanDenganOwner(
   const perusahaan = await db.$transaction(async (tx) => {
     const created = await tx.perusahaan.create({ data: { kodeperusahaan, namaperusahaan, namadatabase } });
     await tx.userperusahaan.create({ data: { iduser, idperusahaan: created.idperusahaan, isowner: true } });
+
     return created;
   });
 
-  return toRow(perusahaan);
+  const row = toRow(perusahaan);
+
+  return row;
 }
 
 export function isKonflikKodeperusahaan(error: unknown): boolean {
@@ -62,11 +74,16 @@ export function isKonflikKodeperusahaan(error: unknown): boolean {
 
   const target = error.meta?.target;
   if (typeof target === "string") {
-    return target.includes("kodeperusahaan");
+    const cocok = target.includes("kodeperusahaan");
+
+    return cocok;
   }
   if (Array.isArray(target)) {
-    return target.includes("kodeperusahaan");
+    const cocok = target.includes("kodeperusahaan");
+
+    return cocok;
   }
+
   return true;
 }
 
@@ -77,11 +94,13 @@ function toRow(perusahaan: {
   namadatabase  : string;
   status        : number;
 }): PerusahaanRow {
-  return {
+  const row = {
     idperusahaan  : perusahaan.idperusahaan,
     kodeperusahaan: perusahaan.kodeperusahaan,
     namaperusahaan: perusahaan.namaperusahaan,
     namadatabase  : perusahaan.namadatabase,
     status        : perusahaan.status,
   };
+
+  return row;
 }

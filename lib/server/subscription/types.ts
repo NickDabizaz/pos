@@ -2,14 +2,14 @@ import type { PrismaClient } from "@/lib/generated/prisma-global/client";
 
 export type GlobalClient = PrismaClient;
 
-export type PaketLangganan = {
+export type PaketSubscription = {
   kodepaket      : string;
   namapaket      : string;
   hargapaket     : number;
   masaberlakuhari: number;
 };
 
-export type LanggananRow = {
+export type SubscriptionRow = {
   idsubscription : number;
   idperusahaan   : number;
   orderid        : string;

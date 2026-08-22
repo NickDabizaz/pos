@@ -1,15 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetSupplierStoreForTests } from "@/lib/server/supplier/repository";
-import {
-  createSupplier,
-  deleteSupplier,
-  DuplicateKodeError,
-  generateKodeSupplier,
-  listSupplier,
-  SupplierNotFoundError,
-  updateSupplier,
-} from "@/lib/server/supplier/service";
+import { findAllSupplier, resetSupplierStoreForTests } from "@/lib/server/supplier/repository";
+import { createSupplier, deleteSupplier, generateKodeSupplier, updateSupplier } from "@/lib/server/supplier/service";
 import type { Supplier } from "@/lib/server/supplier/types";
 
 const newSupplier: Supplier = {
@@ -27,16 +19,16 @@ beforeEach(() => {
 });
 
 describe("createSupplier", () => {
-  it("adds the item and it shows up in listSupplier", () => {
+  it("adds the item and it shows up in findAllSupplier", () => {
     createSupplier(newSupplier);
 
-    expect(listSupplier()).toContainEqual(newSupplier);
+    expect(findAllSupplier()).toContainEqual(newSupplier);
   });
 
   it("rejects a kodesupplier that already exists", () => {
     createSupplier(newSupplier);
 
-    expect(() => createSupplier(newSupplier)).toThrow(DuplicateKodeError);
+    expect(() => createSupplier(newSupplier)).toThrow(/sudah digunakan/);
   });
 });
 
@@ -50,28 +42,28 @@ describe("updateSupplier", () => {
     });
 
     expect(updated.namasupplier).toBe("Supplier Terupdate");
-    expect(listSupplier()).toContainEqual({
+    expect(findAllSupplier()).toContainEqual({
       ...newSupplier,
       namasupplier: "Supplier Terupdate",
     });
   });
 
   it("throws when the kodesupplier does not exist", () => {
-    expect(() => updateSupplier("SUP-MISSING", newSupplier)).toThrow(SupplierNotFoundError);
+    expect(() => updateSupplier("SUP-MISSING", newSupplier)).toThrow(/tidak ditemukan/);
   });
 });
 
 describe("deleteSupplier", () => {
-  it("removes the item from listSupplier", () => {
+  it("removes the item from findAllSupplier", () => {
     createSupplier(newSupplier);
 
     deleteSupplier(newSupplier.kodesupplier);
 
-    expect(listSupplier()).not.toContainEqual(newSupplier);
+    expect(findAllSupplier()).not.toContainEqual(newSupplier);
   });
 
   it("throws when the kodesupplier does not exist", () => {
-    expect(() => deleteSupplier("SUP-MISSING")).toThrow(SupplierNotFoundError);
+    expect(() => deleteSupplier("SUP-MISSING")).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -80,6 +72,6 @@ describe("generateKodeSupplier", () => {
     const generated = generateKodeSupplier();
 
     expect(generated).toMatch(/^SUP-AUTO-\d+$/);
-    expect(listSupplier().some((item) => item.kodesupplier === generated)).toBe(false);
+    expect(findAllSupplier().some((item) => item.kodesupplier === generated)).toBe(false);
   });
 });

@@ -16,7 +16,9 @@ export function findAllSupplier(): Supplier[] {
 }
 
 export function findSupplierByKode(kodesupplier: string): Supplier | undefined {
-  return supplierStore.find((item) => item.kodesupplier === kodesupplier);
+  const supplier = supplierStore.find((item) => item.kodesupplier === kodesupplier);
+
+  return supplier;
 }
 
 export function insertSupplier(supplier: Supplier): void {

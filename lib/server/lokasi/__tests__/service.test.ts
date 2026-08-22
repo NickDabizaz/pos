@@ -1,15 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetLokasiStoreForTests } from "@/lib/server/lokasi/repository";
-import {
-  createLokasi,
-  deleteLokasi,
-  DuplicateKodeError,
-  generateKodeLokasi,
-  listLokasi,
-  LokasiNotFoundError,
-  updateLokasi,
-} from "@/lib/server/lokasi/service";
+import { findAllLokasi, resetLokasiStoreForTests } from "@/lib/server/lokasi/repository";
+import { createLokasi, deleteLokasi, generateKodeLokasi, updateLokasi } from "@/lib/server/lokasi/service";
 import type { Lokasi } from "@/lib/server/lokasi/types";
 
 const newLokasi: Lokasi = {
@@ -24,16 +16,16 @@ beforeEach(() => {
 });
 
 describe("createLokasi", () => {
-  it("adds the item and it shows up in listLokasi", () => {
+  it("adds the item and it shows up in findAllLokasi", () => {
     createLokasi(newLokasi);
 
-    expect(listLokasi()).toContainEqual(newLokasi);
+    expect(findAllLokasi()).toContainEqual(newLokasi);
   });
 
   it("rejects a kodelokasi that already exists", () => {
     createLokasi(newLokasi);
 
-    expect(() => createLokasi(newLokasi)).toThrow(DuplicateKodeError);
+    expect(() => createLokasi(newLokasi)).toThrow(/sudah digunakan/);
   });
 });
 
@@ -47,28 +39,28 @@ describe("updateLokasi", () => {
     });
 
     expect(updated.namalokasi).toBe("Lokasi Terupdate");
-    expect(listLokasi()).toContainEqual({
+    expect(findAllLokasi()).toContainEqual({
       ...newLokasi,
       namalokasi: "Lokasi Terupdate",
     });
   });
 
   it("throws when the kodelokasi does not exist", () => {
-    expect(() => updateLokasi("LOK-MISSING", newLokasi)).toThrow(LokasiNotFoundError);
+    expect(() => updateLokasi("LOK-MISSING", newLokasi)).toThrow(/tidak ditemukan/);
   });
 });
 
 describe("deleteLokasi", () => {
-  it("removes the item from listLokasi", () => {
+  it("removes the item from findAllLokasi", () => {
     createLokasi(newLokasi);
 
     deleteLokasi(newLokasi.kodelokasi);
 
-    expect(listLokasi()).not.toContainEqual(newLokasi);
+    expect(findAllLokasi()).not.toContainEqual(newLokasi);
   });
 
   it("throws when the kodelokasi does not exist", () => {
-    expect(() => deleteLokasi("LOK-MISSING")).toThrow(LokasiNotFoundError);
+    expect(() => deleteLokasi("LOK-MISSING")).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -77,6 +69,6 @@ describe("generateKodeLokasi", () => {
     const generated = generateKodeLokasi();
 
     expect(generated).toMatch(/^LOK-AUTO-\d+$/);
-    expect(listLokasi().some((item) => item.kodelokasi === generated)).toBe(false);
+    expect(findAllLokasi().some((item) => item.kodelokasi === generated)).toBe(false);
   });
 });

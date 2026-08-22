@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { cancelCloseShift, ShiftNotClosedTodayError } from "@/lib/server/shift/service";
+import { cancelCloseShift } from "@/lib/server/shift/service";
 
 export async function POST() {
   try {
@@ -10,7 +10,7 @@ export async function POST() {
       data   : shift,
     });
   } catch (error) {
-    if (error instanceof ShiftNotClosedTodayError) {
+    if (error instanceof Error && error.cause === "SHIFT_CONFLICT") {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

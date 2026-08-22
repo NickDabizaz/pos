@@ -5,8 +5,17 @@ export const PPN_RATE = 0.11;
 export function calculateLinePpn(qty: number, harga: number, diskon: number, pakaiPpn: PpnMode): number {
   const base = qty * harga - diskon;
 
-  if (pakaiPpn === "EXCLUDE") return base * PPN_RATE;
-  if (pakaiPpn === "INCLUDE") return (base * PPN_RATE) / (1 + PPN_RATE);
+  if (pakaiPpn === "EXCLUDE") {
+    const ppn = base * PPN_RATE;
+
+    return ppn;
+  }
+
+  if (pakaiPpn === "INCLUDE") {
+    const ppn = (base * PPN_RATE) / (1 + PPN_RATE);
+
+    return ppn;
+  }
 
   return 0;
 }
@@ -14,7 +23,11 @@ export function calculateLinePpn(qty: number, harga: number, diskon: number, pak
 export function calculateLineSubtotal(qty: number, harga: number, diskon: number, pakaiPpn: PpnMode): number {
   const base = qty * harga - diskon;
 
-  if (pakaiPpn === "EXCLUDE") return base + calculateLinePpn(qty, harga, diskon, pakaiPpn);
+  if (pakaiPpn === "EXCLUDE") {
+    const subtotal = base + calculateLinePpn(qty, harga, diskon, pakaiPpn);
+
+    return subtotal;
+  }
 
   return base;
 }

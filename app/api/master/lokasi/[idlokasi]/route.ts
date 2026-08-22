@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { deleteLokasi, LokasiNotFoundError, updateLokasi } from "@/lib/server/lokasi/service";
+import { deleteLokasi, updateLokasi } from "@/lib/server/lokasi/service";
 import type { Lokasi } from "@/lib/server/lokasi/types";
 
 type RouteParams = { params: Promise<{ idlokasi: string }> };
@@ -24,7 +24,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data   : updated,
     });
   } catch (error) {
-    if (error instanceof LokasiNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 
@@ -42,7 +42,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     return successResponse({ message: "Lokasi berhasil dihapus" });
   } catch (error) {
-    if (error instanceof LokasiNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 

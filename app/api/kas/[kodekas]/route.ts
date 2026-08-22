@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { getKas, KasNotFoundError, updateKas } from "@/lib/server/kas/service";
+import { getKas, updateKas } from "@/lib/server/kas/service";
 import type { Kas } from "@/lib/server/kas/types";
 
 type RouteParams = { params: Promise<{ kodekas: string }> };
@@ -13,7 +13,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       data   : getKas(kodekas),
     });
   } catch (error) {
-    if (error instanceof KasNotFoundError) {
+    if (error instanceof Error && error.cause === "NOT_FOUND") {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 
@@ -49,7 +49,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data   : updated,
     });
   } catch (error) {
-    if (error instanceof KasNotFoundError) {
+    if (error instanceof Error && error.cause === "NOT_FOUND") {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 

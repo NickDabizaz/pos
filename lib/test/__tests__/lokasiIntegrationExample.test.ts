@@ -9,7 +9,7 @@ afterEach(async () => {
 });
 
 describe("contoh integrasi: membuat dan membaca satu baris Lokasi", () => {
-  it("baris Lokasi yang dibuat dapat dibaca kembali lewat client tenant", async () => {
+  it("baris Lokasi yang dibuat dapat dibaca kembali lewat client Database Perusahaan", async () => {
     const created = await db.lokasi.create({
       data: { kodelokasi: "LOK-EXAMPLE", namalokasi: "Lokasi Contoh Integrasi" },
     });

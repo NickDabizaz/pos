@@ -1,16 +1,12 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import {
-  createLokasi,
-  DuplicateKodeError,
-  generateKodeLokasi,
-  listLokasi,
-} from "@/lib/server/lokasi/service";
+import { findAllLokasi } from "@/lib/server/lokasi/repository";
+import { createLokasi, generateKodeLokasi } from "@/lib/server/lokasi/service";
 import type { Lokasi } from "@/lib/server/lokasi/types";
 
 export async function GET() {
   return successResponse({
     message: "Data lokasi berhasil diambil",
-    data   : listLokasi(),
+    data   : findAllLokasi(),
   });
 }
 
@@ -34,7 +30,7 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof DuplicateKodeError) {
+    if (error instanceof Error && error.message.includes("sudah digunakan")) {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

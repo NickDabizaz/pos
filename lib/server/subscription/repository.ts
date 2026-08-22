@@ -1,5 +1,5 @@
 import { Prisma } from "@/lib/generated/prisma-global/client";
-import type { GlobalClient, LanggananRow } from "@/lib/server/subscription/types";
+import type { GlobalClient, SubscriptionRow } from "@/lib/server/subscription/types";
 
 export type PerusahaanStatusRow = {
   idperusahaan: number;
@@ -11,23 +11,26 @@ export async function findPerusahaanById(db: GlobalClient, idperusahaan: number)
     where : { idperusahaan },
     select: { idperusahaan: true, status: true },
   });
+
   return perusahaan;
 }
 
-export async function findLanggananByOrderid(db: GlobalClient, orderid: string): Promise<LanggananRow | null> {
-  const langganan = await db.subscription.findUnique({ where: { orderid } });
-  return langganan ? toRow(langganan) : null;
+export async function findSubscriptionByOrderid(db: GlobalClient, orderid: string): Promise<SubscriptionRow | null> {
+  const subscription = await db.subscription.findUnique({ where: { orderid } });
+  const row = subscription ? toRow(subscription) : null;
+
+  return row;
 }
 
-export async function insertLanggananDanAktifkanPerusahaan(
+export async function insertSubscriptionDanAktifkanPerusahaan(
   db            : GlobalClient,
   idperusahaan  : number,
   orderid       : string,
   paket         : { namapaket: string; hargapaket: number; masaberlakuhari: number },
   tglmulai      : Date,
   tglselesai    : Date,
-): Promise<LanggananRow> {
-  const langganan = await db.$transaction(async (tx) => {
+): Promise<SubscriptionRow> {
+  const subscription = await db.$transaction(async (tx) => {
     const created = await tx.subscription.create({
       data: {
         idperusahaan,
@@ -40,10 +43,13 @@ export async function insertLanggananDanAktifkanPerusahaan(
       },
     });
     await tx.perusahaan.update({ where: { idperusahaan }, data: { status: 1 } });
+
     return created;
   });
 
-  return toRow(langganan);
+  const row = toRow(subscription);
+
+  return row;
 }
 
 export function isKonflikOrderid(error: unknown): boolean {
@@ -53,11 +59,16 @@ export function isKonflikOrderid(error: unknown): boolean {
 
   const target = error.meta?.target;
   if (typeof target === "string") {
-    return target.includes("orderid");
+    const cocok = target.includes("orderid");
+
+    return cocok;
   }
   if (Array.isArray(target)) {
-    return target.includes("orderid");
+    const cocok = target.includes("orderid");
+
+    return cocok;
   }
+
   return true;
 }
 
@@ -71,8 +82,8 @@ function toRow(subscription: {
   tglmulai       : Date;
   tglselesai     : Date;
   status         : number;
-}): LanggananRow {
-  return {
+}): SubscriptionRow {
+  const row = {
     idsubscription : subscription.idsubscription,
     idperusahaan   : subscription.idperusahaan,
     orderid        : subscription.orderid,
@@ -83,4 +94,6 @@ function toRow(subscription: {
     tglselesai     : subscription.tglselesai,
     status         : subscription.status,
   };
+
+  return row;
 }

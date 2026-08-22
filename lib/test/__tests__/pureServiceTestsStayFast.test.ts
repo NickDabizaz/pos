@@ -11,7 +11,7 @@ const PURE_MODULE_FILES = [
 
 const DATABASE_INFRA_IMPORTS = [
   "@/lib/test/db",
-  "@/lib/server/provisioning",
+  "@/lib/server/databaseperusahaan",
   "mariadb",
   "@prisma/adapter-mariadb",
 ];
@@ -20,7 +20,7 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 
 describe("test service murni (modul lokasi) tidak mengimpor infrastruktur database test", () => {
   for (const relativePath of PURE_MODULE_FILES) {
-    it(`${relativePath} tidak mengimpor lib/test/db, lib/server/provisioning, atau driver MariaDB`, () => {
+    it(`${relativePath} tidak mengimpor lib/test/db, lib/server/databaseperusahaan, atau driver MariaDB`, () => {
       const source = readFileSync(path.join(REPO_ROOT, relativePath), "utf-8");
 
       for (const forbiddenImport of DATABASE_INFRA_IMPORTS) {

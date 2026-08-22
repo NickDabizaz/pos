@@ -6,49 +6,47 @@ import type {
   Shift,
 } from "@/lib/server/shift/types";
 
-export class ShiftAlreadyOpenError extends Error {}
-export class NoActiveShiftError extends Error {}
-export class ShiftAlreadyClosedTodayError extends Error {}
-export class ShiftNotClosedTodayError extends Error {}
-
-function generateShiftCode(): string {
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  return `SFT-${dateStr}-${randomSuffix}`;
-}
-
 function isSameDay(isoDate: string, reference: Date): boolean {
   const date = new Date(isoDate);
-  return (
+  const sama =
     date.getFullYear() === reference.getFullYear() &&
     date.getMonth() === reference.getMonth() &&
-    date.getDate() === reference.getDate()
-  );
+    date.getDate() === reference.getDate();
+
+  return sama;
 }
 
 export function getActiveShift(): Shift | null {
   const shift = getCurrentShift();
-  return shift && shift.status === "OPEN" ? shift : null;
+  const active = shift && shift.status === "OPEN" ? shift : null;
+
+  return active;
 }
 
 export function getShiftForToday(): Shift | null {
   const shift = getCurrentShift();
-  return shift && isSameDay(shift.openedAt, new Date()) ? shift : null;
+  const today = shift && isSameDay(shift.openedAt, new Date()) ? shift : null;
+
+  return today;
 }
 
 export function openShift(input: OpenShiftInput): Shift {
   if (getActiveShift()) {
-    throw new ShiftAlreadyOpenError("Shift sudah dibuka, tutup shift sebelumnya terlebih dahulu");
+    throw new Error("Shift sudah dibuka, tutup shift sebelumnya terlebih dahulu", { cause: "SHIFT_CONFLICT" });
   }
 
   if (getShiftForToday()) {
-    throw new ShiftAlreadyClosedTodayError(
+    throw new Error(
       "Shift hari ini sudah ditutup. Batalkan penutupan shift untuk melanjutkan, bukan membuka shift baru.",
+      { cause: "SHIFT_CONFLICT" },
     );
   }
 
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+
   const shift: Shift = {
-    shiftCode        : generateShiftCode(),
+    shiftCode        : `SFT-${dateStr}-${randomSuffix}`,
     kasirName        : input.kasirName,
     modalAwal        : input.modalAwal,
     openedAt         : new Date().toISOString(),
@@ -59,6 +57,7 @@ export function openShift(input: OpenShiftInput): Shift {
   };
 
   setCurrentShift(shift);
+
   return shift;
 }
 
@@ -66,7 +65,7 @@ export function recordShiftTransaction(input: RecordShiftTransactionInput): Shif
   const shift = getActiveShift();
 
   if (!shift) {
-    throw new NoActiveShiftError("Tidak ada shift yang sedang aktif");
+    throw new Error("Tidak ada shift yang sedang aktif", { cause: "SHIFT_CONFLICT" });
   }
 
   const updated: Shift = {
@@ -77,18 +76,19 @@ export function recordShiftTransaction(input: RecordShiftTransactionInput): Shif
   };
 
   setCurrentShift(updated);
+
   return updated;
 }
 
 export function cancelCloseShift(): Shift {
   if (getActiveShift()) {
-    throw new ShiftNotClosedTodayError("Shift sedang aktif, tidak ada penutupan yang perlu dibatalkan");
+    throw new Error("Shift sedang aktif, tidak ada penutupan yang perlu dibatalkan", { cause: "SHIFT_CONFLICT" });
   }
 
   const shift = getShiftForToday();
 
   if (!shift) {
-    throw new ShiftNotClosedTodayError("Tidak ada penutupan shift hari ini yang bisa dibatalkan");
+    throw new Error("Tidak ada penutupan shift hari ini yang bisa dibatalkan", { cause: "SHIFT_CONFLICT" });
   }
 
   const resumed: Shift = {
@@ -100,6 +100,7 @@ export function cancelCloseShift(): Shift {
   };
 
   setCurrentShift(resumed);
+
   return resumed;
 }
 
@@ -107,7 +108,7 @@ export function closeShift(input: CloseShiftInput): Shift {
   const shift = getActiveShift();
 
   if (!shift) {
-    throw new NoActiveShiftError("Tidak ada shift yang sedang aktif");
+    throw new Error("Tidak ada shift yang sedang aktif", { cause: "SHIFT_CONFLICT" });
   }
 
   const updated: Shift = {
@@ -119,5 +120,6 @@ export function closeShift(input: CloseShiftInput): Shift {
   };
 
   setCurrentShift(updated);
+
   return updated;
 }

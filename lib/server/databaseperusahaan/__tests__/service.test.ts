@@ -3,8 +3,8 @@ import { randomBytes } from "node:crypto";
 import mariadb, { type Connection } from "mariadb";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { ensureTenantDatabaseExists } from "@/lib/server/provisioning/repository";
-import { InvalidDatabaseNameError, provisionDatabase } from "@/lib/server/provisioning/service";
+import { createDatabasePerusahaanIfNotExists } from "@/lib/server/databaseperusahaan/repository";
+import { createDatabasePerusahaan } from "@/lib/server/databaseperusahaan/service";
 import {
   createDatabase,
   dropDatabase,
@@ -27,7 +27,7 @@ async function withAdminConnection<T>(fn: (conn: Connection) => Promise<T>): Pro
   }
 }
 
-async function tenantDatabaseExists(name: string): Promise<boolean> {
+async function databasePerusahaanExists(name: string): Promise<boolean> {
   return withAdminConnection(async (conn) => {
     const rows: Array<{ SCHEMA_NAME: string }> = await conn.query(
       "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME = ?",
@@ -62,13 +62,13 @@ afterEach(async () => {
   }
 }, 30_000);
 
-describe("provisionDatabase membuat database dan menjalankan seluruh migration tenant", () => {
+describe("createDatabasePerusahaan membuat database dan menjalankan seluruh migration Database Perusahaan", () => {
   it(
-    "pada nama yang belum pernah ada membuat database baru dan seluruh tabel tenant muncul",
+    "pada nama yang belum pernah ada membuat database baru dan seluruh tabel Database Perusahaan muncul",
     async () => {
       const dbName = newDatabaseName();
 
-      await provisionDatabase(dbName);
+      await createDatabasePerusahaan(dbName);
 
       const tables = await listTables(dbName);
       expect(tables).toEqual(
@@ -94,12 +94,12 @@ describe("provisionDatabase membuat database dan menjalankan seluruh migration t
   );
 
   it(
-    "nama database sepanjang 64 karakter berhasil diprovisioning",
+    "nama database sepanjang 64 karakter berhasil dibuat",
     async () => {
       const dbName = trackDatabaseName(uniqueName64());
       expect(dbName).toHaveLength(64);
 
-      await expect(provisionDatabase(dbName)).resolves.toBeDefined();
+      await expect(createDatabasePerusahaan(dbName)).resolves.toBeDefined();
 
       const tables = await listTables(dbName);
       expect(tables).toContain("config");
@@ -108,22 +108,22 @@ describe("provisionDatabase membuat database dan menjalankan seluruh migration t
   );
 
   it("nama database dengan karakter tidak sah (spasi) ditolak sebelum mencoba CREATE DATABASE", async () => {
-    await expect(provisionDatabase("pos demo01")).rejects.toThrow(InvalidDatabaseNameError);
+    await expect(createDatabasePerusahaan("pos demo01")).rejects.toThrow(/bukan identifier MariaDB yang sah/);
   });
 
   it("nama database dengan karakter tidak sah (titik koma) ditolak sebelum mencoba CREATE DATABASE", async () => {
-    await expect(provisionDatabase("pos_demo01;drop")).rejects.toThrow(InvalidDatabaseNameError);
+    await expect(createDatabasePerusahaan("pos_demo01;drop")).rejects.toThrow(/bukan identifier MariaDB yang sah/);
   });
 
   it(
-    "server MariaDB tidak dapat dihubungi saat provisioning dimulai melempar error yang jelas",
+    "server MariaDB tidak dapat dihubungi saat pembuatan database dimulai melempar error yang jelas",
     async () => {
       const dbName = uniqueDatabaseName("perusahaan");
       const originalPort = process.env.DB_PORT;
       process.env.DB_PORT = "1";
 
       try {
-        await expect(provisionDatabase(dbName)).rejects.toThrow();
+        await expect(createDatabasePerusahaan(dbName)).rejects.toThrow();
       } finally {
         if (originalPort === undefined) {
           delete process.env.DB_PORT;
@@ -136,12 +136,12 @@ describe("provisionDatabase membuat database dan menjalankan seluruh migration t
   );
 });
 
-describe("provisionDatabase mengisi Config default", () => {
+describe("createDatabasePerusahaan mengisi Config default", () => {
   it(
     "tabel config berisi baris Kode Dokumen tiap modul, mis. barang (awalan B, tanpa tanggal, panjang 4) dan jual (awalan JL, pakai tanggal, panjang 4)",
     async () => {
       const dbName = newDatabaseName();
-      const client = await provisionDatabase(dbName);
+      const client = await createDatabasePerusahaan(dbName);
 
       const barangRows = await client.config.findMany({ where: { modul: "barang" } });
       const asMap = (rows: { config: string; nilai: string }[]) =>
@@ -163,7 +163,7 @@ describe("provisionDatabase mengisi Config default", () => {
     "tabel config berisi baris PPN dengan persentase dan status default",
     async () => {
       const dbName = newDatabaseName();
-      const client = await provisionDatabase(dbName);
+      const client = await createDatabasePerusahaan(dbName);
 
       const persentase = await client.config.findUnique({ where: { modul_config: { modul: "ppn", config: "persentase" } } });
       const status = await client.config.findUnique({ where: { modul_config: { modul: "ppn", config: "status" } } });
@@ -178,7 +178,7 @@ describe("provisionDatabase mengisi Config default", () => {
     "tabel config berisi baris pengaturan tampilan (modul tampilan, config tema)",
     async () => {
       const dbName = newDatabaseName();
-      const client = await provisionDatabase(dbName);
+      const client = await createDatabasePerusahaan(dbName);
 
       const tema = await client.config.findUnique({ where: { modul_config: { modul: "tampilan", config: "tema" } } });
 
@@ -191,7 +191,7 @@ describe("provisionDatabase mengisi Config default", () => {
     "seluruh nilai Config default yang diseed tetap berada dalam batas kolom nilai (VarChar 255)",
     async () => {
       const dbName = newDatabaseName();
-      const client = await provisionDatabase(dbName);
+      const client = await createDatabasePerusahaan(dbName);
 
       const rows = await client.config.findMany();
       expect(rows.length).toBeGreaterThan(0);
@@ -205,44 +205,44 @@ describe("provisionDatabase mengisi Config default", () => {
 
 describe("kegagalan di tengah proses membersihkan database, bukan menyisakannya", () => {
   it(
-    "migration tenant gagal di tengah jalan menyebabkan database yang baru dibuat ikut dibersihkan",
+    "migration Database Perusahaan gagal di tengah jalan menyebabkan database yang baru dibuat ikut dibersihkan",
     async () => {
       const dbName = newDatabaseName();
       await createDatabase(dbName);
       await withAdminConnection((conn) => conn.query(`CREATE TABLE \`${dbName}\`.\`lokasi\` (id INT)`));
 
-      await expect(provisionDatabase(dbName)).rejects.toThrow();
+      await expect(createDatabasePerusahaan(dbName)).rejects.toThrow();
 
-      expect(await tenantDatabaseExists(dbName)).toBe(false);
+      expect(await databasePerusahaanExists(dbName)).toBe(false);
     },
     30_000,
   );
 
   it(
-    "seed Config gagal setelah migration sukses menyebabkan seluruh provisioning dianggap gagal dan database dibersihkan",
+    "seed Config gagal setelah migration sukses menyebabkan seluruh proses pembuatan database dianggap gagal dan database dibersihkan",
     async () => {
       const dbName = newDatabaseName();
       await createDatabase(dbName);
       migrateDeploy("perusahaan", dbName);
       await withAdminConnection((conn) => conn.query(`DROP TABLE \`${dbName}\`.\`config\``));
 
-      await expect(provisionDatabase(dbName)).rejects.toThrow();
+      await expect(createDatabasePerusahaan(dbName)).rejects.toThrow();
 
-      expect(await tenantDatabaseExists(dbName)).toBe(false);
+      expect(await databasePerusahaanExists(dbName)).toBe(false);
     },
     30_000,
   );
 
   it(
-    "setelah kegagalan dan pembersihan, memanggil ulang provisionDatabase dengan nama yang sama berhasil dari keadaan bersih",
+    "setelah kegagalan dan pembersihan, memanggil ulang createDatabasePerusahaan dengan nama yang sama berhasil dari keadaan bersih",
     async () => {
       const dbName = newDatabaseName();
       await createDatabase(dbName);
       await withAdminConnection((conn) => conn.query(`CREATE TABLE \`${dbName}\`.\`lokasi\` (id INT)`));
-      await expect(provisionDatabase(dbName)).rejects.toThrow();
-      expect(await tenantDatabaseExists(dbName)).toBe(false);
+      await expect(createDatabasePerusahaan(dbName)).rejects.toThrow();
+      expect(await databasePerusahaanExists(dbName)).toBe(false);
 
-      await expect(provisionDatabase(dbName)).resolves.toBeDefined();
+      await expect(createDatabasePerusahaan(dbName)).resolves.toBeDefined();
 
       const tables = await listTables(dbName);
       expect(tables).toContain("config");
@@ -255,16 +255,16 @@ describe("kegagalan di tengah proses membersihkan database, bukan menyisakannya"
   );
 });
 
-describe("provisionDatabase berulang untuk nama yang sama tidak menggandakan Config maupun merusak data", () => {
+describe("createDatabasePerusahaan berulang untuk nama yang sama tidak menggandakan Config maupun merusak data", () => {
   it(
-    "memanggil provisionDatabase dua kali berturut-turut menghasilkan jumlah baris config yang sama persis, tidak dobel",
+    "memanggil createDatabasePerusahaan dua kali berturut-turut menghasilkan jumlah baris config yang sama persis, tidak dobel",
     async () => {
       const dbName = newDatabaseName();
 
-      const client = await provisionDatabase(dbName);
+      const client = await createDatabasePerusahaan(dbName);
       const countAfterFirst = await client.config.count();
 
-      await provisionDatabase(dbName);
+      await createDatabasePerusahaan(dbName);
       const countAfterSecond = await client.config.count();
 
       expect(countAfterSecond).toBe(countAfterFirst);
@@ -273,14 +273,14 @@ describe("provisionDatabase berulang untuk nama yang sama tidak menggandakan Con
   );
 
   it(
-    "memanggil ulang provisionDatabase pada database yang sudah berisi data non-Config tidak menghapus atau mengubah data tersebut",
+    "memanggil ulang createDatabasePerusahaan pada database yang sudah berisi data non-Config tidak menghapus atau mengubah data tersebut",
     async () => {
       const dbName = newDatabaseName();
 
-      const client = await provisionDatabase(dbName);
+      const client = await createDatabasePerusahaan(dbName);
       const lokasi = await client.lokasi.create({ data: { kodelokasi: "LOK-KEEP", namalokasi: "Lokasi Dipertahankan" } });
 
-      await provisionDatabase(dbName);
+      await createDatabasePerusahaan(dbName);
 
       const found = await client.lokasi.findUnique({ where: { idlokasi: lokasi.idlokasi } });
       expect(found).toEqual(lokasi);
@@ -289,11 +289,11 @@ describe("provisionDatabase berulang untuk nama yang sama tidak menggandakan Con
   );
 
   it(
-    "dua panggilan provisionDatabase bersamaan tidak menghasilkan Config dobel maupun state rusak pada salah satunya",
+    "dua panggilan createDatabasePerusahaan bersamaan tidak menghasilkan Config dobel maupun state rusak pada salah satunya",
     async () => {
       const dbName = newDatabaseName();
 
-      const [clientA, clientB] = await Promise.all([provisionDatabase(dbName), provisionDatabase(dbName)]);
+      const [clientA, clientB] = await Promise.all([createDatabasePerusahaan(dbName), createDatabasePerusahaan(dbName)]);
 
       expect(clientA).toBe(clientB);
       const configCount = await clientA.config.count();
@@ -304,28 +304,28 @@ describe("provisionDatabase berulang untuk nama yang sama tidak menggandakan Con
   );
 
   it(
-    "dua panggilan ensureTenantDatabaseExists bersamaan pada nama yang sama tidak saling gagal (handler ER_DB_CREATE_EXISTS teruji nyata)",
+    "dua panggilan createDatabasePerusahaanIfNotExists bersamaan pada nama yang sama tidak saling gagal (handler ER_DB_CREATE_EXISTS teruji nyata)",
     async () => {
       const dbName = newDatabaseName();
 
       await expect(
-        Promise.all([ensureTenantDatabaseExists(dbName), ensureTenantDatabaseExists(dbName)]),
+        Promise.all([createDatabasePerusahaanIfNotExists(dbName), createDatabasePerusahaanIfNotExists(dbName)]),
       ).resolves.toBeDefined();
 
-      expect(await tenantDatabaseExists(dbName)).toBe(true);
+      expect(await databasePerusahaanExists(dbName)).toBe(true);
     },
     15_000,
   );
 });
 
-describe("client tenant dibuat lewat client Prisma tenant dan digunakan ulang per nama database", () => {
+describe("client Database Perusahaan dibuat lewat client Prisma Database Perusahaan dan digunakan ulang per nama database", () => {
   it(
-    "memanggil provisionDatabase untuk nama database yang sama dua kali menghasilkan instance client tenant yang sama",
+    "memanggil createDatabasePerusahaan untuk nama database yang sama dua kali menghasilkan instance client Database Perusahaan yang sama",
     async () => {
       const dbName = newDatabaseName();
 
-      const clientFirst = await provisionDatabase(dbName);
-      const clientSecond = await provisionDatabase(dbName);
+      const clientFirst = await createDatabasePerusahaan(dbName);
+      const clientSecond = await createDatabasePerusahaan(dbName);
 
       expect(clientFirst).toBe(clientSecond);
     },
@@ -333,13 +333,13 @@ describe("client tenant dibuat lewat client Prisma tenant dan digunakan ulang pe
   );
 
   it(
-    "memanggil provisionDatabase untuk dua nama database berbeda menghasilkan dua client tenant berbeda",
+    "memanggil createDatabasePerusahaan untuk dua nama database berbeda menghasilkan dua client Database Perusahaan berbeda",
     async () => {
       const dbNameA = newDatabaseName();
       const dbNameB = newDatabaseName();
 
-      const clientA = await provisionDatabase(dbNameA);
-      const clientB = await provisionDatabase(dbNameB);
+      const clientA = await createDatabasePerusahaan(dbNameA);
+      const clientB = await createDatabasePerusahaan(dbNameB);
 
       expect(clientA).not.toBe(clientB);
     },
@@ -347,13 +347,13 @@ describe("client tenant dibuat lewat client Prisma tenant dan digunakan ulang pe
   );
 
   it(
-    "data yang ditulis lewat client tenant pos_demo01 tidak pernah terlihat lewat client tenant pos_demo02",
+    "data yang ditulis lewat client Database Perusahaan pos_demo01 tidak pernah terlihat lewat client Database Perusahaan pos_demo02",
     async () => {
       const dbNameA = newDatabaseName();
       const dbNameB = newDatabaseName();
 
-      const clientA = await provisionDatabase(dbNameA);
-      const clientB = await provisionDatabase(dbNameB);
+      const clientA = await createDatabasePerusahaan(dbNameA);
+      const clientB = await createDatabasePerusahaan(dbNameB);
 
       await clientA.lokasi.create({ data: { kodelokasi: "LOK-ISOLASI", namalokasi: "Hanya di Database A" } });
 

@@ -1,17 +1,12 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import {
-  createCustomer,
-  CustomerNotFoundError,
-  DuplicateKodeError,
-  generateKodeCustomer,
-  listCustomer,
-} from "@/lib/server/customer/service";
+import { findAllCustomer } from "@/lib/server/customer/repository";
+import { createCustomer, generateKodeCustomer } from "@/lib/server/customer/service";
 import type { Customer } from "@/lib/server/customer/types";
 
 export async function GET() {
   return successResponse({
     message: "Data customer berhasil diambil",
-    data   : listCustomer(),
+    data   : findAllCustomer(),
   });
 }
 
@@ -37,7 +32,7 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof DuplicateKodeError) {
+    if (error instanceof Error && error.message.includes("sudah digunakan")) {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

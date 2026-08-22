@@ -7,20 +7,15 @@ import {
 } from "@/lib/server/supplier/repository";
 import type { Supplier } from "@/lib/server/supplier/types";
 
-export class DuplicateKodeError extends Error {}
-export class SupplierNotFoundError extends Error {}
-
-export function listSupplier(): Supplier[] {
-  return findAllSupplier();
-}
-
 export function generateKodeSupplier(): string {
-  return `SUP-AUTO-${String(findAllSupplier().length + 1).padStart(4, "0")}`;
+  const kode = `SUP-AUTO-${String(findAllSupplier().length + 1).padStart(4, "0")}`;
+
+  return kode;
 }
 
 export function createSupplier(input: Supplier): Supplier {
   if (findSupplierByKode(input.kodesupplier)) {
-    throw new DuplicateKodeError(`Kode supplier ${input.kodesupplier} sudah digunakan`);
+    throw new Error(`Kode supplier ${input.kodesupplier} sudah digunakan`);
   }
 
   insertSupplier(input);
@@ -29,7 +24,7 @@ export function createSupplier(input: Supplier): Supplier {
 
 export function updateSupplier(kodesupplier: string, input: Supplier): Supplier {
   if (!findSupplierByKode(kodesupplier)) {
-    throw new SupplierNotFoundError(`Supplier ${kodesupplier} tidak ditemukan`);
+    throw new Error(`Supplier ${kodesupplier} tidak ditemukan`);
   }
 
   replaceSupplier(kodesupplier, input);
@@ -38,7 +33,7 @@ export function updateSupplier(kodesupplier: string, input: Supplier): Supplier 
 
 export function deleteSupplier(kodesupplier: string): void {
   if (!findSupplierByKode(kodesupplier)) {
-    throw new SupplierNotFoundError(`Supplier ${kodesupplier} tidak ditemukan`);
+    throw new Error(`Supplier ${kodesupplier} tidak ditemukan`);
   }
 
   removeSupplier(kodesupplier);

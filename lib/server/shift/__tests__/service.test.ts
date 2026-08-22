@@ -6,12 +6,8 @@ import {
   closeShift,
   getActiveShift,
   getShiftForToday,
-  NoActiveShiftError,
   openShift,
   recordShiftTransaction,
-  ShiftAlreadyClosedTodayError,
-  ShiftAlreadyOpenError,
-  ShiftNotClosedTodayError,
 } from "@/lib/server/shift/service";
 
 beforeEach(() => {
@@ -44,7 +40,7 @@ describe("openShift", () => {
   it("rejects opening a shift while one is already active", () => {
     openShift({ kasirName: "Budi", modalAwal: 200000 });
 
-    expect(() => openShift({ kasirName: "Sari", modalAwal: 100000 })).toThrow(ShiftAlreadyOpenError);
+    expect(() => openShift({ kasirName: "Sari", modalAwal: 100000 })).toThrow();
   });
 });
 
@@ -71,9 +67,7 @@ describe("recordShiftTransaction", () => {
   });
 
   it("throws when there is no active shift", () => {
-    expect(() => recordShiftTransaction({ paymentMethod: "TUNAI", grandTotal: 1000 })).toThrow(
-      NoActiveShiftError,
-    );
+    expect(() => recordShiftTransaction({ paymentMethod: "TUNAI", grandTotal: 1000 })).toThrow();
   });
 });
 
@@ -92,7 +86,7 @@ describe("closeShift", () => {
   });
 
   it("throws when there is no active shift", () => {
-    expect(() => closeShift({ kasAktual: 100000 })).toThrow(NoActiveShiftError);
+    expect(() => closeShift({ kasAktual: 100000 })).toThrow();
   });
 });
 
@@ -101,9 +95,7 @@ describe("one-shift-per-day rule", () => {
     openShift({ kasirName: "Budi", modalAwal: 200000 });
     closeShift({ kasAktual: 200000 });
 
-    expect(() => openShift({ kasirName: "Sari", modalAwal: 100000 })).toThrow(
-      ShiftAlreadyClosedTodayError,
-    );
+    expect(() => openShift({ kasirName: "Sari", modalAwal: 100000 })).toThrow();
   });
 
   it("allows opening a brand new shift once the closed shift is from a previous day", () => {
@@ -160,7 +152,7 @@ describe("one-shift-per-day rule", () => {
     });
 
     it("throws when there is no closure to cancel today", () => {
-      expect(() => cancelCloseShift()).toThrow(ShiftNotClosedTodayError);
+      expect(() => cancelCloseShift()).toThrow();
     });
 
     it("throws when the only closed shift is from a previous day", () => {
@@ -170,13 +162,13 @@ describe("one-shift-per-day rule", () => {
       closeShift({ kasAktual: 200000 });
 
       vi.setSystemTime(new Date("2026-08-17T09:00:00.000Z"));
-      expect(() => cancelCloseShift()).toThrow(ShiftNotClosedTodayError);
+      expect(() => cancelCloseShift()).toThrow();
     });
 
     it("throws when a shift is already open", () => {
       openShift({ kasirName: "Budi", modalAwal: 200000 });
 
-      expect(() => cancelCloseShift()).toThrow(ShiftNotClosedTodayError);
+      expect(() => cancelCloseShift()).toThrow();
     });
   });
 });

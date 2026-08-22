@@ -1,11 +1,12 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { createKas, DuplicateKodeKasError, generateKodeKas, listKas } from "@/lib/server/kas/service";
+import { findAllKas } from "@/lib/server/kas/repository";
+import { createKas, generateKodeKas } from "@/lib/server/kas/service";
 import type { Kas } from "@/lib/server/kas/types";
 
 export async function GET() {
   return successResponse({
     message: "Data kas berhasil diambil",
-    data   : listKas(),
+    data   : findAllKas(),
   });
 }
 
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof DuplicateKodeKasError) {
+    if (error instanceof Error && error.cause === "DUPLICATE") {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

@@ -1,10 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import {
-  getShiftForToday,
-  openShift,
-  ShiftAlreadyClosedTodayError,
-  ShiftAlreadyOpenError,
-} from "@/lib/server/shift/service";
+import { getShiftForToday, openShift } from "@/lib/server/shift/service";
 
 export async function GET() {
   return successResponse({
@@ -28,7 +23,7 @@ export async function POST(request: Request) {
       data      : shift,
     });
   } catch (error) {
-    if (error instanceof ShiftAlreadyOpenError || error instanceof ShiftAlreadyClosedTodayError) {
+    if (error instanceof Error && error.cause === "SHIFT_CONFLICT") {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

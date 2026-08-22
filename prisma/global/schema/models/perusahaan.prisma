@@ -1,4 +1,4 @@
-/// Status Perusahaan: 0 = belum bayar (baru mendaftar, belum ada Langganan lunas), 1 = aktif.
+/// Status Perusahaan: 0 = belum bayar (baru mendaftar, belum ada Subscription lunas), 1 = aktif.
 model perusahaan {
   idperusahaan   Int      @id @default(autoincrement())
   kodeperusahaan String   @unique @db.VarChar(20)
@@ -12,9 +12,9 @@ model perusahaan {
   usermenus        usermenu[]
 }
 
-/// Status Langganan: 1 = aktif. Baris hanya dibuat setelah pembayaran dikonfirmasi lunas,
+/// Status Subscription: 1 = aktif. Baris hanya dibuat setelah pembayaran dikonfirmasi lunas,
 /// sehingga tidak ada kosakata pending/gagal di sini. `orderid` menyimpan order_id transaksi
-/// Midtrans yang melunasi Langganan ini — dipakai untuk menolak notifikasi settlement duplikat
+/// Midtrans yang melunasi Subscription ini — dipakai untuk menolak notifikasi settlement duplikat
 /// untuk order_id yang sama tanpa perlu tabel transaksi terpisah (lihat tiket 09).
 model subscription {
   idsubscription  Int      @id @default(autoincrement())

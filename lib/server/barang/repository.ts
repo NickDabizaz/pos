@@ -18,7 +18,9 @@ export function findAllBarang(): Barang[] {
 }
 
 export function findBarangByKode(kodebarang: string): Barang | undefined {
-  return barangStore.find((item) => item.kodebarang === kodebarang);
+  const barang = barangStore.find((item) => item.kodebarang === kodebarang);
+
+  return barang;
 }
 
 export function insertBarang(barang: Barang): void {

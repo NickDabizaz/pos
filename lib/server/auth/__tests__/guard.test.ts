@@ -5,8 +5,7 @@ import { parseSetCookieHeader } from "better-auth/cookies";
 import { createAuth } from "@/lib/auth";
 import { PrismaClient } from "@/lib/generated/prisma-global/client";
 import {
-  EmailBelumTerverifikasiError,
-  ensureEmailTerverifikasi,
+  cekEmailTerverifikasi,
   resolveDaftarPerusahaanAccess,
   resolvePerusahaanAktifAccess,
   resolveSudahPunyaPerusahaanAccess,
@@ -130,7 +129,7 @@ describe("Kebijakan Pengguna belum terverifikasi ditegakkan secara konsisten", (
     const { headers } = await signUpAndGetHeaders("belum-verifikasi@norvyn.test");
     const session = await auth.api.getSession({ headers });
 
-    expect(() => ensureEmailTerverifikasi(session!)).toThrow(EmailBelumTerverifikasiError);
+    expect(() => cekEmailTerverifikasi(session!)).toThrow("Email Anda belum terverifikasi");
   });
 
   it("Pengguna dengan emailVerified = true melewati pengecekan yang sama tanpa hambatan tambahan", async () => {
@@ -140,20 +139,20 @@ describe("Kebijakan Pengguna belum terverifikasi ditegakkan secara konsisten", (
 
     const session = await auth.api.getSession({ headers });
 
-    expect(() => ensureEmailTerverifikasi(session!)).not.toThrow();
+    expect(() => cekEmailTerverifikasi(session!)).not.toThrow();
   });
 
   it("Pengguna yang baru saja verifikasi email di tengah sesi langsung lolos pengecekan pada request berikutnya, tanpa perlu login ulang", async () => {
     const { headers } = await signUpAndGetHeaders("verifikasi-tengah-sesi@norvyn.test");
 
     const sebelum = await auth.api.getSession({ headers });
-    expect(() => ensureEmailTerverifikasi(sebelum!)).toThrow(EmailBelumTerverifikasiError);
+    expect(() => cekEmailTerverifikasi(sebelum!)).toThrow("Email Anda belum terverifikasi");
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email: "verifikasi-tengah-sesi@norvyn.test" } });
     await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
 
     const sesudah = await auth.api.getSession({ headers });
-    expect(() => ensureEmailTerverifikasi(sesudah!)).not.toThrow();
+    expect(() => cekEmailTerverifikasi(sesudah!)).not.toThrow();
   });
 });
 

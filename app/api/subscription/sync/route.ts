@@ -1,16 +1,9 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSession } from "@/lib/server/auth/guard";
-import {
-  JumlahTidakSesuaiError,
-  OrderTidakDikenalError,
-  PaketTidakDitemukanError,
-  PerusahaanTidakDitemukanError,
-  SignatureTidakValidError,
-  syncSnapTransaction,
-} from "@/lib/server/subscription/service";
+import { syncSnapTransaction } from "@/lib/server/subscription/service";
 import { createMidtransClient } from "@/lib/server/subscription/midtransClient";
-import { listMembershipsForUser } from "@/lib/server/user/service";
+import { findPerusahaanByUser } from "@/lib/server/user/repository";
 
 export async function POST(request: Request) {
   const session = await getCurrentSession();
@@ -23,7 +16,7 @@ export async function POST(request: Request) {
     const orderid = String(body.orderid ?? "");
 
     const idperusahaanDariOrderid = Number(orderid.split("-")[1]);
-    const memberships = await listMembershipsForUser(prisma, session.user.id);
+    const memberships = await findPerusahaanByUser(prisma, session.user.id);
     if (!memberships.some((membership) => membership.idperusahaan === idperusahaanDariOrderid)) {
       return errorResponse({ statusCode: 403, message: "Anda bukan anggota Perusahaan ini" });
     }
@@ -36,16 +29,17 @@ export async function POST(request: Request) {
       data      : hasil,
     });
   } catch (error) {
-    if (error instanceof SignatureTidakValidError) {
+    if (error instanceof Error && error.message.includes("Signature notifikasi")) {
       return errorResponse({ statusCode: 401, message: error.message });
     }
-    if (error instanceof OrderTidakDikenalError) {
+    if (error instanceof Error && error.message.includes("tidak pernah dibuat")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
     if (
-      error instanceof PerusahaanTidakDitemukanError ||
-      error instanceof PaketTidakDitemukanError ||
-      error instanceof JumlahTidakSesuaiError
+      error instanceof Error &&
+      (error.message.includes("Perusahaan dengan id") ||
+        error.message.includes("Paket Subscription") ||
+        error.message.includes("tidak sesuai harga"))
     ) {
       return errorResponse({ statusCode: 400, message: error.message });
     }

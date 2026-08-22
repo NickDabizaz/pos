@@ -1,15 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetBarangStoreForTests } from "@/lib/server/barang/repository";
-import {
-  BarangNotFoundError,
-  createBarang,
-  deleteBarang,
-  DuplicateKodeError,
-  generateKodeBarang,
-  listBarang,
-  updateBarang,
-} from "@/lib/server/barang/service";
+import { findAllBarang, resetBarangStoreForTests } from "@/lib/server/barang/repository";
+import { createBarang, deleteBarang, generateKodeBarang, updateBarang } from "@/lib/server/barang/service";
 import type { Barang } from "@/lib/server/barang/types";
 
 const newBarang: Barang = {
@@ -28,16 +20,16 @@ beforeEach(() => {
 });
 
 describe("createBarang", () => {
-  it("adds the item and it shows up in listBarang", () => {
+  it("adds the item and it shows up in findAllBarang", () => {
     createBarang(newBarang);
 
-    expect(listBarang()).toContainEqual(newBarang);
+    expect(findAllBarang()).toContainEqual(newBarang);
   });
 
   it("rejects a kodebarang that already exists", () => {
     createBarang(newBarang);
 
-    expect(() => createBarang(newBarang)).toThrow(DuplicateKodeError);
+    expect(() => createBarang(newBarang)).toThrow(/sudah digunakan/);
   });
 });
 
@@ -48,25 +40,25 @@ describe("updateBarang", () => {
     const updated = updateBarang(newBarang.kodebarang, { ...newBarang, namabarang: "Item Diubah" });
 
     expect(updated.namabarang).toBe("Item Diubah");
-    expect(listBarang()).toContainEqual({ ...newBarang, namabarang: "Item Diubah" });
+    expect(findAllBarang()).toContainEqual({ ...newBarang, namabarang: "Item Diubah" });
   });
 
   it("throws when the kodebarang does not exist", () => {
-    expect(() => updateBarang("BRG-MISSING", newBarang)).toThrow(BarangNotFoundError);
+    expect(() => updateBarang("BRG-MISSING", newBarang)).toThrow(/tidak ditemukan/);
   });
 });
 
 describe("deleteBarang", () => {
-  it("removes the item from listBarang", () => {
+  it("removes the item from findAllBarang", () => {
     createBarang(newBarang);
 
     deleteBarang(newBarang.kodebarang);
 
-    expect(listBarang()).not.toContainEqual(newBarang);
+    expect(findAllBarang()).not.toContainEqual(newBarang);
   });
 
   it("throws when the kodebarang does not exist", () => {
-    expect(() => deleteBarang("BRG-MISSING")).toThrow(BarangNotFoundError);
+    expect(() => deleteBarang("BRG-MISSING")).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -75,6 +67,6 @@ describe("generateKodeBarang", () => {
     const generated = generateKodeBarang();
 
     expect(generated).toMatch(/^BRG-AUTO-\d+$/);
-    expect(listBarang().some((item) => item.kodebarang === generated)).toBe(false);
+    expect(findAllBarang().some((item) => item.kodebarang === generated)).toBe(false);
   });
 });

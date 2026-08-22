@@ -5,18 +5,18 @@ import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findSession, type AuthInstance, type UserSession } from "@/lib/server/auth/service";
-import { listMembershipsForUser } from "@/lib/server/user/service";
+import { findPerusahaanByUser } from "@/lib/server/user/repository";
 import type { GlobalClient } from "@/lib/server/user/types";
 
 export const getCurrentSession = cache(async (): Promise<UserSession | null> => {
-  return findSession(auth, await headers());
+  const session = await findSession(auth, await headers());
+
+  return session;
 });
 
-export class EmailBelumTerverifikasiError extends Error {}
-
-export function ensureEmailTerverifikasi(session: UserSession): void {
+export function cekEmailTerverifikasi(session: UserSession): void {
   if (!session.user.emailVerified) {
-    throw new EmailBelumTerverifikasiError("Email Anda belum terverifikasi");
+    throw new Error("Email Anda belum terverifikasi", { cause: "EMAIL_BELUM_TERVERIFIKASI" });
   }
 }
 
@@ -46,7 +46,7 @@ export async function resolveDaftarPerusahaanAccess(
     redirect("/login");
   }
 
-  const memberships = await listMembershipsForUser(globalDb, session.user.id);
+  const memberships = await findPerusahaanByUser(globalDb, session.user.id);
   if (memberships.length > 0) {
     redirect(memberships[0].status === 1 ? "/" : "/subscription");
   }
@@ -55,7 +55,9 @@ export async function resolveDaftarPerusahaanAccess(
 }
 
 export async function requireBelumPunyaPerusahaan(): Promise<UserSession> {
-  return resolveDaftarPerusahaanAccess(auth, prisma, await headers());
+  const session = await resolveDaftarPerusahaanAccess(auth, prisma, await headers());
+
+  return session;
 }
 
 export async function resolveSudahPunyaPerusahaanAccess(
@@ -68,7 +70,7 @@ export async function resolveSudahPunyaPerusahaanAccess(
     redirect("/login");
   }
 
-  const memberships = await listMembershipsForUser(globalDb, session.user.id);
+  const memberships = await findPerusahaanByUser(globalDb, session.user.id);
   if (memberships.length === 0) {
     redirect("/daftar-perusahaan");
   }
@@ -77,7 +79,9 @@ export async function resolveSudahPunyaPerusahaanAccess(
 }
 
 export async function requireSudahPunyaPerusahaan(): Promise<UserSession> {
-  return resolveSudahPunyaPerusahaanAccess(auth, prisma, await headers());
+  const session = await resolveSudahPunyaPerusahaanAccess(auth, prisma, await headers());
+
+  return session;
 }
 
 export async function resolvePerusahaanAktifAccess(
@@ -87,7 +91,7 @@ export async function resolvePerusahaanAktifAccess(
 ): Promise<UserSession> {
   const session = await resolveSudahPunyaPerusahaanAccess(instance, globalDb, requestHeaders);
 
-  const memberships = await listMembershipsForUser(globalDb, session.user.id);
+  const memberships = await findPerusahaanByUser(globalDb, session.user.id);
   if (memberships[0].status !== 1) {
     redirect("/subscription");
   }
@@ -96,5 +100,7 @@ export async function resolvePerusahaanAktifAccess(
 }
 
 export async function requirePerusahaanAktif(): Promise<UserSession> {
-  return resolvePerusahaanAktifAccess(auth, prisma, await headers());
+  const session = await resolvePerusahaanAktifAccess(auth, prisma, await headers());
+
+  return session;
 }

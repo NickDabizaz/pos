@@ -73,7 +73,9 @@ export function findAllPenjualan(): Penjualan[] {
 }
 
 export function findPenjualanByKode(kodejual: string): Penjualan | undefined {
-  return penjualanStore.find((item) => item.kodejual === kodejual);
+  const found = penjualanStore.find((item) => item.kodejual === kodejual);
+
+  return found;
 }
 
 export function insertPenjualan(penjualan: Penjualan): void {

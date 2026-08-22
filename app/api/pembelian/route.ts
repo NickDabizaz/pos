@@ -1,17 +1,13 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import {
-  createPembelian,
-  DuplicateKodeBeliError,
-  generateKodePembelian,
-  listPembelian,
-} from "@/lib/server/pembelian/service";
+import { findAllPembelian } from "@/lib/server/pembelian/repository";
+import { createPembelian, generateKodePembelian } from "@/lib/server/pembelian/service";
 import type { Pembelian } from "@/lib/server/pembelian/types";
 import { parseTransaksiItems } from "@/lib/server/transaksi/parse";
 
 export async function GET() {
   return successResponse({
     message: "Data pembelian berhasil diambil",
-    data   : listPembelian(),
+    data   : findAllPembelian(),
   });
 }
 
@@ -40,7 +36,7 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof DuplicateKodeBeliError) {
+    if (error instanceof Error && error.cause === "DUPLICATE") {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

@@ -1,6 +1,10 @@
+import dns from "node:dns";
+
 import nodemailer from "nodemailer";
 
 import type { EmailMessage, Mailer } from "@/lib/server/mailer/types";
+
+dns.setDefaultResultOrder("ipv4first");
 
 export function createMailer(): Mailer {
   const transporter = nodemailer.createTransport({

@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { getPembelian, PembelianNotFoundError, updatePembelian } from "@/lib/server/pembelian/service";
+import { getPembelian, updatePembelian } from "@/lib/server/pembelian/service";
 import type { Pembelian } from "@/lib/server/pembelian/types";
 import { parseStatusTransaksi, parseTransaksiItems } from "@/lib/server/transaksi/parse";
 
@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       data   : getPembelian(idbeli),
     });
   } catch (error) {
-    if (error instanceof PembelianNotFoundError) {
+    if (error instanceof Error && error.cause === "NOT_FOUND") {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 
@@ -51,7 +51,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data   : updated,
     });
   } catch (error) {
-    if (error instanceof PembelianNotFoundError) {
+    if (error instanceof Error && error.cause === "NOT_FOUND") {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 

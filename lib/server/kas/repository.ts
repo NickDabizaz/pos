@@ -71,7 +71,9 @@ export function findAllKas(): Kas[] {
 }
 
 export function findKasByKode(kodekas: string): Kas | undefined {
-  return kasStore.find((item) => item.kodekas === kodekas);
+  const found = kasStore.find((item) => item.kodekas === kodekas);
+
+  return found;
 }
 
 export function insertKas(kas: Kas): void {

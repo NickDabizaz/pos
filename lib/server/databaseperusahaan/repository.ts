@@ -6,7 +6,7 @@ import mariadb, { type Connection } from "mariadb";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 import { PrismaClient } from "@/lib/generated/prisma-perusahaan/client";
-import type { ConfigRow, TenantClient } from "@/lib/server/provisioning/types";
+import type { ConfigRow, DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 
 const ER_DB_CREATE_EXISTS = 1007;
 
@@ -15,30 +15,36 @@ const REPO_ROOT = process.cwd();
 const PRISMA_CLI_ENTRY = path.join(REPO_ROOT, "node_modules", "prisma", "build", "index.js");
 
 function adminConnectionConfig() {
-  return {
+  const config = {
     host          : process.env.DB_HOST ?? "localhost",
     port          : Number(process.env.DB_PORT ?? 3306),
     user          : process.env.DB_USER ?? "root",
     password      : process.env.DB_PASSWORD ?? "",
     connectTimeout: 5_000,
   };
+
+  return config;
 }
 
-function tenantDatabaseUrl(namadatabase: string): string {
+function databasePerusahaanUrl(namadatabase: string): string {
   const config = adminConnectionConfig();
-  return `mysql://${config.user}:${config.password}@${config.host}:${config.port}/${namadatabase}`;
+  const url = `mysql://${config.user}:${config.password}@${config.host}:${config.port}/${namadatabase}`;
+
+  return url;
 }
 
 async function withAdminConnection<T>(fn: (conn: Connection) => Promise<T>): Promise<T> {
   const conn = await mariadb.createConnection(adminConnectionConfig());
   try {
-    return await fn(conn);
+    const hasil = await fn(conn);
+
+    return hasil;
   } finally {
     await conn.end();
   }
 }
 
-export async function ensureTenantDatabaseExists(namadatabase: string): Promise<void> {
+export async function createDatabasePerusahaanIfNotExists(namadatabase: string): Promise<void> {
   try {
     await withAdminConnection((conn) => conn.query(`CREATE DATABASE \`${namadatabase}\``));
   } catch (error) {
@@ -49,26 +55,26 @@ export async function ensureTenantDatabaseExists(namadatabase: string): Promise<
   }
 }
 
-export async function dropTenantDatabase(namadatabase: string): Promise<void> {
+export async function dropDatabasePerusahaan(namadatabase: string): Promise<void> {
   await withAdminConnection((conn) => conn.query(`DROP DATABASE IF EXISTS \`${namadatabase}\``));
 }
 
-export function migrateTenantDatabase(namadatabase: string): void {
+export function migrateDatabasePerusahaan(namadatabase: string): void {
   execFileSync(
     process.execPath,
     [PRISMA_CLI_ENTRY, "migrate", "deploy", "--config", "prisma/perusahaan/prisma.config.ts"],
     {
       cwd  : REPO_ROOT,
-      env  : { ...process.env, PERUSAHAAN_DATABASE_URL: tenantDatabaseUrl(namadatabase) },
+      env  : { ...process.env, PERUSAHAAN_DATABASE_URL: databasePerusahaanUrl(namadatabase) },
       stdio: "pipe",
     },
   );
 }
 
-const tenantClients = new Map<string, TenantClient>();
+const databasePerusahaanClients = new Map<string, DatabasePerusahaanClient>();
 
-export function getTenantClient(namadatabase: string): TenantClient {
-  const cached = tenantClients.get(namadatabase);
+export function getDatabasePerusahaanClient(namadatabase: string): DatabasePerusahaanClient {
+  const cached = databasePerusahaanClients.get(namadatabase);
   if (cached) {
     return cached;
   }
@@ -84,20 +90,21 @@ export function getTenantClient(namadatabase: string): TenantClient {
     }),
   });
 
-  tenantClients.set(namadatabase, client);
+  databasePerusahaanClients.set(namadatabase, client);
+
   return client;
 }
 
-export async function disposeTenantClient(namadatabase: string): Promise<void> {
-  const client = tenantClients.get(namadatabase);
+export async function disposeDatabasePerusahaanClient(namadatabase: string): Promise<void> {
+  const client = databasePerusahaanClients.get(namadatabase);
   if (!client) {
     return;
   }
 
-  tenantClients.delete(namadatabase);
+  databasePerusahaanClients.delete(namadatabase);
   await client.$disconnect();
 }
 
-export async function seedDefaultConfig(client: TenantClient, rows: ConfigRow[]): Promise<void> {
+export async function seedDefaultConfig(client: DatabasePerusahaanClient, rows: ConfigRow[]): Promise<void> {
   await client.config.createMany({ data: rows, skipDuplicates: true });
 }

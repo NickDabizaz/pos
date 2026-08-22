@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { BarangNotFoundError, deleteBarang, updateBarang } from "@/lib/server/barang/service";
+import { deleteBarang, updateBarang } from "@/lib/server/barang/service";
 import type { Barang } from "@/lib/server/barang/types";
 
 type RouteParams = { params: Promise<{ idbarang: string }> };
@@ -28,7 +28,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data   : updated,
     });
   } catch (error) {
-    if (error instanceof BarangNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 
@@ -46,7 +46,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     return successResponse({ message: "Barang berhasil dihapus" });
   } catch (error) {
-    if (error instanceof BarangNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 

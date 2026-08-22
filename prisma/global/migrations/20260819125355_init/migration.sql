@@ -76,6 +76,22 @@ CREATE TABLE `menu` (
     PRIMARY KEY (`kodemenu`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- SeedData
+INSERT INTO `menu` (`kodemenu`, `kodeinduk`, `namamenu`, `jenis`, `urutan`, `status`) VALUES
+    ('MDATA',     NULL,    'Master Data', 'HEADER', '010', 1),
+    ('MDATA-BRG', 'MDATA', 'Barang',      'DETAIL', '011', 1),
+    ('MDATA-CUS', 'MDATA', 'Customer',    'DETAIL', '012', 1),
+    ('MDATA-SUP', 'MDATA', 'Supplier',    'DETAIL', '013', 1),
+    ('MDATA-LOK', 'MDATA', 'Lokasi',      'DETAIL', '014', 1),
+    ('TRANS',     NULL,    'Transaksi',   'HEADER', '020', 1),
+    ('TRANS-JUL', 'TRANS', 'Penjualan',   'DETAIL', '021', 1),
+    ('TRANS-BEL', 'TRANS', 'Pembelian',   'DETAIL', '022', 1),
+    ('TRANS-KAS', 'TRANS', 'Kas',         'DETAIL', '023', 1),
+    ('KASIR',     NULL,    'Kasir',       'HEADER', '030', 1),
+    ('KASIR-POS', 'KASIR', 'POS',         'DETAIL', '031', 1),
+    ('KASIR-TTP', 'KASIR', 'Tutup Kasir', 'DETAIL', '032', 1),
+    ('LANGGANAN', NULL,    'Langganan',   'DETAIL', '040', 1);
+
 -- CreateTable
 CREATE TABLE `perusahaan` (
     `idperusahaan` INTEGER NOT NULL AUTO_INCREMENT,

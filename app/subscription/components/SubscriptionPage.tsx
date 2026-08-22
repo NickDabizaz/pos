@@ -4,8 +4,8 @@ import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { checkoutLangganan, listPaketLangganan, syncSubscription } from "@/lib/client/subscription";
-import type { PaketLangganan } from "@/lib/server/subscription/types";
+import { checkoutSubscription, listPaketSubscription, syncSubscription } from "@/lib/client/subscription";
+import type { PaketSubscription } from "@/lib/server/subscription/types";
 
 const SNAP_SRC = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
   ? "https://app.midtrans.com/snap/snap.js"
@@ -32,14 +32,14 @@ type SubscriptionPageProps = {
 
 export default function SubscriptionPage({ idperusahaan }: SubscriptionPageProps) {
   const router = useRouter();
-  const [katalog, setKatalog]           = useState<PaketLangganan[] | null>(null);
+  const [katalog, setKatalog]           = useState<PaketSubscription[] | null>(null);
   const [processingKode, setProcessing] = useState<string | null>(null);
   const [error, setError]               = useState<string | null>(null);
 
   useEffect(() => {
-    listPaketLangganan()
+    listPaketSubscription()
       .then(setKatalog)
-      .catch((caught) => setError(caught instanceof Error ? caught.message : "Gagal memuat Paket Langganan"));
+      .catch((caught) => setError(caught instanceof Error ? caught.message : "Gagal memuat Paket Subscription"));
   }, []);
 
   async function handleSelesai(orderid: string) {
@@ -56,7 +56,7 @@ export default function SubscriptionPage({ idperusahaan }: SubscriptionPageProps
     setProcessing(kodepaket);
 
     try {
-      const snap = await checkoutLangganan(idperusahaan, kodepaket);
+      const snap = await checkoutSubscription(idperusahaan, kodepaket);
 
       window.snap?.pay(snap.token, {
         onSuccess: () => handleSelesai(snap.orderid),
@@ -79,7 +79,7 @@ export default function SubscriptionPage({ idperusahaan }: SubscriptionPageProps
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
             POS Boilerplate
           </span>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground">Pilih Paket Langganan</h1>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground">Pilih Paket Subscription</h1>
           <p className="mt-1 text-sm text-muted-foreground">Aktifkan Perusahaan Anda dengan memilih salah satu paket di bawah.</p>
         </div>
 

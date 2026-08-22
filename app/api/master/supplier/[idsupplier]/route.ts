@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { deleteSupplier, SupplierNotFoundError, updateSupplier } from "@/lib/server/supplier/service";
+import { deleteSupplier, updateSupplier } from "@/lib/server/supplier/service";
 import type { Supplier } from "@/lib/server/supplier/types";
 
 type RouteParams = { params: Promise<{ idsupplier: string }> };
@@ -27,7 +27,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data   : updated,
     });
   } catch (error) {
-    if (error instanceof SupplierNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 
@@ -45,7 +45,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     return successResponse({ message: "Supplier berhasil dihapus" });
   } catch (error) {
-    if (error instanceof SupplierNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 

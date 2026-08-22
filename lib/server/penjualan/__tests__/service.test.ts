@@ -1,15 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { resetPenjualanStoreForTests } from "@/lib/server/penjualan/repository";
-import {
-  createPenjualan,
-  DuplicateKodeJualError,
-  generateKodePenjualan,
-  getPenjualan,
-  listPenjualan,
-  PenjualanNotFoundError,
-  updatePenjualan,
-} from "@/lib/server/penjualan/service";
+import { findAllPenjualan, resetPenjualanStoreForTests } from "@/lib/server/penjualan/repository";
+import { createPenjualan, generateKodePenjualan, getPenjualan, updatePenjualan } from "@/lib/server/penjualan/service";
 import type { Penjualan } from "@/lib/server/penjualan/types";
 
 const newPenjualan: Penjualan = {
@@ -33,16 +25,16 @@ beforeEach(() => {
 });
 
 describe("createPenjualan", () => {
-  it("adds the item and it shows up in listPenjualan", () => {
+  it("adds the item and it shows up in findAllPenjualan", () => {
     createPenjualan(newPenjualan);
 
-    expect(listPenjualan()).toContainEqual(newPenjualan);
+    expect(findAllPenjualan()).toContainEqual(newPenjualan);
   });
 
   it("rejects a kodejual that already exists", () => {
     createPenjualan(newPenjualan);
 
-    expect(() => createPenjualan(newPenjualan)).toThrow(DuplicateKodeJualError);
+    expect(() => createPenjualan(newPenjualan)).toThrow(/sudah digunakan/);
   });
 });
 
@@ -54,7 +46,7 @@ describe("getPenjualan", () => {
   });
 
   it("throws when the kodejual does not exist", () => {
-    expect(() => getPenjualan("PJ-MISSING")).toThrow(PenjualanNotFoundError);
+    expect(() => getPenjualan("PJ-MISSING")).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -68,11 +60,11 @@ describe("updatePenjualan", () => {
     });
 
     expect(updated.status).toBe("D");
-    expect(listPenjualan()).toContainEqual({ ...newPenjualan, status: "D" });
+    expect(findAllPenjualan()).toContainEqual({ ...newPenjualan, status: "D" });
   });
 
   it("throws when the kodejual does not exist", () => {
-    expect(() => updatePenjualan("PJ-MISSING", newPenjualan)).toThrow(PenjualanNotFoundError);
+    expect(() => updatePenjualan("PJ-MISSING", newPenjualan)).toThrow(/tidak ditemukan/);
   });
 });
 
@@ -81,6 +73,6 @@ describe("generateKodePenjualan", () => {
     const generated = generateKodePenjualan();
 
     expect(generated).toMatch(/^PJ-\d{8}-\d{4}$/);
-    expect(listPenjualan().some((item) => item.kodejual === generated)).toBe(false);
+    expect(findAllPenjualan().some((item) => item.kodejual === generated)).toBe(false);
   });
 });

@@ -1,16 +1,14 @@
 import { Prisma } from "@/lib/generated/prisma-perusahaan/client";
 import { findConfigForModul, findKodeByPrefix, MODUL_KODE_FIELD } from "@/lib/server/kodedokumen/repository";
 import { MODUL_KODE_DOKUMEN, type KonfigurasiKodeDokumen, type ModulKodeDokumen } from "@/lib/server/kodedokumen/types";
-import type { TenantClient } from "@/lib/server/provisioning/types";
-
-export class ModulTidakDikenalError extends Error {}
-export class ConfigKodeDokumenTidakValidError extends Error {}
-export class PercobaanKodeDokumenHabisError extends Error {}
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 
 const MAX_PERCOBAAN = 50;
 
 function isModulKodeDokumen(modul: string): modul is ModulKodeDokumen {
-  return (MODUL_KODE_DOKUMEN as readonly string[]).includes(modul);
+  const dikenal = (MODUL_KODE_DOKUMEN as readonly string[]).includes(modul);
+
+  return dikenal;
 }
 
 function periodeAsiaJakarta(tgltrans: Date): string {
@@ -21,40 +19,40 @@ function periodeAsiaJakarta(tgltrans: Date): string {
     day     : "2-digit",
   });
   const parts = Object.fromEntries(formatter.formatToParts(tgltrans).map((part) => [part.type, part.value]));
-  return `${parts.year}${parts.month}${parts.day}`;
+  const periode = `${parts.year}${parts.month}${parts.day}`;
+
+  return periode;
 }
 
-async function bacaConfigModul(db: TenantClient, modul: ModulKodeDokumen): Promise<KonfigurasiKodeDokumen> {
+async function bacaConfigModul(db: DatabasePerusahaanClient, modul: ModulKodeDokumen): Promise<KonfigurasiKodeDokumen> {
   const rows = await findConfigForModul(db, modul);
   if (rows.length === 0) {
-    throw new ConfigKodeDokumenTidakValidError(`Config Kode Dokumen untuk modul "${modul}" tidak ditemukan`);
+    throw new Error(`Config Kode Dokumen untuk modul "${modul}" tidak ditemukan`);
   }
 
   const nilai = Object.fromEntries(rows.map((row) => [row.config, row.nilai]));
 
   const awalan = nilai.awalan?.trim();
   if (!awalan) {
-    throw new ConfigKodeDokumenTidakValidError(`Config "awalan" untuk modul "${modul}" kosong atau tidak ditemukan`);
+    throw new Error(`Config "awalan" untuk modul "${modul}" kosong atau tidak ditemukan`);
   }
 
   const pakaitanggal = nilai.pakaitanggal;
   if (pakaitanggal !== "0" && pakaitanggal !== "1") {
-    throw new ConfigKodeDokumenTidakValidError(
-      `Config "pakaitanggal" untuk modul "${modul}" harus "0" atau "1"`,
-    );
+    throw new Error(`Config "pakaitanggal" untuk modul "${modul}" harus "0" atau "1"`);
   }
 
   const panjangnomor = Number(nilai.panjangnomor);
   if (!nilai.panjangnomor || !Number.isInteger(panjangnomor) || panjangnomor <= 0) {
-    throw new ConfigKodeDokumenTidakValidError(
-      `Config "panjangnomor" untuk modul "${modul}" harus bilangan bulat positif`,
-    );
+    throw new Error(`Config "panjangnomor" untuk modul "${modul}" harus bilangan bulat positif`);
   }
 
-  return { awalan, pakaitanggal, panjangnomor };
+  const config: KonfigurasiKodeDokumen = { awalan, pakaitanggal, panjangnomor };
+
+  return config;
 }
 
-async function nomorBerikutnya(db: TenantClient, modul: ModulKodeDokumen, prefix: string): Promise<number> {
+async function nomorBerikutnya(db: DatabasePerusahaanClient, modul: ModulKodeDokumen, prefix: string): Promise<number> {
   const existing = await findKodeByPrefix(db, modul, prefix);
 
   let max = 0;
@@ -64,7 +62,10 @@ async function nomorBerikutnya(db: TenantClient, modul: ModulKodeDokumen, prefix
       max = nomor;
     }
   }
-  return max + 1;
+
+  const berikutnya = max + 1;
+
+  return berikutnya;
 }
 
 function isKonflikKode(error: unknown, kolomKode: string): boolean {
@@ -74,22 +75,27 @@ function isKonflikKode(error: unknown, kolomKode: string): boolean {
 
   const target = error.meta?.target;
   if (typeof target === "string") {
-    return target.includes(kolomKode);
+    const cocok = target.includes(kolomKode);
+
+    return cocok;
   }
   if (Array.isArray(target)) {
-    return target.includes(kolomKode);
+    const cocok = target.includes(kolomKode);
+
+    return cocok;
   }
+
   return true;
 }
 
 export async function simpanDenganKode<T>(
-  db      : TenantClient,
+  db      : DatabasePerusahaanClient,
   modul   : string,
   tgltrans: Date,
   simpan  : (kode: string) => Promise<T>,
 ): Promise<T> {
   if (!isModulKodeDokumen(modul)) {
-    throw new ModulTidakDikenalError(`Modul "${modul}" tidak dikenal generator Kode Dokumen`);
+    throw new Error(`Modul "${modul}" tidak dikenal generator Kode Dokumen`);
   }
 
   const config = await bacaConfigModul(db, modul);
@@ -102,7 +108,9 @@ export async function simpanDenganKode<T>(
     const kode = `${prefix}${String(nomor).padStart(config.panjangnomor, "0")}`;
 
     try {
-      return await simpan(kode);
+      const hasil = await simpan(kode);
+
+      return hasil;
     } catch (error) {
       if (!isKonflikKode(error, kolomKode)) {
         throw error;
@@ -111,7 +119,5 @@ export async function simpanDenganKode<T>(
     }
   }
 
-  throw new PercobaanKodeDokumenHabisError(
-    `Gagal mendapatkan Kode Dokumen untuk modul "${modul}" setelah ${MAX_PERCOBAAN} percobaan`,
-  );
+  throw new Error(`Gagal mendapatkan Kode Dokumen untuk modul "${modul}" setelah ${MAX_PERCOBAAN} percobaan`);
 }

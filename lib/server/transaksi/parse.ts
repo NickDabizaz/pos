@@ -19,5 +19,7 @@ export function parseTransaksiItems(rawItems: unknown): TransaksiItem[] {
 }
 
 export function parseStatusTransaksi(value: unknown): StatusTransaksi {
-  return value === "D" ? "D" : "S";
+  const status = value === "D" ? "D" : "S";
+
+  return status;
 }

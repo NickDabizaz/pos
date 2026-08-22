@@ -1,12 +1,12 @@
 import { parseResponse } from "@/lib/client/apiResponse";
-import type { PaketLangganan, SnapTransactionResult } from "@/lib/server/subscription/types";
+import type { PaketSubscription, SnapTransactionResult } from "@/lib/server/subscription/types";
 
-export async function listPaketLangganan(): Promise<PaketLangganan[]> {
+export async function listPaketSubscription(): Promise<PaketSubscription[]> {
   const response = await fetch("/api/subscription");
-  return parseResponse<PaketLangganan[]>(response);
+  return parseResponse<PaketSubscription[]>(response);
 }
 
-export async function checkoutLangganan(idperusahaan: number, kodepaket: string): Promise<SnapTransactionResult> {
+export async function checkoutSubscription(idperusahaan: number, kodepaket: string): Promise<SnapTransactionResult> {
   const response = await fetch("/api/subscription/checkout", {
     method : "POST",
     headers: { "Content-Type": "application/json" },

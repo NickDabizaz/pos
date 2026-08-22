@@ -1,19 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { provisionDatabase } from "@/lib/server/provisioning/service";
-import type { TenantClient } from "@/lib/server/provisioning/types";
-import {
-  ModulTidakDikenalError,
-  ConfigKodeDokumenTidakValidError,
-  PercobaanKodeDokumenHabisError,
-  simpanDenganKode,
-} from "@/lib/server/kodedokumen/service";
+import { createDatabasePerusahaan } from "@/lib/server/databaseperusahaan/service";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
+import { simpanDenganKode } from "@/lib/server/kodedokumen/service";
 import { getTestDb, resetTables } from "@/lib/test/db";
 import { dropDatabase, uniqueDatabaseName } from "@/prisma/__tests__/testDatabase";
 
 const DOMAIN_TABLES = ["bayar", "jualdtl", "belidtl", "kasdtl", "jual", "beli", "kas", "barang", "lokasi", "customer", "supplier"];
 
-let db: TenantClient;
+let db: DatabasePerusahaanClient;
 
 beforeEach(() => {
   db = getTestDb();
@@ -39,7 +34,7 @@ async function buatSupplier(kode = "SUP01") {
   return db.supplier.create({ data: { kodesupplier: kode, namasupplier: "Supplier Test" } });
 }
 
-function simpanBarang(db: TenantClient) {
+function simpanBarang(db: DatabasePerusahaanClient) {
   return (kode: string) =>
     db.barang.create({
       data: {
@@ -52,7 +47,7 @@ function simpanBarang(db: TenantClient) {
     });
 }
 
-function simpanJual(db: TenantClient, idcustomer: number, idlokasi: number, tgltrans: Date) {
+function simpanJual(db: DatabasePerusahaanClient, idcustomer: number, idlokasi: number, tgltrans: Date) {
   return (kode: string) =>
     db.jual.create({
       data: {
@@ -69,7 +64,7 @@ function simpanJual(db: TenantClient, idcustomer: number, idlokasi: number, tglt
     });
 }
 
-function simpanBeli(db: TenantClient, idsupplier: number, idlokasi: number, tgltrans: Date) {
+function simpanBeli(db: DatabasePerusahaanClient, idsupplier: number, idlokasi: number, tgltrans: Date) {
   return (kode: string) =>
     db.beli.create({
       data: {
@@ -280,7 +275,7 @@ describe("Kode tidak pernah kembar", () => {
     };
 
     await expect(simpanDenganKode(db, "barang", new Date(), selaluBentrok)).rejects.toThrow(
-      PercobaanKodeDokumenHabisError,
+      /Gagal mendapatkan Kode Dokumen/,
     );
     expect(panggilan).toBeGreaterThan(1);
   });
@@ -324,7 +319,7 @@ describe("Config yang rusak menggagalkan penyimpanan", () => {
 
     try {
       await expect(simpanDenganKode(db, "barang", new Date(), simpanBarang(db))).rejects.toThrow(
-        ConfigKodeDokumenTidakValidError,
+        /tidak ditemukan/,
       );
       await expect(simpanDenganKode(db, "barang", new Date(), simpanBarang(db))).rejects.toThrow(/barang/);
     } finally {
@@ -353,7 +348,7 @@ describe("Config yang rusak menggagalkan penyimpanan", () => {
 
     try {
       await expect(simpanDenganKode(db, "barang", new Date(), simpanBarang(db))).rejects.toThrow(
-        ConfigKodeDokumenTidakValidError,
+        /pakaitanggal/,
       );
     } finally {
       await db.config.update({ where: { modul_config: { modul: "barang", config: "pakaitanggal" } }, data: { nilai: "0" } });
@@ -365,7 +360,7 @@ describe("Config yang rusak menggagalkan penyimpanan", () => {
 
     try {
       await expect(simpanDenganKode(db, "barang", new Date(), simpanBarang(db))).rejects.toThrow(
-        ConfigKodeDokumenTidakValidError,
+        /awalan/,
       );
     } finally {
       await db.config.update({ where: { modul_config: { modul: "barang", config: "awalan" } }, data: { nilai: "B" } });
@@ -381,7 +376,7 @@ describe("Modul yang tidak dikenal ditolak", () => {
         tersentuh = true;
         return null;
       }),
-    ).rejects.toThrow(ModulTidakDikenalError);
+    ).rejects.toThrow(/tidak dikenal generator Kode Dokumen/);
     await expect(
       simpanDenganKode(db, "shift", new Date(), async () => {
         tersentuh = true;
@@ -393,12 +388,12 @@ describe("Modul yang tidak dikenal ditolak", () => {
 });
 
 describe("Setiap Perusahaan punya deret sendiri", () => {
-  let dbLain: TenantClient;
+  let dbLain: DatabasePerusahaanClient;
   let namaDbLain: string;
 
   beforeEach(async () => {
     namaDbLain = uniqueDatabaseName("perusahaan");
-    dbLain = await provisionDatabase(namaDbLain);
+    dbLain = await createDatabasePerusahaan(namaDbLain);
   }, 30_000);
 
   afterEach(async () => {

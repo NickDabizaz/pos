@@ -1,13 +1,13 @@
-import { getTenantClient } from "@/lib/server/provisioning/repository";
-import type { TenantClient } from "@/lib/server/provisioning/types";
+import { getDatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/repository";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 
 export const TEST_DATABASE_NAME = process.env.TEST_DATABASE_NAME ?? "pos_test_perusahaan";
 
-export function getTestDb(): TenantClient {
-  return getTenantClient(TEST_DATABASE_NAME);
+export function getTestDb(): DatabasePerusahaanClient {
+  return getDatabasePerusahaanClient(TEST_DATABASE_NAME);
 }
 
-export async function resetTables(db: TenantClient, namaTabel: string[]): Promise<void> {
+export async function resetTables(db: DatabasePerusahaanClient, namaTabel: string[]): Promise<void> {
   if (namaTabel.length === 0) {
     return;
   }

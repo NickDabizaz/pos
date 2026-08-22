@@ -1,16 +1,12 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import {
-  createBarang,
-  DuplicateKodeError,
-  generateKodeBarang,
-  listBarang,
-} from "@/lib/server/barang/service";
+import { findAllBarang } from "@/lib/server/barang/repository";
+import { createBarang, generateKodeBarang } from "@/lib/server/barang/service";
 import type { Barang } from "@/lib/server/barang/types";
 
 export async function GET() {
   return successResponse({
     message: "Data barang berhasil diambil",
-    data   : listBarang(),
+    data   : findAllBarang(),
   });
 }
 
@@ -38,7 +34,7 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof DuplicateKodeError) {
+    if (error instanceof Error && error.message.includes("sudah digunakan")) {
       return errorResponse({ statusCode: 409, message: error.message });
     }
 

@@ -1,5 +1,5 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { CustomerNotFoundError, deleteCustomer, updateCustomer } from "@/lib/server/customer/service";
+import { deleteCustomer, updateCustomer } from "@/lib/server/customer/service";
 import type { Customer } from "@/lib/server/customer/types";
 
 type RouteParams = { params: Promise<{ idcustomer: string }> };
@@ -26,7 +26,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       data   : updated,
     });
   } catch (error) {
-    if (error instanceof CustomerNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 
@@ -44,7 +44,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     return successResponse({ message: "Customer berhasil dihapus" });
   } catch (error) {
-    if (error instanceof CustomerNotFoundError) {
+    if (error instanceof Error && error.message.includes("tidak ditemukan")) {
       return errorResponse({ statusCode: 404, message: error.message });
     }
 

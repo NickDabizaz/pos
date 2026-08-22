@@ -9,58 +9,51 @@ import {
 } from "@/lib/server/perusahaan/repository";
 import type { DaftarPerusahaanDeps, DaftarPerusahaanInput, GlobalClient, PerusahaanRow } from "@/lib/server/perusahaan/types";
 
-export class SudahMemilikiPerusahaanError extends Error {}
-export class NamaPerusahaanTidakValidError extends Error {}
-export class NamaPerusahaanSudahDipakaiError extends Error {}
-export class KodePerusahaanBentrokError extends Error {}
-export class KodePerusahaanOtomatisHabisError extends Error {}
-export class ProvisioningGagalError extends Error {}
-
 const PREFIX_DATABASE = "pos_";
 const PANJANG_NAMA_DATABASE_MAKS = 64;
 const MAX_PERCOBAAN_KODE = 50;
 
-function turunkanNamaDatabase(namaperusahaan: string): string {
+function toLowerNamaDatabase(namaperusahaan: string): string {
   const bersih = namaperusahaan.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (!bersih) {
-    throw new NamaPerusahaanTidakValidError("Nama Perusahaan harus memuat huruf atau angka");
+    throw new Error("Nama Perusahaan harus memuat huruf atau angka", { cause: "NAMA_TIDAK_VALID" });
   }
 
   const panjangMaksBersih = PANJANG_NAMA_DATABASE_MAKS - PREFIX_DATABASE.length;
-  return `${PREFIX_DATABASE}${bersih.slice(0, panjangMaksBersih)}`;
+  const namadatabase = `${PREFIX_DATABASE}${bersih.slice(0, panjangMaksBersih)}`;
+
+  return namadatabase;
 }
 
-function normalisasiKodeKetikan(kodeperusahaan: string): string {
-  return kodeperusahaan.trim().toUpperCase();
-}
-
-async function jalankanProvisioning(deps: DaftarPerusahaanDeps, perusahaan: PerusahaanRow): Promise<void> {
+async function createDatabasePerusahaan(deps: DaftarPerusahaanDeps, perusahaan: PerusahaanRow): Promise<void> {
   try {
     await deps.buatDatabase(perusahaan.namadatabase);
-  } catch (error) {
-    throw new ProvisioningGagalError(
+  } catch {
+    throw new Error(
       `Gagal menyiapkan Database Perusahaan untuk "${perusahaan.namaperusahaan}". Coba lagi.`,
-      { cause: error },
+      { cause: "GAGAL_SIAPKAN_DATABASE" },
     );
   }
 }
 
-async function daftarDenganKodeKetikan(
-  db            : GlobalClient,
-  input         : DaftarPerusahaanInput,
-  namadatabase  : string,
+async function daftarDenganKodeInputan(
+  db          : GlobalClient,
+  input       : DaftarPerusahaanInput,
+  namadatabase: string,
 ): Promise<PerusahaanRow> {
-  const kodeperusahaan = normalisasiKodeKetikan(input.kodeperusahaan);
+  const kodeperusahaan = input.kodeperusahaan.trim().toUpperCase();
 
   if (await findPerusahaanByKode(db, kodeperusahaan)) {
-    throw new KodePerusahaanBentrokError(`Kode Perusahaan "${kodeperusahaan}" sudah dipakai`);
+    throw new Error(`Kode Perusahaan "${kodeperusahaan}" sudah dipakai`, { cause: "KODE_BENTROK" });
   }
 
   try {
-    return await insertPerusahaanDenganOwner(db, input.iduser, kodeperusahaan, input.namaperusahaan, namadatabase);
+    const perusahaan = await insertPerusahaanDenganOwner(db, input.iduser, kodeperusahaan, input.namaperusahaan, namadatabase);
+
+    return perusahaan;
   } catch (error) {
     if (isKonflikKodeperusahaan(error)) {
-      throw new KodePerusahaanBentrokError(`Kode Perusahaan "${kodeperusahaan}" sudah dipakai`);
+      throw new Error(`Kode Perusahaan "${kodeperusahaan}" sudah dipakai`, { cause: "KODE_BENTROK" });
     }
     throw error;
   }
@@ -75,14 +68,17 @@ async function daftarDenganKodeOtomatis(
 
   for (let percobaan = 0; percobaan < MAX_PERCOBAAN_KODE; percobaan++) {
     if (nomor > KODE_OTOMATIS_MAKS) {
-      throw new KodePerusahaanOtomatisHabisError(
+      throw new Error(
         `Kode Perusahaan otomatis sudah habis (P001–P${KODE_OTOMATIS_MAKS})`,
+        { cause: "KODE_OTOMATIS_HABIS" },
       );
     }
 
     const kodeperusahaan = `P${String(nomor).padStart(3, "0")}`;
     try {
-      return await insertPerusahaanDenganOwner(db, input.iduser, kodeperusahaan, input.namaperusahaan, namadatabase);
+      const perusahaan = await insertPerusahaanDenganOwner(db, input.iduser, kodeperusahaan, input.namaperusahaan, namadatabase);
+
+      return perusahaan;
     } catch (error) {
       if (!isKonflikKodeperusahaan(error)) {
         throw error;
@@ -91,34 +87,39 @@ async function daftarDenganKodeOtomatis(
     }
   }
 
-  throw new KodePerusahaanOtomatisHabisError("Gagal mendapatkan Kode Perusahaan otomatis setelah beberapa percobaan");
+  throw new Error(
+    "Gagal mendapatkan Kode Perusahaan otomatis setelah beberapa percobaan",
+    { cause: "KODE_OTOMATIS_HABIS" },
+  );
 }
 
 async function runDaftarPerusahaan(
-  db  : GlobalClient,
+  db   : GlobalClient,
   input: DaftarPerusahaanInput,
   deps : DaftarPerusahaanDeps,
 ): Promise<PerusahaanRow> {
-  const namadatabase = turunkanNamaDatabase(input.namaperusahaan);
+  const namadatabase = toLowerNamaDatabase(input.namaperusahaan);
 
   const existing = await findPerusahaanMilikUser(db, input.iduser);
   if (existing) {
     if (existing.namadatabase === namadatabase) {
-      await jalankanProvisioning(deps, existing);
+      await createDatabasePerusahaan(deps, existing);
+
       return existing;
     }
-    throw new SudahMemilikiPerusahaanError("Anda sudah memiliki Perusahaan");
+    throw new Error("Anda sudah memiliki Perusahaan", { cause: "SUDAH_MEMILIKI_PERUSAHAAN" });
   }
 
   if (await findPerusahaanByNamadatabase(db, namadatabase)) {
-    throw new NamaPerusahaanSudahDipakaiError(`Nama Perusahaan "${input.namaperusahaan}" sudah dipakai`);
+    throw new Error(`Nama Perusahaan "${input.namaperusahaan}" sudah dipakai`, { cause: "NAMA_SUDAH_DIPAKAI" });
   }
 
   const perusahaan = input.generateKode
     ? await daftarDenganKodeOtomatis(db, input, namadatabase)
-    : await daftarDenganKodeKetikan(db, input, namadatabase);
+    : await daftarDenganKodeInputan(db, input, namadatabase);
 
-  await jalankanProvisioning(deps, perusahaan);
+  await createDatabasePerusahaan(deps, perusahaan);
+
   return perusahaan;
 }
 
@@ -138,5 +139,6 @@ export async function daftarPerusahaan(
     inFlightDaftar.delete(input.iduser);
   });
   inFlightDaftar.set(input.iduser, promise);
+
   return promise;
 }

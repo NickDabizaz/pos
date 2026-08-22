@@ -16,7 +16,9 @@ export function findAllCustomer(): Customer[] {
 }
 
 export function findCustomerByKode(kodecustomer: string): Customer | undefined {
-  return customerStore.find((item) => item.kodecustomer === kodecustomer);
+  const customer = customerStore.find((item) => item.kodecustomer === kodecustomer);
+
+  return customer;
 }
 
 export function insertCustomer(customer: Customer): void {

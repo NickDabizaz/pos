@@ -1,24 +1,14 @@
 import {
-  disposeTenantClient,
-  dropTenantDatabase,
-  ensureTenantDatabaseExists,
-  getTenantClient,
-  migrateTenantDatabase,
+  createDatabasePerusahaanIfNotExists,
+  disposeDatabasePerusahaanClient,
+  dropDatabasePerusahaan,
+  getDatabasePerusahaanClient,
+  migrateDatabasePerusahaan,
   seedDefaultConfig,
-} from "@/lib/server/provisioning/repository";
-import type { ConfigRow, TenantClient } from "@/lib/server/provisioning/types";
-
-export class InvalidDatabaseNameError extends Error {}
+} from "@/lib/server/databaseperusahaan/repository";
+import type { ConfigRow, DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 
 const VALID_DATABASE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
-
-function assertValidDatabaseName(namadatabase: string): void {
-  if (!VALID_DATABASE_NAME.test(namadatabase)) {
-    throw new InvalidDatabaseNameError(
-      `Nama database "${namadatabase}" bukan identifier MariaDB yang sah`,
-    );
-  }
-}
 
 const KODE_DOKUMEN_MODULES: Record<string, { awalan: string; pakaitanggal: "0" | "1"; panjangnomor: string }> = {
   lokasi  : { awalan: "L",  pakaitanggal: "0", panjangnomor: "4" },
@@ -30,6 +20,12 @@ const KODE_DOKUMEN_MODULES: Record<string, { awalan: string; pakaitanggal: "0" |
   kas     : { awalan: "KS", pakaitanggal: "1", panjangnomor: "4" },
 };
 
+function cekValidNamaDatabase(namadatabase: string): void {
+  if (!VALID_DATABASE_NAME.test(namadatabase)) {
+    throw new Error(`Nama database "${namadatabase}" bukan identifier MariaDB yang sah`);
+  }
+}
+
 function buildDefaultConfigRows(): ConfigRow[] {
   const kodeDokumenRows: ConfigRow[] = Object.entries(KODE_DOKUMEN_MODULES).flatMap(([modul, format]) => [
     { modul, config: "awalan", nilai: format.awalan },
@@ -37,42 +33,46 @@ function buildDefaultConfigRows(): ConfigRow[] {
     { modul, config: "panjangnomor", nilai: format.panjangnomor },
   ]);
 
-  return [
+  const rows = [
     ...kodeDokumenRows,
     { modul: "ppn", config: "persentase", nilai: "11" },
     { modul: "ppn", config: "status", nilai: "0" },
     { modul: "tampilan", config: "tema", nilai: "terang" },
   ];
+
+  return rows;
 }
 
-const inFlightProvisioning = new Map<string, Promise<TenantClient>>();
+const inFlightDatabaseCreation = new Map<string, Promise<DatabasePerusahaanClient>>();
 
-async function runProvisioning(namadatabase: string): Promise<TenantClient> {
-  await ensureTenantDatabaseExists(namadatabase);
+async function runDatabaseCreation(namadatabase: string): Promise<DatabasePerusahaanClient> {
+  await createDatabasePerusahaanIfNotExists(namadatabase);
 
   try {
-    migrateTenantDatabase(namadatabase);
-    const client = getTenantClient(namadatabase);
+    migrateDatabasePerusahaan(namadatabase);
+    const client = getDatabasePerusahaanClient(namadatabase);
     await seedDefaultConfig(client, buildDefaultConfigRows());
+
     return client;
   } catch (error) {
-    await disposeTenantClient(namadatabase);
-    await dropTenantDatabase(namadatabase);
+    await disposeDatabasePerusahaanClient(namadatabase);
+    await dropDatabasePerusahaan(namadatabase);
     throw error;
   }
 }
 
-export async function provisionDatabase(namadatabase: string): Promise<TenantClient> {
-  assertValidDatabaseName(namadatabase);
+export async function createDatabasePerusahaan(namadatabase: string): Promise<DatabasePerusahaanClient> {
+  cekValidNamaDatabase(namadatabase);
 
-  const existing = inFlightProvisioning.get(namadatabase);
+  const existing = inFlightDatabaseCreation.get(namadatabase);
   if (existing) {
     return existing;
   }
 
-  const promise = runProvisioning(namadatabase).finally(() => {
-    inFlightProvisioning.delete(namadatabase);
+  const promise = runDatabaseCreation(namadatabase).finally(() => {
+    inFlightDatabaseCreation.delete(namadatabase);
   });
-  inFlightProvisioning.set(namadatabase, promise);
+  inFlightDatabaseCreation.set(namadatabase, promise);
+
   return promise;
 }
