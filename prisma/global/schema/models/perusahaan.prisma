@@ -10,6 +10,7 @@ model perusahaan {
   subscriptions    subscription[]
   userperusahaans  userperusahaan[]
   usermenus        usermenu[]
+  sessions         Session[]
 }
 
 /// Status Subscription: 1 = aktif. Baris hanya dibuat setelah pembayaran dikonfirmasi lunas,

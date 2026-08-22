@@ -49,6 +49,23 @@ describe("findPerusahaanByUser mengembalikan seluruh Perusahaan milik satu Pengg
 
     expect(await findPerusahaanByUser(prisma, user.id)).toEqual([]);
   });
+
+  it("Pengguna dengan Keanggotaan di Perusahaan A dan B melihat tepat dua Perusahaan itu, tidak melihat Perusahaan C milik Pengguna lain", async () => {
+    const user = await createUser("user-dua-perusahaan", "duaperusahaan@norvyn.test");
+    const lain = await createUser("user-lain-punya-c", "lainpunyac@norvyn.test");
+    const a = await createPerusahaan("PSH-A1", "Toko A", "pos_test_toko_a1");
+    const b = await createPerusahaan("PSH-B1", "Toko B", "pos_test_toko_b1");
+    const c = await createPerusahaan("PSH-C1", "Toko C", "pos_test_toko_c1");
+    await prisma.userperusahaan.create({ data: { iduser: user.id, idperusahaan: a.idperusahaan, isowner: true } });
+    await prisma.userperusahaan.create({ data: { iduser: user.id, idperusahaan: b.idperusahaan, isowner: false } });
+    await prisma.userperusahaan.create({ data: { iduser: lain.id, idperusahaan: c.idperusahaan, isowner: true } });
+
+    const memberships = await findPerusahaanByUser(prisma, user.id);
+
+    expect(memberships).toHaveLength(2);
+    expect(memberships.map((m) => m.idperusahaan).sort()).toEqual([a.idperusahaan, b.idperusahaan].sort());
+    expect(memberships.some((m) => m.idperusahaan === c.idperusahaan)).toBe(false);
+  });
 });
 
 describe("Keanggotaan tunduk pada Pengguna induknya lewat foreign key", () => {

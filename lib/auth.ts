@@ -89,7 +89,10 @@ export function createAuth(client: PrismaClient, deps: AuthDeps = {}) {
     baseURL         : process.env.BETTER_AUTH_URL,
     secret          : process.env.BETTER_AUTH_SECRET,
     session         : {
-      fields: { userId: "iduser" },
+      fields          : { userId: "iduser" },
+      additionalFields: {
+        idperusahaan: { type: "number", required: false, input: false },
+      },
     },
     account         : {
       fields: { userId: "iduser" },

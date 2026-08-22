@@ -35,19 +35,24 @@ model User {
   @@map("user")
 }
 
+/// idperusahaan adalah Perusahaan Aktif (tiket 08), bukan field bawaan Better Auth —
+/// ditambahkan lewat session.additionalFields di lib/auth.ts.
 model Session {
-  id        String   @id
-  expiresAt DateTime
-  token     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ipAddress String?  @db.Text
-  userAgent String?  @db.Text
-  iduser    String   @db.VarChar(36)
-  user      User     @relation(fields: [iduser], references: [id], onDelete: Cascade)
+  id           String      @id
+  expiresAt    DateTime
+  token        String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  ipAddress    String?     @db.Text
+  userAgent    String?     @db.Text
+  iduser       String      @db.VarChar(36)
+  idperusahaan Int?
+  user         User        @relation(fields: [iduser], references: [id], onDelete: Cascade)
+  perusahaan   perusahaan? @relation(fields: [idperusahaan], references: [idperusahaan], onDelete: SetNull)
 
   @@unique([token])
   @@index([iduser])
+  @@index([idperusahaan])
   @@map("session")
 }
 

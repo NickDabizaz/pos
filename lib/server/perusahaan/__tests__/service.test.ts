@@ -1,7 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { PrismaClient } from "@/lib/generated/prisma-global/client";
-import { daftarPerusahaan } from "@/lib/server/perusahaan/service";
+import { disposeDatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/repository";
+import { daftarPerusahaan, getDatabasePerusahaanAktif, pilihPerusahaan } from "@/lib/server/perusahaan/service";
 import type { DaftarPerusahaanInput } from "@/lib/server/perusahaan/types";
 import { setUpMigratedDatabase } from "@/prisma/__tests__/testDatabase";
 
@@ -29,7 +30,13 @@ afterEach(async () => {
       await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
     }
   });
+
+  for (const namadatabase of namadatabaseDibuat.splice(0)) {
+    await disposeDatabasePerusahaanClient(namadatabase);
+  }
 });
+
+const namadatabaseDibuat: string[] = [];
 
 let userSeq = 0;
 
@@ -46,6 +53,40 @@ async function seedPerusahaan(kodeperusahaan: string, namadatabase?: string): Pr
     data: { kodeperusahaan, namaperusahaan: `Seed ${kodeperusahaan}`, namadatabase: namadatabase ?? `pos_seed_${kodeperusahaan.toLowerCase()}` },
   });
   await prisma.userperusahaan.create({ data: { iduser, idperusahaan: perusahaan.idperusahaan, isowner: true } });
+}
+
+let perusahaanSeq = 0;
+
+async function createPerusahaan(status = 0): Promise<{ idperusahaan: number; namadatabase: string }> {
+  perusahaanSeq += 1;
+  const kodeperusahaan = `PX${perusahaanSeq}`;
+  const namadatabase = `pos_pilih_${perusahaanSeq}_${Date.now()}`;
+  const perusahaan = await prisma.perusahaan.create({
+    data: { kodeperusahaan, namaperusahaan: `Toko Pilih ${perusahaanSeq}`, namadatabase, status },
+  });
+  namadatabaseDibuat.push(namadatabase);
+  return { idperusahaan: perusahaan.idperusahaan, namadatabase };
+}
+
+async function addMembership(iduser: string, idperusahaan: number): Promise<void> {
+  await prisma.userperusahaan.create({ data: { iduser, idperusahaan, isowner: false } });
+}
+
+let sessionSeq = 0;
+
+async function createSession(iduser: string, idperusahaan?: number): Promise<string> {
+  sessionSeq += 1;
+  const id = `session-${sessionSeq}-${Date.now()}`;
+  await prisma.session.create({
+    data: {
+      id,
+      token: `token-${sessionSeq}-${Date.now()}`,
+      expiresAt: new Date(Date.now() + 60_000),
+      iduser,
+      idperusahaan,
+    },
+  });
+  return id;
 }
 
 function buatDeps(impl?: (namadatabase: string) => Promise<unknown>) {
@@ -361,5 +402,131 @@ describe("Kegagalan pembuatan database dapat diulang", () => {
     expect(a.idperusahaan).toBe(b.idperusahaan);
     expect(await prisma.perusahaan.count()).toBe(1);
     expect(await prisma.userperusahaan.count()).toBe(1);
+  });
+});
+
+describe("Memilih Perusahaan mencatat identitas Perusahaan Aktif ke dalam sesi", () => {
+  it("sesi tanpa Perusahaan Aktif setelah memilih Perusahaan A mencatat idperusahaan = A pada baris session yang sama", async () => {
+    const iduser = await createUser();
+    const a = await createPerusahaan();
+    await addMembership(iduser, a.idperusahaan);
+    const idsesi = await createSession(iduser);
+
+    await pilihPerusahaan(prisma, { iduser, idsesi, idperusahaan: a.idperusahaan });
+
+    const session = await prisma.session.findUniqueOrThrow({ where: { id: idsesi } });
+    expect(session.idperusahaan).toBe(a.idperusahaan);
+    expect(session.id).toBe(idsesi);
+  });
+});
+
+describe("Mencoba memilih Perusahaan yang bukan miliknya ditolak", () => {
+  it("memilih idperusahaan milik Perusahaan yang ada tapi Pengguna bukan anggotanya ditolak dengan pesan jelas", async () => {
+    const iduser = await createUser();
+    const bukanMiliknya = await createPerusahaan();
+    const idsesi = await createSession(iduser);
+
+    await expect(
+      pilihPerusahaan(prisma, { iduser, idsesi, idperusahaan: bukanMiliknya.idperusahaan }),
+    ).rejects.toThrow(/bukan anggotanya/);
+
+    const session = await prisma.session.findUniqueOrThrow({ where: { id: idsesi } });
+    expect(session.idperusahaan).toBeNull();
+  });
+
+  it("memilih idperusahaan yang sama sekali tidak ada di Database Global ditolak dengan pesan jelas, bukan error tak tertangani", async () => {
+    const iduser = await createUser();
+    const idsesi = await createSession(iduser);
+
+    await expect(
+      pilihPerusahaan(prisma, { iduser, idsesi, idperusahaan: 999_999 }),
+    ).rejects.toThrow(/bukan anggotanya/);
+  });
+});
+
+describe("Perusahaan belum bayar tetap bisa dipilih sebagai Perusahaan Aktif", () => {
+  it("memilih Perusahaan berstatus 0 berhasil dan mencatat idperusahaan di sesi, tidak ditolak karena status", async () => {
+    const iduser = await createUser();
+    const belumBayar = await createPerusahaan(0);
+    await addMembership(iduser, belumBayar.idperusahaan);
+    const idsesi = await createSession(iduser);
+
+    await pilihPerusahaan(prisma, { iduser, idsesi, idperusahaan: belumBayar.idperusahaan });
+
+    const session = await prisma.session.findUniqueOrThrow({ where: { id: idsesi } });
+    expect(session.idperusahaan).toBe(belumBayar.idperusahaan);
+  });
+});
+
+describe("Pengguna dapat berpindah Perusahaan tanpa logout", () => {
+  it("berpindah dari A ke B mengubah idperusahaan sesi, id sesi tidak berubah", async () => {
+    const iduser = await createUser();
+    const a = await createPerusahaan();
+    const b = await createPerusahaan();
+    await addMembership(iduser, a.idperusahaan);
+    await addMembership(iduser, b.idperusahaan);
+    const idsesi = await createSession(iduser, a.idperusahaan);
+
+    await pilihPerusahaan(prisma, { iduser, idsesi, idperusahaan: b.idperusahaan });
+
+    const session = await prisma.session.findUniqueOrThrow({ where: { id: idsesi } });
+    expect(session.idperusahaan).toBe(b.idperusahaan);
+    expect(session.id).toBe(idsesi);
+  });
+
+  it("berpindah bolak-balik A -> B -> A berkali-kali dalam sesi yang sama tanpa logout", async () => {
+    const iduser = await createUser();
+    const a = await createPerusahaan();
+    const b = await createPerusahaan();
+    await addMembership(iduser, a.idperusahaan);
+    await addMembership(iduser, b.idperusahaan);
+    const idsesi = await createSession(iduser, a.idperusahaan);
+
+    await pilihPerusahaan(prisma, { iduser, idsesi, idperusahaan: b.idperusahaan });
+    await pilihPerusahaan(prisma, { iduser, idsesi, idperusahaan: a.idperusahaan });
+
+    const session = await prisma.session.findUniqueOrThrow({ where: { id: idsesi } });
+    expect(session.idperusahaan).toBe(a.idperusahaan);
+  });
+});
+
+describe("Koneksi Database Perusahaan digunakan ulang antar request", () => {
+  it("getDatabasePerusahaanAktif melakukan lookup namadatabase dari Database Global lalu memanggil getDatabasePerusahaanClient dengan nama itu", async () => {
+    const perusahaan = await createPerusahaan();
+
+    const clientPertama = await getDatabasePerusahaanAktif(prisma, perusahaan.idperusahaan);
+    const clientKedua = await getDatabasePerusahaanAktif(prisma, perusahaan.idperusahaan);
+
+    expect(clientKedua).toBe(clientPertama);
+  });
+
+  it("getDatabasePerusahaanAktif untuk dua Perusahaan berbeda mengembalikan instance client yang berbeda", async () => {
+    const a = await createPerusahaan();
+    const b = await createPerusahaan();
+
+    const clientA = await getDatabasePerusahaanAktif(prisma, a.idperusahaan);
+    const clientB = await getDatabasePerusahaanAktif(prisma, b.idperusahaan);
+
+    expect(clientA).not.toBe(clientB);
+  });
+
+  it("getDatabasePerusahaanAktif untuk idperusahaan yang tidak ada ditolak dengan pesan jelas", async () => {
+    await expect(getDatabasePerusahaanAktif(prisma, 999_999)).rejects.toThrow(/tidak ditemukan/);
+  });
+});
+
+describe("Nama database tidak pernah disimpan di sesi, selalu di-lookup dari Database Global tiap request", () => {
+  it("namadatabase yang diubah langsung di Database Global di antara dua pemanggilan membuat getDatabasePerusahaanAktif memakai client untuk nama yang baru", async () => {
+    const perusahaan = await createPerusahaan();
+
+    const clientLama = await getDatabasePerusahaanAktif(prisma, perusahaan.idperusahaan);
+
+    const namadatabaseBaru = `${perusahaan.namadatabase}_baru`;
+    namadatabaseDibuat.push(namadatabaseBaru);
+    await prisma.perusahaan.update({ where: { idperusahaan: perusahaan.idperusahaan }, data: { namadatabase: namadatabaseBaru } });
+
+    const clientBaru = await getDatabasePerusahaanAktif(prisma, perusahaan.idperusahaan);
+
+    expect(clientBaru).not.toBe(clientLama);
   });
 });

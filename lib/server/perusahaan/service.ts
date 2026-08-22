@@ -1,4 +1,8 @@
+import { getDatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/repository";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import {
+  findMembership,
+  findNamadatabaseAktif,
   findPerusahaanByKode,
   findPerusahaanByNamadatabase,
   findPerusahaanMilikUser,
@@ -6,8 +10,16 @@ import {
   isKonflikKodeperusahaan,
   KODE_OTOMATIS_MAKS,
   nomorKodeOtomatisBerikutnya,
+  setSessionPerusahaanAktif,
 } from "@/lib/server/perusahaan/repository";
-import type { DaftarPerusahaanDeps, DaftarPerusahaanInput, GlobalClient, PerusahaanRow } from "@/lib/server/perusahaan/types";
+import type {
+  DaftarPerusahaanDeps,
+  DaftarPerusahaanInput,
+  GlobalClient,
+  PerusahaanRow,
+  PilihPerusahaanInput,
+} from "@/lib/server/perusahaan/types";
+import type { PerusahaanMembership } from "@/lib/server/user/types";
 
 const PREFIX_DATABASE = "pos_";
 const PANJANG_NAMA_DATABASE_MAKS = 64;
@@ -121,6 +133,50 @@ async function runDaftarPerusahaan(
   await createDatabasePerusahaan(deps, perusahaan);
 
   return perusahaan;
+}
+
+export async function pilihPerusahaan(db: GlobalClient, input: PilihPerusahaanInput): Promise<void> {
+  const membership = await findMembership(db, input.iduser, input.idperusahaan);
+  if (!membership) {
+    throw new Error("Perusahaan tidak ditemukan atau Anda bukan anggotanya", { cause: "BUKAN_ANGGOTA" });
+  }
+
+  await setSessionPerusahaanAktif(db, input.idsesi, input.idperusahaan);
+}
+
+export async function getDatabasePerusahaanAktif(db: GlobalClient, idperusahaan: number): Promise<DatabasePerusahaanClient> {
+  const namadatabase = await findNamadatabaseAktif(db, idperusahaan);
+  if (!namadatabase) {
+    throw new Error("Perusahaan Aktif tidak ditemukan", { cause: "PERUSAHAAN_TIDAK_DITEMUKAN" });
+  }
+
+  const client = getDatabasePerusahaanClient(namadatabase);
+
+  return client;
+}
+
+export async function resolvePerusahaanAktif(
+  db    : GlobalClient,
+  params: {
+    iduser           : string;
+    idsesi           : string;
+    idperusahaanAktif: number | null;
+    memberships      : PerusahaanMembership[];
+  },
+): Promise<PerusahaanMembership | null> {
+  const aktif = params.memberships.find((membership) => membership.idperusahaan === params.idperusahaanAktif);
+  if (aktif) {
+    return aktif;
+  }
+
+  if (params.memberships.length !== 1) {
+    return null;
+  }
+
+  const satuSatunya = params.memberships[0];
+  await pilihPerusahaan(db, { iduser: params.iduser, idsesi: params.idsesi, idperusahaan: satuSatunya.idperusahaan });
+
+  return satuSatunya;
 }
 
 const inFlightDaftar = new Map<string, Promise<PerusahaanRow>>();

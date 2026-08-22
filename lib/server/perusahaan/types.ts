@@ -20,3 +20,9 @@ export type DaftarPerusahaanInput = {
 export type DaftarPerusahaanDeps = {
   buatDatabase: (namadatabase: string) => Promise<unknown>;
 };
+
+export type PilihPerusahaanInput = {
+  iduser      : string;
+  idsesi      : string;
+  idperusahaan: number;
+};

@@ -29,6 +29,28 @@ export async function findPerusahaanByKode(db: GlobalClient, kodeperusahaan: str
   return row;
 }
 
+export async function findMembership(
+  db          : GlobalClient,
+  iduser      : string,
+  idperusahaan: number,
+): Promise<{ iduser: string; idperusahaan: number } | null> {
+  const membership = await db.userperusahaan.findUnique({
+    where: { iduser_idperusahaan: { iduser, idperusahaan } },
+  });
+
+  return membership;
+}
+
+export async function setSessionPerusahaanAktif(db: GlobalClient, idsesi: string, idperusahaan: number): Promise<void> {
+  await db.session.update({ where: { id: idsesi }, data: { idperusahaan } });
+}
+
+export async function findNamadatabaseAktif(db: GlobalClient, idperusahaan: number): Promise<string | null> {
+  const perusahaan = await db.perusahaan.findUnique({ where: { idperusahaan }, select: { namadatabase: true } });
+
+  return perusahaan?.namadatabase ?? null;
+}
+
 export async function nomorKodeOtomatisBerikutnya(db: GlobalClient): Promise<number> {
   const rows = await db.perusahaan.findMany({ select: { kodeperusahaan: true } });
 

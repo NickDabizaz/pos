@@ -195,3 +195,92 @@ describe("Pengarahan ke halaman yang mensyaratkan Perusahaan aktif (mis. /)", ()
     expect(target).toBe("/login");
   });
 });
+
+async function tambahPerusahaan(kodeperusahaan: string, status = 1): Promise<number> {
+  const perusahaan = await prisma.perusahaan.create({
+    data: { kodeperusahaan, namaperusahaan: `Toko ${kodeperusahaan}`, namadatabase: `pos_test_${kodeperusahaan.toLowerCase()}`, status },
+  });
+
+  return perusahaan.idperusahaan;
+}
+
+async function tambahKeanggotaan(iduser: string, idperusahaan: number): Promise<void> {
+  await prisma.userperusahaan.create({ data: { iduser, idperusahaan, isowner: false } });
+}
+
+async function sessionRowFor(iduser: string) {
+  return prisma.session.findFirstOrThrow({ where: { iduser } });
+}
+
+describe("Pengguna dengan satu Keanggotaan otomatis masuk; dua atau lebih diarahkan ke halaman pilih", () => {
+  it("Pengguna dengan tepat satu Keanggotaan otomatis masuk tanpa pernah melihat halaman pilih, dan sesi mencatat idperusahaan-nya", async () => {
+    const { headers, iduser } = await signUpAndGetHeaders("otomatis-satu-perusahaan@norvyn.test");
+    const idperusahaan = await tambahPerusahaan("PSH-AUTO-1");
+    await tambahKeanggotaan(iduser, idperusahaan);
+
+    const session = await resolvePerusahaanAktifAccess(auth, prisma, headers);
+
+    expect(session.user.email).toBe("otomatis-satu-perusahaan@norvyn.test");
+    const row = await sessionRowFor(iduser);
+    expect(row.idperusahaan).toBe(idperusahaan);
+  });
+
+  it("Pengguna dengan dua Keanggotaan dan belum pernah memilih diarahkan ke halaman pilih Perusahaan, idperusahaan sesi tetap kosong", async () => {
+    const { headers, iduser } = await signUpAndGetHeaders("otomatis-dua-perusahaan@norvyn.test");
+    const a = await tambahPerusahaan("PSH-AUTO-2A");
+    const b = await tambahPerusahaan("PSH-AUTO-2B");
+    await tambahKeanggotaan(iduser, a);
+    await tambahKeanggotaan(iduser, b);
+
+    const target = await redirectTargetOf(resolvePerusahaanAktifAccess(auth, prisma, headers));
+
+    expect(target).toBe("/pilih-perusahaan");
+    const row = await sessionRowFor(iduser);
+    expect(row.idperusahaan).toBeNull();
+  });
+
+  it("Pengguna dengan dua Keanggotaan yang sudah memilih Perusahaan keduanya (bukan yang pertama dibuat) tetap memakai pilihannya, bukan Perusahaan pertama", async () => {
+    const { headers, iduser } = await signUpAndGetHeaders("dua-perusahaan-sudah-pilih@norvyn.test");
+    const a = await tambahPerusahaan("PSH-AUTO-3A", 0);
+    const b = await tambahPerusahaan("PSH-AUTO-3B", 1);
+    await tambahKeanggotaan(iduser, a);
+    await tambahKeanggotaan(iduser, b);
+    const row = await sessionRowFor(iduser);
+    await prisma.session.update({ where: { id: row.id }, data: { idperusahaan: b } });
+
+    const session = await resolvePerusahaanAktifAccess(auth, prisma, headers);
+
+    expect(session.user.email).toBe("dua-perusahaan-sudah-pilih@norvyn.test");
+  });
+});
+
+describe("Keanggotaan diverifikasi ulang setiap request", () => {
+  it("Keanggotaan satu-satunya dicabut setelah jadi Perusahaan Aktif: request berikutnya diarahkan ke /daftar-perusahaan, bukan error tak tertangani", async () => {
+    const { headers, iduser } = await signUpAndGetHeaders("dicabut-satu-satunya@norvyn.test");
+    const idperusahaan = await tambahPerusahaan("PSH-CABUT-1");
+    await tambahKeanggotaan(iduser, idperusahaan);
+    await resolvePerusahaanAktifAccess(auth, prisma, headers);
+
+    await prisma.userperusahaan.delete({ where: { iduser_idperusahaan: { iduser, idperusahaan } } });
+
+    const target = await redirectTargetOf(resolvePerusahaanAktifAccess(auth, prisma, headers));
+    expect(target).toBe("/daftar-perusahaan");
+  });
+
+  it("Keanggotaan di Perusahaan Aktif dicabut sementara Keanggotaan lain masih ada: request berikutnya langsung memakai Perusahaan lain itu, tidak menunggu sesi kedaluwarsa", async () => {
+    const { headers, iduser } = await signUpAndGetHeaders("dicabut-masih-ada-lain@norvyn.test");
+    const a = await tambahPerusahaan("PSH-CABUT-2A");
+    const b = await tambahPerusahaan("PSH-CABUT-2B");
+    await tambahKeanggotaan(iduser, a);
+    await tambahKeanggotaan(iduser, b);
+    const row = await sessionRowFor(iduser);
+    await prisma.session.update({ where: { id: row.id }, data: { idperusahaan: a } });
+
+    await prisma.userperusahaan.delete({ where: { iduser_idperusahaan: { iduser, idperusahaan: a } } });
+
+    const session = await resolvePerusahaanAktifAccess(auth, prisma, headers);
+    expect(session.user.email).toBe("dicabut-masih-ada-lain@norvyn.test");
+    const rowSesudah = await sessionRowFor(iduser);
+    expect(rowSesudah.idperusahaan).toBe(b);
+  });
+});

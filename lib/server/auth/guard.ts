@@ -5,8 +5,9 @@ import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findSession, type AuthInstance, type UserSession } from "@/lib/server/auth/service";
+import { resolvePerusahaanAktif } from "@/lib/server/perusahaan/service";
 import { findPerusahaanByUser } from "@/lib/server/user/repository";
-import type { GlobalClient } from "@/lib/server/user/types";
+import type { GlobalClient, PerusahaanMembership } from "@/lib/server/user/types";
 
 export const getCurrentSession = cache(async (): Promise<UserSession | null> => {
   const session = await findSession(auth, await headers());
@@ -36,6 +37,25 @@ export async function redirectWhenSignedIn(): Promise<void> {
   }
 }
 
+async function resolvePerusahaanAktifOrRedirect(
+  globalDb   : GlobalClient,
+  session    : UserSession,
+  memberships: PerusahaanMembership[],
+): Promise<PerusahaanMembership> {
+  const aktif = await resolvePerusahaanAktif(globalDb, {
+    iduser           : session.user.id,
+    idsesi           : session.session.id,
+    idperusahaanAktif: session.session.idperusahaan ?? null,
+    memberships,
+  });
+
+  if (!aktif) {
+    redirect("/pilih-perusahaan");
+  }
+
+  return aktif;
+}
+
 export async function resolveDaftarPerusahaanAccess(
   instance      : AuthInstance,
   globalDb      : GlobalClient,
@@ -48,7 +68,8 @@ export async function resolveDaftarPerusahaanAccess(
 
   const memberships = await findPerusahaanByUser(globalDb, session.user.id);
   if (memberships.length > 0) {
-    redirect(memberships[0].status === 1 ? "/" : "/subscription");
+    const aktif = await resolvePerusahaanAktifOrRedirect(globalDb, session, memberships);
+    redirect(aktif.status === 1 ? "/" : "/subscription");
   }
 
   return session;
@@ -92,7 +113,8 @@ export async function resolvePerusahaanAktifAccess(
   const session = await resolveSudahPunyaPerusahaanAccess(instance, globalDb, requestHeaders);
 
   const memberships = await findPerusahaanByUser(globalDb, session.user.id);
-  if (memberships[0].status !== 1) {
+  const aktif = await resolvePerusahaanAktifOrRedirect(globalDb, session, memberships);
+  if (aktif.status !== 1) {
     redirect("/subscription");
   }
 
