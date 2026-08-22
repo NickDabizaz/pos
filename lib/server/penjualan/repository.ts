@@ -84,7 +84,6 @@ export function replacePenjualan(kodejual: string, penjualan: Penjualan): void {
   penjualanStore = penjualanStore.map((item) => (item.kodejual === kodejual ? penjualan : item));
 }
 
-/** Test-only: reset the in-memory mock store back to its seed data. */
 export function resetPenjualanStoreForTests(): void {
   penjualanStore = [...seedPenjualan];
 }

@@ -12,11 +12,6 @@ import {
 import { createMidtransClient } from "@/lib/server/subscription/midtransClient";
 import { listMembershipsForUser } from "@/lib/server/user/service";
 
-/**
- * Mengecek status transaksi Snap langsung ke Midtrans dan mengaktifkan Langganan kalau sudah
- * lunas — jalan pintas untuk dev lokal yang webhook notifikasinya belum bisa sampai (lihat
- * catatan `syncSnapTransaction`). Dipanggil frontend setelah Snap.js melapor sukses/pending.
- */
 export async function POST(request: Request) {
   const session = await getCurrentSession();
   if (!session) {

@@ -40,7 +40,6 @@ describe("calculations", () => {
   ];
 
   it("calculates cart subtotal correctly", () => {
-    // 65000 * 2 + 5000 * 3 = 130000 + 15000 = 145000
     const subtotal = calculateSubtotal(sampleItems);
     expect(subtotal).toBe(145000);
   });
@@ -66,9 +65,9 @@ describe("calculations", () => {
 
   it("generates practical quick cash suggestions", () => {
     const suggestions = generateQuickCashSuggestions(37500);
-    expect(suggestions).toContain(37500); // exact
-    expect(suggestions).toContain(40000); // rounded 10k
-    expect(suggestions).toContain(50000); // rounded 50k
-    expect(suggestions).toContain(100000); // 100k bill
+    expect(suggestions).toContain(37500);
+    expect(suggestions).toContain(40000);
+    expect(suggestions).toContain(50000);
+    expect(suggestions).toContain(100000);
   });
 });

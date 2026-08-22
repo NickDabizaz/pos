@@ -30,7 +30,6 @@ export function removeLokasi(kodelokasi: string): void {
   lokasiStore = lokasiStore.filter((item) => item.kodelokasi !== kodelokasi);
 }
 
-/** Test-only: reset the in-memory mock store back to its seed data. */
 export function resetLokasiStoreForTests(): void {
   lokasiStore = [...seedLokasi];
 }

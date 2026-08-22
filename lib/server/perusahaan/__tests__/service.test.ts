@@ -48,8 +48,6 @@ async function createUser(): Promise<string> {
   return id;
 }
 
-/** Membuat baris Perusahaan + Keanggotaan Owner langsung (bukan lewat service), dipakai untuk
- * menaruh state awal yang dibutuhkan satu skenario tanpa memanggil daftarPerusahaan lagi. */
 async function seedPerusahaan(kodeperusahaan: string, namadatabase?: string): Promise<void> {
   const iduser = await createUser();
   const perusahaan = await prisma.perusahaan.create({

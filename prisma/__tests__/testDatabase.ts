@@ -11,10 +11,8 @@ const DB_PORT = Number(process.env.DB_PORT ?? 3306);
 const DB_USER = process.env.DB_USER ?? "root";
 const DB_PASSWORD = process.env.DB_PASSWORD ?? "";
 
-/** Sama seperti `REPO_ROOT` di `lib/server/provisioning/repository.ts` — lihat komentar di sana. */
 const REPO_ROOT = process.cwd();
 
-/** Sama seperti `PRISMA_CLI_ENTRY` di `lib/server/provisioning/repository.ts`. */
 const PRISMA_CLI_ENTRY = path.join(REPO_ROOT, "node_modules", "prisma", "build", "index.js");
 
 export type PrismaSchema = "global" | "perusahaan";
@@ -24,7 +22,6 @@ const SCHEMA_ENV_VAR: Record<PrismaSchema, string> = {
   perusahaan: "PERUSAHAAN_DATABASE_URL",
 };
 
-/** Generates a throwaway database name for one test run — never reused across runs. */
 export function uniqueDatabaseName(schema: PrismaSchema): string {
   return `pos_test_${schema}_${Date.now()}_${randomBytes(3).toString("hex")}`;
 }
@@ -55,7 +52,6 @@ export async function dropDatabase(name: string): Promise<void> {
   await withAdminConnection((conn) => conn.query(`DROP DATABASE IF EXISTS \`${name}\``));
 }
 
-/** Runs `prisma migrate deploy` for the given schema against the given database, via the real CLI. */
 export function migrateDeploy(schema: PrismaSchema, name: string): void {
   execFileSync(
     process.execPath,
@@ -88,10 +84,6 @@ export async function listColumns(name: string, table: string): Promise<string[]
   });
 }
 
-/**
- * Creates a throwaway database, runs the real migration CLI against it, and hands back a
- * Prisma client pointed at it plus a teardown to disconnect and drop the database.
- */
 export async function setUpMigratedDatabase<TClient>(
   schema: PrismaSchema,
   createClient: (adapter: PrismaMariaDb) => TClient,

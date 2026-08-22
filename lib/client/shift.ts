@@ -6,7 +6,6 @@ import type {
   Shift,
 } from "@/lib/server/shift/types";
 
-/** The shift relevant to today: open, closed-but-reopenable, or null if none was opened today. */
 export async function fetchCurrentShift(): Promise<Shift | null> {
   const response = await fetch("/api/pos/shift", {
     headers: { Accept: "application/json" },

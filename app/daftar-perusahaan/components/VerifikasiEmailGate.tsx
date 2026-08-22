@@ -10,8 +10,6 @@ type VerifikasiEmailGateProps = {
   email: string;
 };
 
-/** Menahan Pengguna yang belum verifikasi email di halaman Daftar Perusahaan (tiket 05) —
- * dengan jalan keluar kalau emailnya salah ketik saat daftar (tiket 06/UX). */
 export default function VerifikasiEmailGate({ email }: VerifikasiEmailGateProps) {
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);

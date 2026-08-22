@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchCurrentShift } from "@/lib/client/shift";
 import type { Shift } from "@/lib/server/shift/types";
 
-/** The shift relevant to today — open, closed-but-resumable, or null — shared by POS and tutup kasir. */
 export function useShiftSession() {
   const [shift, setShift]         = useState<Shift | null>(null);
   const [isLoading, setIsLoading] = useState(true);

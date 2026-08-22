@@ -7,14 +7,12 @@ export class ModulTidakDikenalError extends Error {}
 export class ConfigKodeDokumenTidakValidError extends Error {}
 export class PercobaanKodeDokumenHabisError extends Error {}
 
-/** Batas percobaan ulang saat kode hasil rakitan bentrok dengan kode yang baru saja tersimpan. */
 const MAX_PERCOBAAN = 50;
 
 function isModulKodeDokumen(modul: string): modul is ModulKodeDokumen {
   return (MODUL_KODE_DOKUMEN as readonly string[]).includes(modul);
 }
 
-/** Periode `YYMMDD` dari `tgltrans`, dihitung pada tanggal kalender Asia/Jakarta di saat itu. */
 function periodeAsiaJakarta(tgltrans: Date): string {
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Jakarta",
@@ -84,10 +82,6 @@ function isKonflikKode(error: unknown, kolomKode: string): boolean {
   return true;
 }
 
-/**
- * Merakit Kode Dokumen dari Config modul lalu memanggil `simpan(kode)`; kalau bentrok unique
- * index kolom kode, nomor dinaikkan dan dicoba ulang tanpa pemanggil melihat galatnya.
- */
 export async function simpanDenganKode<T>(
   db      : TenantClient,
   modul   : string,

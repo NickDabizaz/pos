@@ -1,7 +1,6 @@
 import type { TenantClient } from "@/lib/server/provisioning/types";
 import type { ModulKodeDokumen } from "@/lib/server/kodedokumen/types";
 
-/** Kolom Kode Dokumen milik tiap modul, dipakai untuk mencari nomor terbesar yang sudah terpakai. */
 export const MODUL_KODE_FIELD: Record<ModulKodeDokumen, string> = {
   lokasi  : "kodelokasi",
   barang  : "kodebarang",
@@ -43,14 +42,12 @@ const FIND_KODE_BY_PREFIX: Record<ModulKodeDokumen, (db: TenantClient, prefix: s
     ),
 };
 
-/** Seluruh Kode Dokumen milik `modul` yang sudah berawalan `prefix` (awalan, atau awalan+periode). */
 export async function findKodeByPrefix(db: TenantClient, modul: ModulKodeDokumen, prefix: string): Promise<string[]> {
   return FIND_KODE_BY_PREFIX[modul](db, prefix);
 }
 
 export type ConfigRowValue = { config: string; nilai: string };
 
-/** Baris Config mentah milik satu modul, dibaca apa adanya — validasinya jadi tanggung jawab service. */
 export async function findConfigForModul(db: TenantClient, modul: ModulKodeDokumen): Promise<ConfigRowValue[]> {
   return db.config.findMany({ where: { modul }, select: { config: true, nilai: true } });
 }

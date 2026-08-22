@@ -45,7 +45,6 @@ export default function TutupKasirPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      {/* Header */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">

@@ -16,8 +16,6 @@ export async function checkoutLangganan(idperusahaan: number, kodepaket: string)
   return parseResponse<SnapTransactionResult>(response);
 }
 
-/** Mengecek status transaksi langsung ke Midtrans dan mengaktifkan Langganan kalau lunas —
- * dipanggil setelah Snap.js melapor sukses/pending, sebagai jalan pintas dari webhook. */
 export async function syncSubscription(orderid: string): Promise<{ activated: boolean }> {
   const response = await fetch("/api/subscription/sync", {
     method : "POST",

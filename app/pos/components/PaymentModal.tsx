@@ -59,7 +59,6 @@ export default function PaymentModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in">
       <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ring-1 ring-slate-950/5">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -83,9 +82,7 @@ export default function PaymentModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="space-y-5 p-6">
-          {/* Bill Banner */}
           <div className="rounded-xl border border-border bg-secondary/50 p-4 text-center">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Total yang Harus Dibayar
@@ -95,7 +92,6 @@ export default function PaymentModal({
             </div>
           </div>
 
-          {/* Payment Method Tabs */}
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Metode Pembayaran
@@ -145,7 +141,6 @@ export default function PaymentModal({
             </div>
           </div>
 
-          {/* Method specifics */}
           {method === "TUNAI" && (
             <div className="space-y-3">
               <div>
@@ -167,7 +162,6 @@ export default function PaymentModal({
                 </div>
               </div>
 
-              {/* Quick Cash Buttons */}
               <div className="flex flex-wrap gap-1.5">
                 {quickSuggestions.map((sug) => (
                   <button
@@ -185,7 +179,6 @@ export default function PaymentModal({
                 ))}
               </div>
 
-              {/* Change calculation */}
               <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3.5">
                 <span className="text-xs font-semibold text-muted-foreground">Kembalian:</span>
                 <span
@@ -224,7 +217,6 @@ export default function PaymentModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t border-border bg-card px-6 py-4">
           <button
             className="rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"

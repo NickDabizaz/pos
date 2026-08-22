@@ -10,7 +10,6 @@ type GoogleSignInButtonProps = {
   callbackURL?: string;
 };
 
-/** Tombol "Masuk dengan Google" — dipakai di halaman login & daftar akun. */
 export default function GoogleSignInButton({ label = "Masuk dengan Google", onError, callbackURL = "/" }: GoogleSignInButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 

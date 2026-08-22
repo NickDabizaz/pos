@@ -68,7 +68,6 @@ export function useSideBar({
           setFetchedItems(menuData);
           setIsLoading(false);
 
-          // Automatically expand first level headers by default
           const defaultExpanded = new Set<string>();
           for (const node of menuData) {
             if (node.children && node.children.length > 0) {

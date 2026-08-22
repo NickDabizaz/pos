@@ -19,8 +19,6 @@ export async function findLanggananByOrderid(db: GlobalClient, orderid: string):
   return langganan ? toRow(langganan) : null;
 }
 
-/** Insert baris `subscription` + aktivasi `perusahaan` dalam satu transaksi (ADR 0002: tidak
- * ada langkah lain selain ini untuk mengaktifkan Perusahaan). */
 export async function insertLanggananDanAktifkanPerusahaan(
   db            : GlobalClient,
   idperusahaan  : number,

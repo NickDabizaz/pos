@@ -31,7 +31,6 @@ export function removeSupplier(kodesupplier: string): void {
   supplierStore = supplierStore.filter((item) => item.kodesupplier !== kodesupplier);
 }
 
-/** Test-only: reset the in-memory mock store back to its seed data. */
 export function resetSupplierStoreForTests(): void {
   supplierStore = [...seedSupplier];
 }

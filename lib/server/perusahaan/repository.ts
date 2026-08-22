@@ -4,8 +4,6 @@ import type { GlobalClient, PerusahaanRow } from "@/lib/server/perusahaan/types"
 const KODE_OTOMATIS_PATTERN = /^P(\d{3})$/;
 export const KODE_OTOMATIS_MAKS = 999;
 
-/** Perusahaan (dengan Keanggotaan-nya) milik satu Pengguna, kalau ada — Pengguna ini hanya
- * boleh menjadi anggota satu Perusahaan (lihat keputusan planning tiket 07). */
 export async function findPerusahaanMilikUser(db: GlobalClient, iduser: string): Promise<PerusahaanRow | null> {
   const membership = await db.userperusahaan.findFirst({
     where  : { iduser },
@@ -25,8 +23,6 @@ export async function findPerusahaanByKode(db: GlobalClient, kodeperusahaan: str
   return perusahaan ? toRow(perusahaan) : null;
 }
 
-/** Nomor urut `P0xx` berikutnya, dihitung dari kode terbesar yang cocok pola — kode ketikan
- * Pengguna di luar pola (mis. "SM") sengaja diabaikan deret otomatis. */
 export async function nomorKodeOtomatisBerikutnya(db: GlobalClient): Promise<number> {
   const rows = await db.perusahaan.findMany({ select: { kodeperusahaan: true } });
 
@@ -43,8 +39,6 @@ export async function nomorKodeOtomatisBerikutnya(db: GlobalClient): Promise<num
   return max + 1;
 }
 
-/** Insert `perusahaan` + `userperusahaan` (isowner true) dalam satu transaksi — kegagalan pada
- * salah satunya membatalkan keduanya, sehingga Perusahaan tanpa Owner tidak pernah ada. */
 export async function insertPerusahaanDenganOwner(
   db            : GlobalClient,
   iduser        : string,

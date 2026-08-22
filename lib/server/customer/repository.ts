@@ -31,7 +31,6 @@ export function removeCustomer(kodecustomer: string): void {
   customerStore = customerStore.filter((item) => item.kodecustomer !== kodecustomer);
 }
 
-/** Test-only: reset the in-memory mock store back to its seed data. */
 export function resetCustomerStoreForTests(): void {
   customerStore = [...seedCustomer];
 }

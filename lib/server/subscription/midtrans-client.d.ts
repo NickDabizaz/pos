@@ -1,5 +1,3 @@
-/** midtrans-client tidak menerbitkan type declaration sendiri — deklarasi minimal ini hanya
- * memuat bentuk yang dipakai {@link createMidtransClient}, bukan seluruh SDK. */
 declare module "midtrans-client" {
   export class Snap {
     constructor(options: { isProduction?: boolean; serverKey?: string; clientKey?: string });

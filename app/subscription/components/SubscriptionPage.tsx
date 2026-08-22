@@ -43,15 +43,9 @@ export default function SubscriptionPage({ idperusahaan }: SubscriptionPageProps
   }, []);
 
   async function handleSelesai(orderid: string) {
-    // Webhook notifikasi (`/api/subscription/notifikasi`) tetap sumber kebenaran utama —
-    // sync di sini cuma jalan pintas supaya UI langsung ter-update tanpa menunggu webhook
-    // sampai (mis. dev lokal tanpa tunnel publik, lihat catatan MIDTRANS_* di .env). Kalau
-    // webhook-nya sudah lebih dulu memproses, sync ini aman dipanggil ulang (idempoten).
     try {
       await syncSubscription(orderid);
     } catch {
-      // Diamkan — kalau memang belum lunas di sisi Midtrans, requirePerusahaanAktif di "/"
-      // akan melempar balik ke sini.
     }
     router.push("/");
     router.refresh();

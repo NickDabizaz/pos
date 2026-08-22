@@ -80,7 +80,6 @@ export default function PosPage() {
     }
   }
 
-  // Keyboard Shortcuts (F2: focus search, F4: pay, Esc: cancel modal)
   usePosKeyboardShortcuts({
     onEscape: () => {
       if (isPaymentOpen) setIsPaymentOpen(false);
@@ -96,7 +95,6 @@ export default function PosPage() {
     },
   });
 
-  // Barcode / Exact match scan handler
   function handleBarcodeScan(code: string) {
     const normalized = code.toLowerCase().trim();
     const matched = products.find(
@@ -109,7 +107,6 @@ export default function PosPage() {
     }
   }
 
-  // Handle successful checkout
   async function handleCompletePayment(paymentData: {
     amountPaid    : number;
     change        : number;
@@ -144,7 +141,6 @@ export default function PosPage() {
       });
       setSession(updatedShift);
     } catch {
-      // Shift totals will resync the next time the active shift is (re)loaded.
     }
   }
 
@@ -155,7 +151,6 @@ export default function PosPage() {
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
-      {/* Top Header */}
       <PosHeader
         onBarcodeScanAction  = {handleBarcodeScan}
         onSearchChangeAction = {setSearchQuery}
@@ -164,9 +159,7 @@ export default function PosPage() {
         session              = {session}
       />
 
-      {/* Main Split Body: Catalog (Left) + Cart (Right) */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Side: Product Catalog Grid */}
         <main className="flex flex-1 flex-col overflow-hidden">
           <ProductGrid
             isLoading      = {isLoading}
@@ -176,7 +169,6 @@ export default function PosPage() {
           />
         </main>
 
-        {/* Right Side: Order Cart Panel */}
         <CartPanel
           discount            = {cart.discount}
           grandTotal          = {cart.grandTotal}
@@ -191,7 +183,6 @@ export default function PosPage() {
         />
       </div>
 
-      {/* Modal Awal (Blocking Shift Gate) */}
       <ModalAwalDialog
         closedShift         = {session?.status === "CLOSED" ? session : null}
         errorMessage        = {shiftError ?? shiftLoadError}
@@ -201,7 +192,6 @@ export default function PosPage() {
         onSubmitAction      = {handleOpenShift}
       />
 
-      {/* Payment Multi-Method Modal */}
       <PaymentModal
         grandTotal       = {cart.grandTotal}
         isOpen           = {isPaymentOpen}
@@ -209,7 +199,6 @@ export default function PosPage() {
         onCompleteAction = {handleCompletePayment}
       />
 
-      {/* Thermal Receipt Modal */}
       <ReceiptModal
         isOpen           = {Boolean(completedTx)}
         onNewOrderAction = {handleNewOrder}

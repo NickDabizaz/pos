@@ -3,7 +3,6 @@ const monthNames = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 
-/** yyyy-mm-dd -> dd/mm/yyyy. Returns "" for an empty or unparseable input. */
 export function isoToDisplay(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!match) return "";
@@ -12,7 +11,6 @@ export function isoToDisplay(iso: string): string {
   return `${day}/${month}/${year}`;
 }
 
-/** dd/mm/yyyy (also accepts "-" or "." separators) -> yyyy-mm-dd, or null if not a real calendar date. */
 export function displayToIso(display: string): string | null {
   const match = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/.exec(display.trim());
   if (!match) return null;
@@ -32,7 +30,6 @@ export function formatMonthLabel(year: number, month: number): string {
   return `${monthNames[month]} ${year}`;
 }
 
-/** 42 calendar cells (6 weeks) covering the given month, padded with adjacent-month days. */
 export function getCalendarDays(year: number, month: number): Date[] {
   const firstOfMonth  = new Date(year, month, 1);
   const startWeekday  = firstOfMonth.getDay();

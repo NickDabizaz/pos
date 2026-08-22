@@ -20,7 +20,6 @@ const PREFIX_DATABASE = "pos_";
 const PANJANG_NAMA_DATABASE_MAKS = 64;
 const MAX_PERCOBAAN_KODE = 50;
 
-/** `pos_` + huruf kecil dan angka dari Nama Perusahaan, dipotong agar muat 64 karakter. */
 function turunkanNamaDatabase(namaperusahaan: string): string {
   const bersih = namaperusahaan.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (!bersih) {
@@ -35,7 +34,6 @@ function normalisasiKodeKetikan(kodeperusahaan: string): string {
   return kodeperusahaan.trim().toUpperCase();
 }
 
-/** Membuat Database Perusahaan untuk `perusahaan` yang baru didaftarkan. */
 async function jalankanProvisioning(deps: DaftarPerusahaanDeps, perusahaan: PerusahaanRow): Promise<void> {
   try {
     await deps.buatDatabase(perusahaan.namadatabase);
@@ -47,7 +45,6 @@ async function jalankanProvisioning(deps: DaftarPerusahaanDeps, perusahaan: Peru
   }
 }
 
-/** Mendaftarkan dengan Kode Perusahaan pilihan Pengguna sendiri; ditolak kalau sudah dipakai. */
 async function daftarDenganKodeKetikan(
   db            : GlobalClient,
   input         : DaftarPerusahaanInput,
@@ -69,7 +66,6 @@ async function daftarDenganKodeKetikan(
   }
 }
 
-/** Mendaftarkan dengan Kode Perusahaan otomatis `P0xx`, menaikkan nomor saat bentrok. */
 async function daftarDenganKodeOtomatis(
   db          : GlobalClient,
   input       : DaftarPerusahaanInput,
@@ -98,12 +94,6 @@ async function daftarDenganKodeOtomatis(
   throw new KodePerusahaanOtomatisHabisError("Gagal mendapatkan Kode Perusahaan otomatis setelah beberapa percobaan");
 }
 
-/**
- * Mendaftarkan Perusahaan baru. Tidak ada penanda "sudah diprovisioning" (lihat
- * perusahaan.prisma) — namadatabase yang sama dengan Perusahaan milik Pengguna ini dipakai
- * sebagai penanda pengiriman ulang dari percobaan yang gagal, dan hanya provisioning-nya
- * yang diulang.
- */
 async function runDaftarPerusahaan(
   db  : GlobalClient,
   input: DaftarPerusahaanInput,
@@ -132,14 +122,8 @@ async function runDaftarPerusahaan(
   return perusahaan;
 }
 
-/** Dedup panggilan `daftarPerusahaan` bersamaan per `iduser`. */
 const inFlightDaftar = new Map<string, Promise<PerusahaanRow>>();
 
-/**
- * Mendaftarkan Perusahaan baru: insert baris `perusahaan` + Keanggotaan Owner, lalu
- * membangun Database Perusahaan-nya lewat `buatDatabase`. Pengguna yang sudah memiliki
- * Perusahaan lain ditolak.
- */
 export async function daftarPerusahaan(
   db   : GlobalClient,
   input: DaftarPerusahaanInput,

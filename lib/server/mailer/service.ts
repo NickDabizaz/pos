@@ -2,7 +2,6 @@ import nodemailer from "nodemailer";
 
 import type { EmailMessage, Mailer } from "@/lib/server/mailer/types";
 
-/** Mailer produksi lewat SMTP — kredensial dibaca dari environment, tidak pernah tertulis di kode. */
 export function createMailer(): Mailer {
   const transporter = nodemailer.createTransport({
     host  : process.env.SMTP_HOST,
@@ -11,9 +10,6 @@ export function createMailer(): Mailer {
     auth  : process.env.SMTP_USER
       ? {
         user: process.env.SMTP_USER,
-        // App password Gmail biasanya disalin dengan spasi pemisah ("abcd efgh ijkl mnop") —
-        // spasi itu bukan bagian dari password sesungguhnya dan harus dibuang, kalau tidak
-        // autentikasi SMTP gagal secara diam-diam (lihat komentar di send() di bawah).
         pass: process.env.SMTP_PASSWORD?.replace(/\s+/g, ""),
       }
       : undefined,
@@ -29,10 +25,6 @@ export function createMailer(): Mailer {
           html,
         });
       } catch (error) {
-        // Better Auth menjalankan sendVerificationEmail/sendResetPassword lewat
-        // runInBackgroundOrAwait, yang menelan error ini jadi cuma log — tanpa log eksplisit
-        // di sini, kegagalan SMTP (kredensial salah, From tidak diizinkan provider, dst.)
-        // terlihat seperti "berhasil" padahal emailnya tidak pernah terkirim.
         console.error("[mailer] Gagal mengirim email:", error);
         throw error;
       }

@@ -33,7 +33,6 @@ export function removeBarang(kodebarang: string): void {
   barangStore = barangStore.filter((item) => item.kodebarang !== kodebarang);
 }
 
-/** Test-only: reset the in-memory mock store back to its seed data. */
 export function resetBarangStoreForTests(): void {
   barangStore = [...seedBarang];
 }

@@ -10,8 +10,6 @@ import {
 } from "@/lib/server/subscription/service";
 import type { MidtransNotificationPayload } from "@/lib/server/subscription/types";
 
-/** Menerima notifikasi status transaksi dari Midtrans. Tidak mensyaratkan sesi login —
- * keabsahannya diverifikasi lewat signature Midtrans, bukan cookie sesi. */
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as MidtransNotificationPayload;

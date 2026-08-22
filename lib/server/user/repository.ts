@@ -1,10 +1,6 @@
 import type { GlobalClient, PerusahaanMembership } from "@/lib/server/user/types";
 
-/**
- * Seluruh Perusahaan tempat satu Pengguna terdaftar sebagai anggota, lewat tabel
- * userperusahaan — dijaga oleh FK `userperusahaan.iduser` ke `user.id` (lihat auth.prisma).
- */
-export async function findMembershipsByUser(db: GlobalClient, iduser: string): Promise<PerusahaanMembership[]> {
+export async function findPerusahaanByUser(db: GlobalClient, iduser: string): Promise<PerusahaanMembership[]> {
   const rows = await db.userperusahaan.findMany({
     where  : { iduser },
     include: { perusahaan: true },

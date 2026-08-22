@@ -34,8 +34,6 @@ export default function LupaPasswordForm() {
     await authClient.requestPasswordReset({ email: values.email, redirectTo: "/reset-password" });
 
     setIsSubmitting(false);
-    // Selalu tampilkan pesan sukses yang sama, terdaftar atau tidak — supaya tidak membocorkan
-    // keberadaan akun (lihat tiket 05).
     setIsSent(true);
   }
 

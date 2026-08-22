@@ -10,7 +10,6 @@ import {
 import { createMidtransClient } from "@/lib/server/subscription/midtransClient";
 import { listMembershipsForUser } from "@/lib/server/user/service";
 
-/** Membuka pembayaran Snap sandbox untuk Perusahaan milik Pengguna yang sedang login. */
 export async function POST(request: Request) {
   const session = await getCurrentSession();
   if (!session) {

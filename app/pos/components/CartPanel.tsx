@@ -36,7 +36,6 @@ export default function CartPanel({
 
   return (
     <aside className="flex h-full w-full flex-col border-l border-border bg-card shadow-lg lg:w-96 xl:w-105">
-      {/* Header Cart */}
       <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
         <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -62,7 +61,6 @@ export default function CartPanel({
         )}
       </div>
 
-      {/* Item List */}
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
@@ -109,7 +107,6 @@ export default function CartPanel({
                   </div>
 
                   <div className="flex items-center justify-between border-t border-border/40 pt-2">
-                    {/* Quantity Stepper & Direct Number Input */}
                     <div className="flex items-center rounded-lg border border-border bg-card shadow-2xs">
                       <button
                         aria-label="Kurangi jumlah"
@@ -122,7 +119,6 @@ export default function CartPanel({
                         </svg>
                       </button>
 
-                      {/* Direct Number Input */}
                       <input
                         aria-label="Kuantitas item"
                         className="w-11 border-x border-border bg-transparent py-0.5 text-center text-xs font-bold text-foreground focus:bg-background focus:outline-none"
@@ -149,7 +145,6 @@ export default function CartPanel({
                       </button>
                     </div>
 
-                    {/* Subtotal line */}
                     <span className="text-xs font-bold tracking-tight text-foreground">
                       {formatRupiah(itemTotal)}
                     </span>
@@ -161,9 +156,7 @@ export default function CartPanel({
         )}
       </div>
 
-      {/* Bill Breakdown & Checkout Footer */}
       <div className="border-t border-border bg-card p-4 space-y-3 shadow-sm">
-        {/* Discount toggle button */}
         <div className="flex items-center justify-between">
           <button
             className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1"
@@ -202,7 +195,6 @@ export default function CartPanel({
           </div>
         )}
 
-        {/* Calculation Rows */}
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between text-muted-foreground">
             <span>Subtotal</span>
@@ -224,7 +216,6 @@ export default function CartPanel({
           </div>
         </div>
 
-        {/* Big Checkout CTA Button */}
         <button
           className={`flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-sm font-bold text-primary-foreground shadow-md transition-all ${
             items.length > 0

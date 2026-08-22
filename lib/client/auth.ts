@@ -7,7 +7,6 @@ const ERROR_MESSAGES: Record<string, string> = {
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL : "Email sudah terdaftar. Gunakan email lain.",
 };
 
-/** Menerjemahkan error Better Auth ke pesan Bahasa Indonesia yang ramah pengguna. */
 export function authErrorMessage(error: { code?: string; message?: string } | null | undefined, fallback: string): string {
   if (!error) {
     return fallback;

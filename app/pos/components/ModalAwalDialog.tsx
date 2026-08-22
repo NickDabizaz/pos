@@ -186,7 +186,6 @@ export default function ModalAwalDialog({
                   />
                 </div>
 
-                {/* Quick Presets */}
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {quickNominals.map((amount) => (
                     <button

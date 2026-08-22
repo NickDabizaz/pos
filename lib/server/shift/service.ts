@@ -31,7 +31,6 @@ export function getActiveShift(): Shift | null {
   return shift && shift.status === "OPEN" ? shift : null;
 }
 
-/** The shift opened today, whether still open or already closed. One shift per day. */
 export function getShiftForToday(): Shift | null {
   const shift = getCurrentShift();
   return shift && isSameDay(shift.openedAt, new Date()) ? shift : null;
@@ -81,7 +80,6 @@ export function recordShiftTransaction(input: RecordShiftTransactionInput): Shif
   return updated;
 }
 
-/** Undoes today's shift closure, resuming the same shift instead of starting a new one. */
 export function cancelCloseShift(): Shift {
   if (getActiveShift()) {
     throw new ShiftNotClosedTodayError("Shift sedang aktif, tidak ada penutupan yang perlu dibatalkan");

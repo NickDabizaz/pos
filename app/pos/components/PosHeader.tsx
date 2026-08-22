@@ -54,7 +54,6 @@ export default function PosHeader({
   return (
     <header className="border-b border-border bg-card px-4 py-3 shadow-2xs sm:px-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* Left: Kasir & Shift Info */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-2">
             <span className="relative flex size-2.5">
@@ -81,7 +80,6 @@ export default function PosHeader({
           </div>
         </div>
 
-        {/* Center: Search & Barcode Input */}
         <div className="flex-1 max-w-xl">
           <form className="relative" onSubmit={handleSearchSubmit}>
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
@@ -108,7 +106,6 @@ export default function PosHeader({
           </form>
         </div>
 
-        {/* Right: Actions */}
         <div className="flex items-center gap-2">
           <button
             className="inline-flex items-center gap-1.5 rounded-xl border border-status-danger-border bg-status-danger-bg px-3 py-1.5 text-xs font-semibold text-status-danger-fg transition-all hover:bg-status-danger-border active:scale-95"

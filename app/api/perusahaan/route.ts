@@ -13,7 +13,6 @@ import {
 } from "@/lib/server/perusahaan/service";
 import type { DaftarPerusahaanInput } from "@/lib/server/perusahaan/types";
 
-/** Mendaftarkan Perusahaan baru untuk Pengguna yang sedang login. */
 export async function POST(request: Request) {
   const session = await getCurrentSession();
   if (!session) {

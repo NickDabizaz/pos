@@ -66,7 +66,6 @@ export function replacePembelian(kodebeli: string, pembelian: Pembelian): void {
   pembelianStore = pembelianStore.map((item) => (item.kodebeli === kodebeli ? pembelian : item));
 }
 
-/** Test-only: reset the in-memory mock store back to its seed data. */
 export function resetPembelianStoreForTests(): void {
   pembelianStore = [...seedPembelian];
 }

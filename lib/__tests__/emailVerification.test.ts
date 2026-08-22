@@ -98,9 +98,6 @@ describe("Email verifikasi terkirim saat pendaftaran, dan tautan yang benar mena
 });
 
 describe("Tautan verifikasi yang sudah kedaluwarsa ditolak dengan pesan jelas", () => {
-  // Token verifikasi email adalah JWT stateless bertanda waktu kedaluwarsa (bukan baris di
-  // tabel verification, lihat createEmailVerificationToken) — waktu sistem dipalsukan lewat
-  // fake timers, bukan lewat manipulasi baris DB, supaya boundary-nya presisi.
   it("tautan verifikasi yang dipakai sebelum kedaluwarsa (10:59, diminta 10:00) masih diterima", async () => {
     vi.useFakeTimers();
     try {

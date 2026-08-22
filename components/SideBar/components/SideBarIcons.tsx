@@ -4,7 +4,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
   const name = (namamenu || "").toLowerCase().trim();
   const code = (kodemenu || "").toLowerCase().trim();
 
-  // Dashboard / Beranda
   if (name.includes("dashboard") || name.includes("beranda") || code.includes("dash")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -16,7 +15,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Master Data / Master
   if (name === "master" || name.includes("master data") || code.includes("mst")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -26,7 +24,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Barang / Produk / Item
   if (name.includes("barang") || name.includes("produk") || name.includes("item") || code.includes("prod")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -36,7 +33,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Customer / Pelanggan / Member
   if (name.includes("customer") || name.includes("pelanggan") || name.includes("member") || code.includes("cust")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -47,7 +43,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Supplier / Vendor / Pemasok
   if (name.includes("supplier") || name.includes("vendor") || name.includes("pemasok") || code.includes("sup")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -59,7 +54,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Lokasi / Gudang / Cabang / Rak
   if (name.includes("lokasi") || name.includes("gudang") || name.includes("outlet") || name.includes("cabang") || name.includes("rak") || code.includes("lok")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -69,7 +63,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Pembelian / Purchase / Order
   if (name.includes("beli") || name.includes("pembelian") || code.includes("beli") || code.includes("buy")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -79,7 +72,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Penjualan / Transaksi / Kasir POS / Sales
   if (name.includes("jual") || name.includes("penjualan") || name.includes("kasir") || name.includes("pos") || name.includes("transaksi") || code.includes("trx") || code.includes("jual")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -89,7 +81,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Tutup Kasir / Shift / Register
   if (name.includes("tutup kasir") || name.includes("shift") || name.includes("closing") || code.includes("tutup")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -99,7 +90,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Keuangan / Arus Kas / Finance
   if (name.includes("keuangan") || name.includes("finance") || code.includes("fin")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -109,7 +99,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Kas / Cash / Bank
   if (name === "kas" || name.includes("kas masuk") || name.includes("kas keluar") || code.includes("kas")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -120,7 +109,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Akuntansi / Accounting / Jurnal
   if (name.includes("akuntansi") || name.includes("accounting") || name.includes("jurnal") || code.includes("akt")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -130,7 +118,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Kategori / Kategori Produk
   if (name.includes("kategori") || code.includes("kat")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -139,7 +126,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Laporan / Report / Analitik
   if (name.includes("laporan") || name.includes("report") || name.includes("analitik") || code.includes("lap")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -149,7 +135,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Pengaturan / Setting
   if (name.includes("pengaturan") || name.includes("setting") || name.includes("sistem") || code.includes("set")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
@@ -159,7 +144,6 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  // Default sleek file / item icon
   return (
     <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
       <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" strokeLinecap="round" strokeLinejoin="round" />

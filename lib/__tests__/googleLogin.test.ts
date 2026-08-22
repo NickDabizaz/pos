@@ -7,8 +7,6 @@ import { PrismaClient } from "@/lib/generated/prisma-global/client";
 import type { Mailer } from "@/lib/server/mailer/types";
 import { setUpMigratedDatabase } from "@/prisma/__tests__/testDatabase";
 
-/** Mailer no-op — mencegah signUpEmail (sendOnSignUp) mencoba SMTP sungguhan di test ini,
- * yang fokusnya login Google, bukan alur email. */
 const noopMailer: Mailer = { send: async () => {} };
 
 const SESSION_COOKIE_NAME = "better-auth.session_token";
@@ -24,9 +22,6 @@ type FakeGoogleProfile = {
   emailVerified?: boolean;
 };
 
-/** Menyandikan profil Google palsu jadi "idToken" — dibaca balik oleh `getUserInfo` palsu di
- * bawah, supaya tiap test bisa mengontrol profil yang dikembalikan tanpa memanggil Google
- * sungguhan (lihat catatan seam tiket 06). */
 function fakeIdToken(profile: FakeGoogleProfile): string {
   return JSON.stringify(profile);
 }

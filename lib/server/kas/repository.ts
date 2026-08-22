@@ -82,7 +82,6 @@ export function replaceKas(kodekas: string, kas: Kas): void {
   kasStore = kasStore.map((item) => (item.kodekas === kodekas ? kas : item));
 }
 
-/** Test-only: reset the in-memory mock store back to its seed data. */
 export function resetKasStoreForTests(): void {
   kasStore = [...seedKas];
 }

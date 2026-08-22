@@ -19,7 +19,6 @@ export default function ProductGrid({
   products,
   searchQuery,
 }: ProductGridProps) {
-  // Filter items by search query (name or kode)
   const filteredProducts = useMemo(
     () => products.filter((p) => matchesSearch([p.namabarang, p.kodebarang], searchQuery)),
     [products, searchQuery],
@@ -27,7 +26,6 @@ export default function ProductGrid({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Grid Content Area */}
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4">

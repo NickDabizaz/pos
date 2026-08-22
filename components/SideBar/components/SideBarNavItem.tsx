@@ -24,7 +24,6 @@ export default function SideBarNavItem({
   const isExpanded  = expandedKeys.has(node.kodemenu);
   const isActive    = activeKey === node.kodemenu;
 
-  // Parent Group with collapsible submenus
   if (hasChildren) {
     if (isCollapsed) {
       return (
@@ -79,7 +78,6 @@ export default function SideBarNavItem({
           </svg>
         </button>
 
-        {/* Clean Typographic Submenu with subtle vertical tree guide line and mini icons */}
         {isExpanded && (
           <div className="relative mt-0.5 ml-4 flex flex-col space-y-0.5 border-l border-border/70 pl-2.5">
             {node.children.map((child) => (
@@ -100,7 +98,6 @@ export default function SideBarNavItem({
     );
   }
 
-  // Clickable Menu Item (For ALL leaf nodes including Kasir POS, Dashboard, etc.)
   if (isCollapsed) {
     return (
       <button

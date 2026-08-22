@@ -2,7 +2,6 @@ import { successResponse } from "@/lib/apiResponse";
 import { prisma } from "@/lib/prisma";
 import { listPaketLangganan } from "@/lib/server/subscription/service";
 
-/** Menampilkan katalog Paket Langganan. */
 export async function GET() {
   const paket = listPaketLangganan(prisma);
 

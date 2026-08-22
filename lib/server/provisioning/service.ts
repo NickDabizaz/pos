@@ -62,11 +62,6 @@ async function runProvisioning(namadatabase: string): Promise<TenantClient> {
   }
 }
 
-/**
- * Membuat Database Perusahaan baru (kalau belum ada), menjalankan seluruh migration tenant, dan
- * mengisi Config default. Kegagalan di tengah jalan membersihkan database yang setengah jadi.
- * Panggilan bersamaan untuk `namadatabase` yang sama dideduplikasi ke satu eksekusi.
- */
 export async function provisionDatabase(namadatabase: string): Promise<TenantClient> {
   assertValidDatabaseName(namadatabase);
 

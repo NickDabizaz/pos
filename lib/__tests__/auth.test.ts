@@ -21,7 +21,6 @@ afterAll(async () => {
   await tearDown();
 });
 
-/** Mengambil cookie sesi dari header `set-cookie` sebuah response Better Auth. */
 function sessionHeadersFrom(headers: Headers): Headers {
   const sessionCookie = parseSetCookieHeader(headers.get("set-cookie") ?? "").get(SESSION_COOKIE_NAME)?.value;
   if (!sessionCookie) {

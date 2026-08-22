@@ -32,9 +32,7 @@ export default function ReceiptModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in">
       <div className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ring-1 ring-slate-950/5">
-        {/* Receipt Paper Simulation */}
         <div className="bg-[#ffffff] p-6 text-slate-900 font-mono text-xs shadow-inner">
-          {/* Header */}
           <div className="text-center space-y-1">
             <h3 className="text-base font-extrabold tracking-wider uppercase font-sans">
               KASIR POS RETAIL
@@ -45,7 +43,6 @@ export default function ReceiptModal({
 
           <div className="my-3 border-b border-dashed border-slate-300" />
 
-          {/* Metadata */}
           <div className="space-y-1 text-[11px] text-slate-600">
             <div className="flex justify-between">
               <span>No. Inv:</span>
@@ -63,7 +60,6 @@ export default function ReceiptModal({
 
           <div className="my-3 border-b border-dashed border-slate-300" />
 
-          {/* Items */}
           <div className="space-y-2">
             {transaction.items.map((item) => (
               <div key={item.barang.kodebarang}>
@@ -82,7 +78,6 @@ export default function ReceiptModal({
 
           <div className="my-3 border-b border-dashed border-slate-300" />
 
-          {/* Totals */}
           <div className="space-y-1 text-[11px]">
             <div className="flex justify-between text-slate-600">
               <span>Subtotal:</span>
@@ -119,14 +114,12 @@ export default function ReceiptModal({
 
           <div className="my-3 border-b border-dashed border-slate-300" />
 
-          {/* Footer Note */}
           <div className="text-center text-[10px] text-slate-400 space-y-0.5">
             <p>Terima kasih atas kunjungan Anda!</p>
             <p>Barang yang sudah dibeli tidak dapat ditukar.</p>
           </div>
         </div>
 
-        {/* Modal Actions */}
         <div className="flex items-center gap-2 border-t border-border bg-card p-4">
           <button
             className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary py-2.5 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary-hover"

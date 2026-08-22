@@ -2,7 +2,6 @@ import midtransClient from "midtrans-client";
 
 import type { MidtransClient } from "@/lib/server/subscription/types";
 
-/** Snap client Midtrans produksi — kredensial dibaca dari environment, tidak pernah tertulis di kode. */
 export function createMidtransClient(): MidtransClient {
   const snap = new midtransClient.Snap({
     isProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",

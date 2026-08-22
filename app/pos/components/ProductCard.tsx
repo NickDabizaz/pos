@@ -10,11 +10,9 @@ type ProductCardProps = {
   onSelectAction: (barang: Barang) => void;
 };
 
-// Returns category-themed visual illustration & background for realistic POS cards
 function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
   const lower = name.toLowerCase();
 
-  // Beras / Padi / Karung
   if (lower.includes("beras") || lower.includes("padi") || lower.includes("rice")) {
     return {
       bg  : "from-amber-50 to-orange-100/70 dark:from-amber-950/20 dark:to-orange-900/30",
@@ -27,7 +25,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Minuman / Teh / Jus / Botol
   if (lower.includes("teh") || lower.includes("minum") || lower.includes("jus") || lower.includes("soda") || lower.includes("botol")) {
     return {
       bg  : "from-emerald-50 to-teal-100/70 dark:from-emerald-950/20 dark:to-teal-900/30",
@@ -40,7 +37,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Kopi / Coffee
   if (lower.includes("kopi") || lower.includes("coffee") || lower.includes("sachet")) {
     return {
       bg  : "from-amber-100/60 to-stone-200/80 dark:from-amber-950/30 dark:to-stone-900/40",
@@ -53,7 +49,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Minyak Goreng / Minyak
   if (lower.includes("minyak") || lower.includes("oil")) {
     return {
       bg  : "from-yellow-50 to-amber-100/70 dark:from-yellow-950/20 dark:to-amber-900/30",
@@ -66,7 +61,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Gula Pasir / Gula / Garam
   if (lower.includes("gula") || lower.includes("sugar") || lower.includes("garam") || lower.includes("tepung")) {
     return {
       bg  : "from-sky-50 to-blue-100/70 dark:from-sky-950/20 dark:to-blue-900/30",
@@ -78,7 +72,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Buku / Kertas
   if (lower.includes("buku") || lower.includes("book") || lower.includes("tulis") || lower.includes("lembar")) {
     return {
       bg  : "from-indigo-50 to-violet-100/70 dark:from-indigo-950/20 dark:to-violet-900/30",
@@ -91,7 +84,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Pulpen / Pensil / Alat Tulis
   if (lower.includes("pulpen") || lower.includes("pen") || lower.includes("pensil") || lower.includes("atk")) {
     return {
       bg  : "from-purple-50 to-fuchsia-100/70 dark:from-purple-950/20 dark:to-fuchsia-900/30",
@@ -106,7 +98,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Sabun / Kebersihan / Cuci
   if (lower.includes("sabun") || lower.includes("cuci") || lower.includes("clean") || lower.includes("shampo")) {
     return {
       bg  : "from-rose-50 to-pink-100/70 dark:from-rose-950/20 dark:to-pink-900/30",
@@ -119,7 +110,6 @@ function getProductArtwork(name: string): { bg: string; icon: ReactElement } {
     };
   }
 
-  // Default Package Box
   return {
     bg  : "from-slate-50 to-slate-100 dark:from-slate-900/30 dark:to-slate-800/40",
     icon: (
@@ -154,13 +144,11 @@ export default function ProductCard({ barang, onSelectAction }: ProductCardProps
       onClick={handleClick}
       type="button"
     >
-      {/* 1. Gambar / Visual Box */}
       <div
         className={`relative flex aspect-4/3 w-full items-center justify-center rounded-xl bg-linear-to-br border border-border/40 shadow-inner transition-transform group-hover:scale-[1.02] ${artwork.bg}`}
       >
         {artwork.icon}
 
-        {/* Satuan Badge pill di pojok atas gambar */}
         {barang.satuan && (
           <span className="absolute top-2 right-2 rounded-md border border-border/70 bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-2xs backdrop-blur-xs">
             {barang.satuan}
@@ -168,14 +156,12 @@ export default function ProductCard({ barang, onSelectAction }: ProductCardProps
         )}
       </div>
 
-      {/* 2. Nama Barang */}
       <div className="mt-3 flex-1">
         <h3 className="line-clamp-2 text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
           {barang.namabarang}
         </h3>
       </div>
 
-      {/* 3. Harga & Satuan */}
       <div className="mt-3 flex items-baseline justify-between border-t border-border/50 pt-2.5">
         <span className="text-sm font-extrabold tracking-tight text-foreground">
           {formatRupiah(barang.hargajual)}

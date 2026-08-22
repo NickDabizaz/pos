@@ -2,13 +2,6 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { getTestDb, resetTables } from "@/lib/test/db";
 
-/**
- * Contoh test integrasi terhadap database test persisten (bukan bagian dari modul lokasi
- * itu sendiri — lokasi masih memakai in-memory store, lihat lib/server/lokasi/repository.ts).
- * Membuktikan bahwa infrastruktur globalSetup + resetTables (lib/test/db.ts) benar-benar
- * terpakai: dijalankan berulang lewat `vitest run` tetap hijau karena resetTables
- * membersihkan sisa run sebelumnya di afterEach.
- */
 const db = getTestDb();
 
 afterEach(async () => {

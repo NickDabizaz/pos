@@ -22,7 +22,6 @@ export class SignatureTidakValidError extends Error {}
 export class OrderTidakDikenalError extends Error {}
 export class JumlahTidakSesuaiError extends Error {}
 
-/** Katalog Paket Langganan tetap — bukan tabel DB (lihat catatan asumsi tiket 09). */
 export const PAKET_LANGGANAN: PaketLangganan[] = [
   { kodepaket: "bulanan", namapaket: "Paket Bulanan", hargapaket: 150_000, masaberlakuhari: 30 },
   { kodepaket: "tahunan", namapaket: "Paket Tahunan", hargapaket: 1_500_000, masaberlakuhari: 365 },
@@ -38,8 +37,6 @@ function buatOrderId(idperusahaan: number, kodepaket: string): string {
   return `LGN-${idperusahaan}-${kodepaket}-${randomBytes(8).toString("hex")}`;
 }
 
-/** Order_id hanya sah kalau memenuhi pola yang dibuat {@link buatOrderId} — order_id yang
- * tidak pernah dibuat lewat `createSnapTransaction` tidak akan cocok pola ini. */
 function uraikanOrderId(orderid: string): { idperusahaan: number; kodepaket: string } | null {
   const match = ORDER_ID_PATTERN.exec(orderid);
   if (!match) {
@@ -48,14 +45,11 @@ function uraikanOrderId(orderid: string): { idperusahaan: number; kodepaket: str
   return { idperusahaan: Number(match[1]), kodepaket: match[2] };
 }
 
-/** Menampilkan katalog Paket Langganan. `db` dilewatkan eksplisit (ADR 0003) meski belum
- * dipakai — katalog bersumber dari config tetap, bukan tabel. */
 export function listPaketLangganan(db: GlobalClient): PaketLangganan[] {
   void db;
   return PAKET_LANGGANAN;
 }
 
-/** Membuka pembayaran Snap sandbox untuk Perusahaan berstatus belum bayar. */
 export async function createSnapTransaction(
   db          : GlobalClient,
   idperusahaan: number,
@@ -96,14 +90,6 @@ function tglSelesaiDari(tglmulai: Date, masaberlakuhari: number): Date {
 const STATUS_LUNAS = new Set(["settlement", "capture"]);
 const STATUS_DIABAIKAN = new Set(["pending"]);
 
-/**
- * Menangani notifikasi Midtrans. Hanya `transaction_status` lunas (settlement/capture) yang
- * mengaktifkan Perusahaan; status lain (deny/expire/cancel) tidak mengubah apa pun, dan
- * pending sengaja diabaikan menunggu notifikasi status akhir berikutnya. Keabsahan notifikasi
- * cukup diverifikasi lewat signature (di bawah) — tidak perlu memanggil balik Midtrans lewat
- * `midtransClient`, jadi berbeda dari seam awal tiket 09, parameter itu sengaja tidak ada di
- * sini supaya tidak ada dependency yang tidak pernah dipakai.
- */
 export async function handleMidtransNotification(
   db     : GlobalClient,
   payload: MidtransNotificationPayload,
@@ -167,14 +153,6 @@ export async function handleMidtransNotification(
   }
 }
 
-/**
- * Jalan pintas untuk mengaktifkan Langganan tanpa menunggu webhook notifikasi Midtrans —
- * berguna saat notifikasi belum bisa sampai ke aplikasi (mis. dev lokal tanpa tunnel publik,
- * lihat catatan di `.env`). Mengambil status transaksi langsung dari Midtrans lewat
- * `midtransClient.getStatus` (server-to-server, diautentikasi Server Key) lalu memakai jalur
- * `handleMidtransNotification` yang sama — bukan jalur terpisah, jadi tidak ada duplikasi
- * aturan aktivasi/dedup/validasi jumlah.
- */
 export async function syncSnapTransaction(
   db            : GlobalClient,
   orderid       : string,

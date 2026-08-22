@@ -7,13 +7,6 @@ export type TautanEmailTemplateInput = {
   catatanKaki: string;
 };
 
-/**
- * Template email HTML sederhana bergaya sama dengan halaman auth (kartu putih, tombol gelap) —
- * dipakai untuk email verifikasi dan reset password. Styling ditulis inline (bukan `<style>`
- * blok) karena sebagian besar klien email membuang stylesheet eksternal/blok `<style>`.
- * `data-token` disisipkan di samping `href` supaya token bisa diambil balik lewat regex di
- * test tanpa mengurai URL.
- */
 export function tautanEmailTemplate({ heading, ajakan, buttonLabel, url, token, catatanKaki }: TautanEmailTemplateInput): string {
   return `<!doctype html>
 <html lang="id">

@@ -289,11 +289,6 @@ describe("provisionDatabase berulang untuk nama yang sama tidak menggandakan Con
   );
 
   it(
-    // NB: dedup di provisionDatabase() terjadi sinkron lewat in-flight promise map, sebelum
-    // await pertama — jadi Promise.all pada nama yang sama collapse ke satu eksekusi sebelum
-    // pernah menyentuh database. Test ini membuktikan kontrak dedup itu sendiri (identitas
-    // client dan Config tidak dobel), BUKAN jalur konkuren nyata di database — untuk itu lihat
-    // test "ensureTenantDatabaseExists" di bawah, yang benar-benar melewati in-flight map.
     "dua panggilan provisionDatabase bersamaan tidak menghasilkan Config dobel maupun state rusak pada salah satunya",
     async () => {
       const dbName = newDatabaseName();
@@ -309,10 +304,6 @@ describe("provisionDatabase berulang untuk nama yang sama tidak menggandakan Con
   );
 
   it(
-    // Test terpisah di level repository, melewati in-flight promise map dari provisionDatabase
-    // sepenuhnya: dua panggilan independen ke ensureTenantDatabaseExists untuk nama yang sama
-    // benar-benar menabrak CREATE DATABASE secara konkuren di MariaDB, sehingga handler
-    // ER_DB_CREATE_EXISTS (repository.ts) teruji nyata alih-alih trivially collapsed.
     "dua panggilan ensureTenantDatabaseExists bersamaan pada nama yang sama tidak saling gagal (handler ER_DB_CREATE_EXISTS teruji nyata)",
     async () => {
       const dbName = newDatabaseName();

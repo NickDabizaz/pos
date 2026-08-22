@@ -73,7 +73,6 @@ export default function CashReconciliationForm({
           </div>
         </div>
 
-        {/* Status Selisih */}
         <div className={`flex items-center justify-between rounded-xl border p-3.5 ${selisihToneClasses[selisihStatus]}`}>
           <span className="text-xs font-bold">{selisihLabels[selisihStatus]}</span>
           <span className="text-sm font-extrabold font-mono">
