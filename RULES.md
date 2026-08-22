@@ -25,6 +25,17 @@ cek not-found, cek permission, atau gabungan beberapa pemanggilan fungsi.
 Kalau isinya cuma satu baris "return fungsi lain" tanpa tambahan apa-apa,
 hapus saja wrappernya.
 
+Pengecualian: route handler Next.js (`GET`/`POST`/dst di `app/api/**/route.ts`)
+boleh jadi wrapper tipis yang cuma mengikat `auth`/`prisma` singleton lalu
+delegasi ke fungsi inti (`handleGetX`, dst) yang menerima db/instance sebagai
+parameter eksplisit (lihat ADR 0003). Ini bukan pass-through sembarangan —
+signature `GET(request)` dipaksa oleh Next.js, sementara ADR 0003 melarang
+fungsi inti mengambil koneksi dari state tersembunyi. Memisahkan keduanya
+adalah satu-satunya cara fungsi inti bisa dites dengan db test tanpa
+menyentuh database development. Contoh: `requirePerusahaanAktif` di
+`lib/server/auth/guard.ts`, dan `GET`/`handleGetMenuTree` di
+`app/api/menu/tree/route.ts`.
+
 ## Tampung hasil ke variabel dulu, jangan langsung return
 
 **Don't:**

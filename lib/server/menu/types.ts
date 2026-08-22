@@ -13,3 +13,8 @@ export interface MenuNode {
   urutan  : string | null;
   children: MenuNode[];
 }
+
+export interface AksesMenuParams {
+  isOwner          : boolean;
+  kodemenuDiizinkan: ReadonlySet<string>;
+}
