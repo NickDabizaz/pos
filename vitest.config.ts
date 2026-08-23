@@ -20,5 +20,8 @@ export default defineConfig({
     // producing flaky foreign-key violations. Serialize file execution to keep the shared
     // database consistent; tests within a single file still run in their normal order.
     fileParallelism: false,
+    // Excludes nested git worktrees created under .claude/worktrees/ (e.g. by background
+    // agents) so their copies of test files are never picked up alongside this checkout's own.
+    exclude: ["**/node_modules/**", "**/.claude/**"],
   },
 });
