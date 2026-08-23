@@ -1,38 +1,41 @@
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import type { Customer } from "@/lib/server/customer/types";
 
-const seedCustomer: Customer[] = [
-  { kodecustomer: "CUST-0001", namacustomer: "Budi Santoso", telepon: "081234567890", email: "budi.santoso@gmail.com", alamat: "Jl. Sudirman No. 45, Jakarta", status: 1 },
-  { kodecustomer: "CUST-0002", namacustomer: "Siti Rahmawati", telepon: "081298765432", email: "siti.rahma@yahoo.com", alamat: "Jl. Merdeka No. 12, Bandung", status: 1 },
-  { kodecustomer: "CUST-0003", namacustomer: "Ahmad Hidayat", telepon: "085612345678", email: "ahmad.hidayat@outlook.com", alamat: "Jl. Diponegoro No. 88, Surabaya", status: 1 },
-  { kodecustomer: "CUST-0004", namacustomer: "Dewi Lestari", telepon: "087812345678", email: "dewi.lestari@gmail.com", alamat: "Jl. Gajah Mada No. 19, Semarang", status: 1 },
-  { kodecustomer: "CUST-0005", namacustomer: "Rian Prasetyo", telepon: "082198761234", email: "rian.p@gmail.com", alamat: "Jl. Pahlawan No. 5, Yogyakarta", status: 1 },
-  { kodecustomer: "CUST-0006", namacustomer: "Pelanggan Umum (Walk-in)", telepon: "-", email: "-", alamat: "-", status: 1 },
-];
+export async function findAllCustomer(db: DatabasePerusahaanClient): Promise<Customer[]> {
+  const rows = await db.customer.findMany({ orderBy: { idcustomer: "asc" } });
 
-let customerStore: Customer[] = [...seedCustomer];
-
-export function findAllCustomer(): Customer[] {
-  return customerStore;
+  return rows;
 }
 
-export function findCustomerByKode(kodecustomer: string): Customer | undefined {
-  const customer = customerStore.find((item) => item.kodecustomer === kodecustomer);
+export async function findCustomerByKode(db: DatabasePerusahaanClient, kodecustomer: string): Promise<Customer | null> {
+  const row = await db.customer.findUnique({ where: { kodecustomer } });
 
-  return customer;
+  return row;
 }
 
-export function insertCustomer(customer: Customer): void {
-  customerStore = [...customerStore, customer];
+export async function insertCustomer(
+  db          : DatabasePerusahaanClient,
+  kodecustomer: string,
+  namacustomer: string,
+  telepon     : string | null,
+  email       : string | null,
+  alamat      : string | null,
+): Promise<Customer> {
+  const row = await db.customer.create({ data: { kodecustomer, namacustomer, telepon, email, alamat } });
+
+  return row;
 }
 
-export function replaceCustomer(kodecustomer: string, customer: Customer): void {
-  customerStore = customerStore.map((item) => (item.kodecustomer === kodecustomer ? customer : item));
+export async function updateCustomerByKode(
+  db          : DatabasePerusahaanClient,
+  kodecustomer: string,
+  data        : { namacustomer?: string; telepon?: string | null; email?: string | null; alamat?: string | null; status?: number },
+): Promise<Customer> {
+  const row = await db.customer.update({ where: { kodecustomer }, data });
+
+  return row;
 }
 
-export function removeCustomer(kodecustomer: string): void {
-  customerStore = customerStore.filter((item) => item.kodecustomer !== kodecustomer);
-}
-
-export function resetCustomerStoreForTests(): void {
-  customerStore = [...seedCustomer];
+export async function deleteCustomerByKode(db: DatabasePerusahaanClient, kodecustomer: string): Promise<void> {
+  await db.customer.delete({ where: { kodecustomer } });
 }

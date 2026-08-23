@@ -1,9 +1,14 @@
-import type { Customer } from "@/lib/server/customer/types";
-
-export type { Customer };
+export type Customer = {
+  idcustomer  : number;
+  kodecustomer: string;
+  namacustomer: string;
+  telepon     : string;
+  email       : string;
+  alamat      : string;
+  status      : number;
+};
 
 export type CustomerFormErrors = {
-  kodecustomer?: string;
   namacustomer?: string;
   telepon     ?: string;
   email       ?: string;

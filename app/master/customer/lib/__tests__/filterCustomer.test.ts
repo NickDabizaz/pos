@@ -4,8 +4,8 @@ import { filterCustomer } from "@/app/master/customer/lib/filterCustomer";
 import type { Customer } from "@/app/master/customer/lib/types";
 
 const rows: Customer[] = [
-  { kodecustomer: "CUST-0001", namacustomer: "Budi Santoso", telepon: "081234567890", email: "budi@example.com", alamat: "Jakarta", status: 1 },
-  { kodecustomer: "CUST-0002", namacustomer: "Siti Rahmawati", telepon: "081298765432", email: "siti@example.com", alamat: "Bandung", status: 1 },
+  { idcustomer: 1, kodecustomer: "CUST-0001", namacustomer: "Budi Santoso", telepon: "081234567890", email: "budi@example.com", alamat: "Jakarta", status: 1 },
+  { idcustomer: 2, kodecustomer: "CUST-0002", namacustomer: "Siti Rahmawati", telepon: "081298765432", email: "siti@example.com", alamat: "Bandung", status: 1 },
 ];
 
 describe("filterCustomer", () => {

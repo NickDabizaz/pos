@@ -20,6 +20,7 @@ type ModalState =
   | { mode: "edit"; values: Customer };
 
 const emptyCustomer: Customer = {
+  idcustomer  : 0,
   kodecustomer: "",
   namacustomer: "",
   telepon     : "",
@@ -152,13 +153,13 @@ export default function MasterCustomerPage() {
     }
   }
 
-  async function handleFormSubmit(values: Customer, autoGenerateKode: boolean) {
+  async function handleFormSubmit(values: Customer) {
     const isEdit = modalState?.mode === "edit";
 
     try {
       const result = isEdit
         ? await updateCustomer(modalState.values.kodecustomer, values)
-        : await createCustomer({ ...values, autoGenerateKode });
+        : await createCustomer(values);
 
       if (isEdit && selected?.kodecustomer === modalState.values.kodecustomer) {
         setSelected(result);

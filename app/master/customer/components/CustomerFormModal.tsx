@@ -7,7 +7,7 @@ type CustomerFormModalProps = {
   initialValues: Customer;
   mode         : "create" | "edit";
   onCancel     : () => void;
-  onSubmit     : (values: Customer, autoGenerateKode: boolean) => Promise<void>;
+  onSubmit     : (values: Customer) => Promise<void>;
 };
 
 export default function CustomerFormModal({
@@ -18,7 +18,6 @@ export default function CustomerFormModal({
 }: CustomerFormModalProps) {
   const [values, setValues]             = useState<Customer>(initialValues);
   const [errors, setErrors]             = useState<CustomerFormErrors>({});
-  const [autoGenerate, setAutoGenerate] = useState(false);
   const [submitError, setSubmitError]   = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,11 +30,7 @@ export default function CustomerFormModal({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const candidate: Customer = {
-      ...values,
-      kodecustomer: autoGenerate ? "" : values.kodecustomer,
-    };
-    const validationErrors = validateCustomerForm(candidate, { skipKodecustomer: autoGenerate });
+    const validationErrors = validateCustomerForm(values);
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -47,7 +42,7 @@ export default function CustomerFormModal({
     setIsSubmitting(true);
 
     try {
-      await onSubmit(candidate, autoGenerate);
+      await onSubmit(values);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Gagal menyimpan customer");
     } finally {
@@ -74,27 +69,17 @@ export default function CustomerFormModal({
         )}
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <FormField error={errors.kodecustomer} htmlFor="kodecustomer" label="Kode Customer">
-            <input
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
-              disabled={autoGenerate}
-              id="kodecustomer"
-              onChange={handleTextChange("kodecustomer")}
-              placeholder={autoGenerate ? "Akan digenerate otomatis" : ""}
-              type="text"
-              value={autoGenerate ? "" : values.kodecustomer}
-            />
-            {mode === "create" && (
-              <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  checked={autoGenerate}
-                  onChange={(event) => setAutoGenerate(event.target.checked)}
-                  type="checkbox"
-                />
-                Generate otomatis
-              </label>
-            )}
-          </FormField>
+          {mode === "edit" && (
+            <FormField htmlFor="kodecustomer" label="Kode Customer">
+              <input
+                className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-muted-foreground"
+                disabled
+                id="kodecustomer"
+                type="text"
+                value={values.kodecustomer}
+              />
+            </FormField>
+          )}
 
           <FormField error={errors.namacustomer} htmlFor="namacustomer" label="Nama Customer">
             <input

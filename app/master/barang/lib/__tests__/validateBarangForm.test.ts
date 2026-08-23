@@ -4,13 +4,14 @@ import { validateBarangForm } from "@/app/master/barang/lib/validateBarangForm";
 import type { Barang } from "@/app/master/barang/lib/types";
 
 const validValues: Barang = {
+  idbarang  : 1,
   kodebarang: "BRG-0001",
   namabarang: "Beras 5kg",
   barcode   : "8991002100017",
   satuan    : "Karung",
   hargabeli : 55000,
   hargajual : 65000,
-  pakaiStok : true,
+  pakaistok : true,
   status    : 1,
 };
 
@@ -19,16 +20,19 @@ describe("validateBarangForm", () => {
     expect(validateBarangForm(validValues)).toEqual({});
   });
 
+  it("does not validate kodebarang, since it is always server-generated", () => {
+    const errors = validateBarangForm({ ...validValues, kodebarang: "" });
+    expect(errors.kodebarang).toBeUndefined();
+  });
+
   it("flags required text fields left blank", () => {
     const errors = validateBarangForm({
       ...validValues,
-      kodebarang: "  ",
       namabarang: "",
       satuan    : "",
     });
 
     expect(errors).toEqual({
-      kodebarang: "Kode barang wajib diisi",
       namabarang: "Nama barang wajib diisi",
       satuan    : "Satuan wajib diisi",
     });
@@ -58,15 +62,6 @@ describe("validateBarangForm", () => {
       hargabeli: "Harga beli wajib diisi",
       hargajual: "Harga jual wajib diisi",
     });
-  });
-
-  it("skips the kodebarang requirement when skipKodebarang is true", () => {
-    const errors = validateBarangForm(
-      { ...validValues, kodebarang: "" },
-      { skipKodebarang: true },
-    );
-
-    expect(errors).toEqual({});
   });
 
   it("accepts an explicit zero for numeric fields", () => {

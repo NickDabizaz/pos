@@ -4,8 +4,8 @@ import { filterBarang } from "@/app/master/barang/lib/filterBarang";
 import type { Barang } from "@/app/master/barang/lib/types";
 
 const rows: Barang[] = [
-  { kodebarang: "BRG-0001", namabarang: "Beras 5kg", barcode: "8991002100017", satuan: "Karung", hargabeli: 55000, hargajual: 65000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0002", namabarang: "Teh Botol", barcode: "8991002100024", satuan: "Botol", hargabeli: 3000, hargajual: 5000, pakaiStok: true, status: 1 },
+  { idbarang: 1, kodebarang: "BRG-0001", namabarang: "Beras 5kg", barcode: "8991002100017", satuan: "Karung", hargabeli: 55000, hargajual: 65000, pakaistok: true, status: 1 },
+  { idbarang: 2, kodebarang: "BRG-0002", namabarang: "Teh Botol", barcode: "8991002100024", satuan: "Botol", hargabeli: 3000, hargajual: 5000, pakaistok: true, status: 1 },
 ];
 
 describe("filterBarang", () => {

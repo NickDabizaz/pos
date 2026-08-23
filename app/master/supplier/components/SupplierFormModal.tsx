@@ -7,7 +7,7 @@ type SupplierFormModalProps = {
   initialValues: Supplier;
   mode         : "create" | "edit";
   onCancel     : () => void;
-  onSubmit     : (values: Supplier, autoGenerateKode: boolean) => Promise<void>;
+  onSubmit     : (values: Supplier) => Promise<void>;
 };
 
 export default function SupplierFormModal({
@@ -18,7 +18,6 @@ export default function SupplierFormModal({
 }: SupplierFormModalProps) {
   const [values, setValues]             = useState<Supplier>(initialValues);
   const [errors, setErrors]             = useState<SupplierFormErrors>({});
-  const [autoGenerate, setAutoGenerate] = useState(false);
   const [submitError, setSubmitError]   = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,11 +30,7 @@ export default function SupplierFormModal({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const candidate: Supplier = {
-      ...values,
-      kodesupplier: autoGenerate ? "" : values.kodesupplier,
-    };
-    const validationErrors = validateSupplierForm(candidate, { skipKodesupplier: autoGenerate });
+    const validationErrors = validateSupplierForm(values);
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -47,7 +42,7 @@ export default function SupplierFormModal({
     setIsSubmitting(true);
 
     try {
-      await onSubmit(candidate, autoGenerate);
+      await onSubmit(values);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Gagal menyimpan supplier");
     } finally {
@@ -74,27 +69,17 @@ export default function SupplierFormModal({
         )}
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <FormField error={errors.kodesupplier} htmlFor="kodesupplier" label="Kode Supplier">
-            <input
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
-              disabled={autoGenerate}
-              id="kodesupplier"
-              onChange={handleTextChange("kodesupplier")}
-              placeholder={autoGenerate ? "Akan digenerate otomatis" : ""}
-              type="text"
-              value={autoGenerate ? "" : values.kodesupplier}
-            />
-            {mode === "create" && (
-              <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  checked={autoGenerate}
-                  onChange={(event) => setAutoGenerate(event.target.checked)}
-                  type="checkbox"
-                />
-                Generate otomatis
-              </label>
-            )}
-          </FormField>
+          {mode === "edit" && (
+            <FormField htmlFor="kodesupplier" label="Kode Supplier">
+              <input
+                className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-muted-foreground"
+                disabled
+                id="kodesupplier"
+                type="text"
+                value={values.kodesupplier}
+              />
+            </FormField>
+          )}
 
           <FormField error={errors.namasupplier} htmlFor="namasupplier" label="Nama Supplier / Perusahaan">
             <input
@@ -107,14 +92,14 @@ export default function SupplierFormModal({
             />
           </FormField>
 
-          <FormField error={errors.kontakPerson} htmlFor="kontakPerson" label="Kontak Person (PIC)">
+          <FormField error={errors.kontakperson} htmlFor="kontakperson" label="Kontak Person (PIC)">
             <input
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-              id="kontakPerson"
-              onChange={handleTextChange("kontakPerson")}
+              id="kontakperson"
+              onChange={handleTextChange("kontakperson")}
               placeholder="Contoh: Hendra Wijaya"
               type="text"
-              value={values.kontakPerson}
+              value={values.kontakperson}
             />
           </FormField>
 

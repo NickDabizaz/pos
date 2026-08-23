@@ -1,11 +1,17 @@
-import type { Supplier } from "@/lib/server/supplier/types";
-
-export type { Supplier };
+export type Supplier = {
+  idsupplier  : number;
+  kodesupplier: string;
+  namasupplier: string;
+  kontakperson: string;
+  telepon     : string;
+  email       : string;
+  alamat      : string;
+  status      : number;
+};
 
 export type SupplierFormErrors = {
-  kodesupplier?: string;
   namasupplier?: string;
-  kontakPerson?: string;
+  kontakperson?: string;
   telepon     ?: string;
   email       ?: string;
   alamat      ?: string;

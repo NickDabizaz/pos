@@ -13,12 +13,13 @@ describe("calculations", () => {
   const sampleItems: CartItem[] = [
     {
       barang: {
+        idbarang  : 1,
         barcode   : "8991002100017",
         hargabeli : 50000,
         hargajual : 65000,
         kodebarang: "BRG-0001",
         namabarang: "Beras 5kg",
-        pakaiStok : true,
+        pakaistok : true,
         satuan    : "Karung",
         status    : 1,
       },
@@ -26,12 +27,13 @@ describe("calculations", () => {
     },
     {
       barang: {
+        idbarang  : 2,
         barcode   : "8991002100024",
         hargabeli : 3000,
         hargajual : 5000,
         kodebarang: "BRG-0002",
         namabarang: "Teh Botol",
-        pakaiStok : true,
+        pakaistok : true,
         satuan    : "Botol",
         status    : 1,
       },

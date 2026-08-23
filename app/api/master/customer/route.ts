@@ -1,30 +1,47 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { findAllCustomer } from "@/lib/server/customer/repository";
-import { createCustomer, generateKodeCustomer } from "@/lib/server/customer/service";
-import type { Customer } from "@/lib/server/customer/types";
+import { prisma } from "@/lib/prisma";
+import { requirePerusahaanAktif } from "@/lib/server/auth/guard";
+import { createCustomer, listCustomer } from "@/lib/server/customer/service";
+import { getDatabasePerusahaanAktif } from "@/lib/server/perusahaan/service";
+
+async function resolveDb() {
+  const session = await requirePerusahaanAktif();
+  const idperusahaan = session.session.idperusahaan;
+  if (!idperusahaan) {
+    throw new Error("Perusahaan Aktif tidak ditemukan pada sesi", { cause: "PERUSAHAAN_TIDAK_AKTIF" });
+  }
+
+  const db = await getDatabasePerusahaanAktif(prisma, idperusahaan);
+
+  return db;
+}
 
 export async function GET() {
-  return successResponse({
-    message: "Data customer berhasil diambil",
-    data   : findAllCustomer(),
-  });
+  try {
+    const db = await resolveDb();
+
+    return successResponse({
+      message: "Data customer berhasil diambil",
+      data   : await listCustomer(db),
+    });
+  } catch (error) {
+    return errorResponse({
+      message: error instanceof Error ? error.message : "Gagal mengambil data customer",
+    });
+  }
 }
 
 export async function POST(request: Request) {
   try {
+    const db = await resolveDb();
     const body = await request.json();
-    const autoGenerateKode = Boolean(body.autoGenerateKode);
 
-    const customer: Customer = {
-      kodecustomer: autoGenerateKode ? generateKodeCustomer() : String(body.kodecustomer ?? ""),
+    const created = await createCustomer(db, {
       namacustomer: String(body.namacustomer ?? ""),
-      telepon     : String(body.telepon ?? ""),
-      email       : String(body.email ?? ""),
-      alamat      : String(body.alamat ?? ""),
-      status      : Number(body.status) === 1 ? 1 : 0,
-    };
-
-    const created = createCustomer(customer);
+      telepon     : body.telepon ? String(body.telepon) : null,
+      email       : body.email ? String(body.email) : null,
+      alamat      : body.alamat ? String(body.alamat) : null,
+    });
 
     return successResponse({
       statusCode: 201,
@@ -32,8 +49,8 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("sudah digunakan")) {
-      return errorResponse({ statusCode: 409, message: error.message });
+    if (error instanceof Error && error.cause === "INPUT_TIDAK_SAH") {
+      return errorResponse({ statusCode: 400, message: error.message });
     }
 
     return errorResponse({

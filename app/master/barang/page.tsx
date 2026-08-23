@@ -15,13 +15,14 @@ type ModalState =
   | { mode: "edit"; values: Barang };
 
 const emptyBarang: Barang = {
+  idbarang  : 0,
   kodebarang: "",
   namabarang: "",
   barcode   : "",
   satuan    : "",
   hargabeli : 0,
   hargajual : 0,
-  pakaiStok : true,
+  pakaistok : true,
   status    : 1,
 };
 
@@ -65,7 +66,7 @@ const columns: DataTableColumn<Barang>[] = [
   },
   {
     align : "center",
-    key   : "pakaiStok",
+    key   : "pakaistok",
     label : "Stok",
     render: (value) => (
       <span
@@ -165,11 +166,11 @@ export default function MasterBarangPage() {
     }
   }
 
-  async function handleFormSubmit(values: Barang, autoGenerateKode: boolean) {
+  async function handleFormSubmit(values: Barang) {
     const isEdit = modalState?.mode === "edit";
     const saved = isEdit
       ? await updateBarang(modalState.values.kodebarang, values)
-      : await createBarang({ ...values, autoGenerateKode });
+      : await createBarang(values);
 
     if (isEdit && selected?.kodebarang === modalState.values.kodebarang) {
       setSelected(saved);

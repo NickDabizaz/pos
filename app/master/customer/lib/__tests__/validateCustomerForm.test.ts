@@ -4,6 +4,7 @@ import { validateCustomerForm } from "@/app/master/customer/lib/validateCustomer
 import type { Customer } from "@/app/master/customer/lib/types";
 
 const validCustomer: Customer = {
+  idcustomer  : 1,
   kodecustomer: "CUST-0001",
   namacustomer: "Budi Santoso",
   telepon     : "081234567890",
@@ -15,19 +16,6 @@ const validCustomer: Customer = {
 describe("validateCustomerForm", () => {
   it("returns no errors for a valid customer", () => {
     expect(validateCustomerForm(validCustomer)).toEqual({});
-  });
-
-  it("requires kodecustomer when skipKodecustomer is not set", () => {
-    const errors = validateCustomerForm({ ...validCustomer, kodecustomer: "" });
-    expect(errors.kodecustomer).toBe("Kode customer wajib diisi");
-  });
-
-  it("skips kodecustomer validation when skipKodecustomer is true", () => {
-    const errors = validateCustomerForm(
-      { ...validCustomer, kodecustomer: "" },
-      { skipKodecustomer: true },
-    );
-    expect(errors.kodecustomer).toBeUndefined();
   });
 
   it("requires namacustomer", () => {

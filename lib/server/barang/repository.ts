@@ -1,40 +1,64 @@
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import type { Barang } from "@/lib/server/barang/types";
 
-const seedBarang: Barang[] = [
-  { kodebarang: "BRG-0001", namabarang: "Beras 5kg", barcode: "8991002100017", satuan: "Karung", hargabeli: 55000, hargajual: 65000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0002", namabarang: "Teh Botol", barcode: "8991002100024", satuan: "Botol", hargabeli: 3000, hargajual: 5000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0003", namabarang: "Minyak Goreng 2L", barcode: "8991002100031", satuan: "Botol", hargabeli: 28000, hargajual: 34000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0004", namabarang: "Pulpen Standar", barcode: "8991002100048", satuan: "Pcs", hargabeli: 1500, hargajual: 2500, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0005", namabarang: "Kopi Sachet", barcode: "8991002100055", satuan: "Pcs", hargabeli: 1000, hargajual: 2000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0006", namabarang: "Buku Tulis 38 Lembar", barcode: "8991002100062", satuan: "Pcs", hargabeli: 2500, hargajual: 4000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0007", namabarang: "Gula Pasir 1kg", barcode: "8991002100079", satuan: "Bungkus", hargabeli: 13000, hargajual: 16000, pakaiStok: true, status: 1 },
-  { kodebarang: "BRG-0008", namabarang: "Sabun Cuci Piring", barcode: "8991002100086", satuan: "Botol", hargabeli: 8000, hargajual: 11000, pakaiStok: false, status: 0 },
-];
+type BarangRow = {
+  idbarang  : number;
+  kodebarang: string;
+  namabarang: string;
+  barcode   : string | null;
+  satuan    : string;
+  hargabeli : { toString(): string };
+  hargajual : { toString(): string };
+  pakaistok : boolean;
+  status    : number;
+};
 
-let barangStore: Barang[] = [...seedBarang];
-
-export function findAllBarang(): Barang[] {
-  return barangStore;
+function toBarang(row: BarangRow): Barang {
+  return {
+    idbarang  : row.idbarang,
+    kodebarang: row.kodebarang,
+    namabarang: row.namabarang,
+    barcode   : row.barcode,
+    satuan    : row.satuan,
+    hargabeli : Number(row.hargabeli),
+    hargajual : Number(row.hargajual),
+    pakaistok : row.pakaistok,
+    status    : row.status,
+  };
 }
 
-export function findBarangByKode(kodebarang: string): Barang | undefined {
-  const barang = barangStore.find((item) => item.kodebarang === kodebarang);
+export async function findAllBarang(db: DatabasePerusahaanClient): Promise<Barang[]> {
+  const rows = await db.barang.findMany({ orderBy: { idbarang: "asc" } });
 
-  return barang;
+  return rows.map(toBarang);
 }
 
-export function insertBarang(barang: Barang): void {
-  barangStore = [...barangStore, barang];
+export async function findBarangByKode(db: DatabasePerusahaanClient, kodebarang: string): Promise<Barang | null> {
+  const row = await db.barang.findUnique({ where: { kodebarang } });
+
+  return row ? toBarang(row) : null;
 }
 
-export function replaceBarang(kodebarang: string, barang: Barang): void {
-  barangStore = barangStore.map((item) => (item.kodebarang === kodebarang ? barang : item));
+export async function insertBarang(
+  db        : DatabasePerusahaanClient,
+  kodebarang: string,
+  data      : { namabarang: string; barcode: string | null; satuan: string; hargabeli: number; hargajual: number; pakaistok: boolean },
+): Promise<Barang> {
+  const row = await db.barang.create({ data: { kodebarang, ...data } });
+
+  return toBarang(row);
 }
 
-export function removeBarang(kodebarang: string): void {
-  barangStore = barangStore.filter((item) => item.kodebarang !== kodebarang);
+export async function updateBarangByKode(
+  db        : DatabasePerusahaanClient,
+  kodebarang: string,
+  data      : { namabarang?: string; barcode?: string | null; satuan?: string; hargabeli?: number; hargajual?: number; pakaistok?: boolean; status?: number },
+): Promise<Barang> {
+  const row = await db.barang.update({ where: { kodebarang }, data });
+
+  return toBarang(row);
 }
 
-export function resetBarangStoreForTests(): void {
-  barangStore = [...seedBarang];
+export async function deleteBarangByKode(db: DatabasePerusahaanClient, kodebarang: string): Promise<void> {
+  await db.barang.delete({ where: { kodebarang } });
 }

@@ -1,40 +1,116 @@
+import { Prisma } from "@/lib/generated/prisma-perusahaan/client";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
+import { simpanDenganKode } from "@/lib/server/kodedokumen/service";
 import {
+  deleteCustomerByKode,
   findAllCustomer,
   findCustomerByKode,
   insertCustomer,
-  removeCustomer,
-  replaceCustomer,
+  updateCustomerByKode,
 } from "@/lib/server/customer/repository";
-import type { Customer } from "@/lib/server/customer/types";
+import type { Customer, CreateCustomerInput, UpdateCustomerInput } from "@/lib/server/customer/types";
 
-export function generateKodeCustomer(): string {
-  const kode = `CUST-AUTO-${String(findAllCustomer().length + 1).padStart(4, "0")}`;
+function isRecordNotFound(error: unknown): boolean {
+  const cocok = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
 
-  return kode;
+  return cocok;
 }
 
-export function createCustomer(input: Customer): Customer {
-  if (findCustomerByKode(input.kodecustomer)) {
-    throw new Error(`Kode customer ${input.kodecustomer} sudah digunakan`);
-  }
+function isForeignKeyConstraint(error: unknown): boolean {
+  const cocok = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003";
 
-  insertCustomer(input);
-  return input;
+  return cocok;
 }
 
-export function updateCustomer(kodecustomer: string, input: Customer): Customer {
-  if (!findCustomerByKode(kodecustomer)) {
-    throw new Error(`Customer ${kodecustomer} tidak ditemukan`);
-  }
-
-  replaceCustomer(kodecustomer, input);
-  return input;
+function pesanTidakDitemukan(kodecustomer: string): string {
+  return `Customer dengan kode "${kodecustomer}" tidak ditemukan`;
 }
 
-export function deleteCustomer(kodecustomer: string): void {
-  if (!findCustomerByKode(kodecustomer)) {
-    throw new Error(`Customer ${kodecustomer} tidak ditemukan`);
+export async function listCustomer(db: DatabasePerusahaanClient): Promise<Customer[]> {
+  const rows = await findAllCustomer(db);
+
+  return rows;
+}
+
+export async function findCustomer(db: DatabasePerusahaanClient, kodecustomer: string): Promise<Customer | null> {
+  const row = await findCustomerByKode(db, kodecustomer);
+
+  return row;
+}
+
+export async function createCustomer(db: DatabasePerusahaanClient, input: CreateCustomerInput): Promise<Customer> {
+  const namacustomer = input.namacustomer.trim();
+  if (!namacustomer) {
+    throw new Error("Nama Customer tidak boleh kosong", { cause: "INPUT_TIDAK_SAH" });
   }
 
-  removeCustomer(kodecustomer);
+  const telepon = input.telepon?.trim() || null;
+  const email = input.email?.trim() || null;
+  const alamat = input.alamat?.trim() || null;
+
+  const customer = await simpanDenganKode(db, "customer", new Date(), (kode) =>
+    insertCustomer(db, kode, namacustomer, telepon, email, alamat),
+  );
+
+  return customer;
+}
+
+export async function updateCustomer(
+  db          : DatabasePerusahaanClient,
+  kodecustomer: string,
+  input       : UpdateCustomerInput,
+): Promise<Customer> {
+  const data: { namacustomer?: string; telepon?: string | null; email?: string | null; alamat?: string | null; status?: number } = {};
+
+  if (input.namacustomer !== undefined) {
+    const namacustomer = input.namacustomer.trim();
+    if (!namacustomer) {
+      throw new Error("Nama Customer tidak boleh kosong", { cause: "INPUT_TIDAK_SAH" });
+    }
+    data.namacustomer = namacustomer;
+  }
+
+  if (input.telepon !== undefined) {
+    data.telepon = input.telepon?.trim() || null;
+  }
+
+  if (input.email !== undefined) {
+    data.email = input.email?.trim() || null;
+  }
+
+  if (input.alamat !== undefined) {
+    data.alamat = input.alamat?.trim() || null;
+  }
+
+  if (input.status !== undefined) {
+    data.status = input.status;
+  }
+
+  try {
+    const row = await updateCustomerByKode(db, kodecustomer, data);
+
+    return row;
+  } catch (error) {
+    if (isRecordNotFound(error)) {
+      throw new Error(pesanTidakDitemukan(kodecustomer), { cause: "TIDAK_DITEMUKAN" });
+    }
+    throw error;
+  }
+}
+
+export async function deleteCustomer(db: DatabasePerusahaanClient, kodecustomer: string): Promise<void> {
+  try {
+    await deleteCustomerByKode(db, kodecustomer);
+  } catch (error) {
+    if (isRecordNotFound(error)) {
+      throw new Error(pesanTidakDitemukan(kodecustomer), { cause: "TIDAK_DITEMUKAN" });
+    }
+    if (isForeignKeyConstraint(error)) {
+      throw new Error(
+        `Customer dengan kode "${kodecustomer}" masih dipakai transaksi lain, tidak bisa dihapus`,
+        { cause: "MASIH_DIPAKAI" },
+      );
+    }
+    throw error;
+  }
 }

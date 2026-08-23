@@ -1,18 +1,8 @@
 import type { Customer, CustomerFormErrors } from "@/app/master/customer/lib/types";
 
-export type ValidateCustomerFormOptions = {
-  skipKodecustomer?: boolean;
-};
-
-export function validateCustomerForm(
-  values: Customer,
-  options: ValidateCustomerFormOptions = {},
-): CustomerFormErrors {
+export function validateCustomerForm(values: Customer): CustomerFormErrors {
   const errors: CustomerFormErrors = {};
 
-  if (!options.skipKodecustomer && !values.kodecustomer.trim()) {
-    errors.kodecustomer = "Kode customer wajib diisi";
-  }
   if (!values.namacustomer.trim()) {
     errors.namacustomer = "Nama customer wajib diisi";
   }

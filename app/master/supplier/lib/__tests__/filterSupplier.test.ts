@@ -4,8 +4,8 @@ import { filterSupplier } from "@/app/master/supplier/lib/filterSupplier";
 import type { Supplier } from "@/app/master/supplier/lib/types";
 
 const rows: Supplier[] = [
-  { kodesupplier: "SUP-0001", namasupplier: "PT Sumber Berkah", kontakPerson: "Hendra Wijaya", telepon: "0215551234", email: "sales@sumberberkah.com", alamat: "Jakarta", status: 1 },
-  { kodesupplier: "SUP-0002", namasupplier: "CV Maju Jaya", kontakPerson: "Ratna Sari", telepon: "0227891234", email: "info@majujaya.com", alamat: "Bandung", status: 1 },
+  { idsupplier: 1, kodesupplier: "SUP-0001", namasupplier: "PT Sumber Berkah", kontakperson: "Hendra Wijaya", telepon: "0215551234", email: "sales@sumberberkah.com", alamat: "Jakarta", status: 1 },
+  { idsupplier: 2, kodesupplier: "SUP-0002", namasupplier: "CV Maju Jaya", kontakperson: "Ratna Sari", telepon: "0227891234", email: "info@majujaya.com", alamat: "Bandung", status: 1 },
 ];
 
 describe("filterSupplier", () => {

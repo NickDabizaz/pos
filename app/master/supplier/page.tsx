@@ -20,9 +20,10 @@ type ModalState =
   | { mode: "edit"; values: Supplier };
 
 const emptySupplier: Supplier = {
+  idsupplier  : 0,
   kodesupplier: "",
   namasupplier: "",
-  kontakPerson: "",
+  kontakperson: "",
   telepon     : "",
   email       : "",
   alamat      : "",
@@ -44,7 +45,7 @@ const columns: DataTableColumn<Supplier>[] = [
     width   : "240px",
   },
   {
-    key  : "kontakPerson",
+    key  : "kontakperson",
     label: "Kontak Person (PIC)",
     width: "160px",
   },
@@ -158,13 +159,13 @@ export default function MasterSupplierPage() {
     }
   }
 
-  async function handleFormSubmit(values: Supplier, autoGenerateKode: boolean) {
+  async function handleFormSubmit(values: Supplier) {
     const isEdit = modalState?.mode === "edit";
 
     try {
       const result = isEdit
         ? await updateSupplier(modalState.values.kodesupplier, values)
-        : await createSupplier({ ...values, autoGenerateKode });
+        : await createSupplier(values);
 
       if (isEdit && selected?.kodesupplier === modalState.values.kodesupplier) {
         setSelected(result);

@@ -5,13 +5,14 @@ import type { Barang } from "@/lib/server/barang/types";
 import type { TransaksiItem } from "@/lib/server/transaksi/types";
 
 const barang: Barang = {
+  idbarang  : 1,
   kodebarang: "BRG-0001",
   namabarang: "Beras 5kg",
   barcode   : "8991002100017",
   satuan    : "Karung",
   hargabeli : 55000,
   hargajual : 65000,
-  pakaiStok : true,
+  pakaistok : true,
   status    : 1,
 };
 
