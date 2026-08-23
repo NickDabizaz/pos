@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import {
+  findLatestSubscription,
   findSubscriptionByOrderid,
   findPerusahaanById,
   insertSubscriptionDanAktifkanPerusahaan,
@@ -54,11 +55,22 @@ function generateSignature(orderid: string, statusCode: string, grossAmount: str
   return signature;
 }
 
-function tglSelesaiDari(tglmulai: Date, masaberlakuhari: number): Date {
-  const hasil = new Date(tglmulai);
-  hasil.setUTCDate(hasil.getUTCDate() + masaberlakuhari);
+function tglHariIni(): Date {
+  const hariIni = new Date(new Date().toISOString().slice(0, 10));
 
-  return hasil;
+  return hariIni;
+}
+
+export async function isLanggananAktif(db: GlobalClient, idperusahaan: number): Promise<boolean> {
+  const perusahaan = await findPerusahaanById(db, idperusahaan);
+  if (!perusahaan || perusahaan.status !== 1) {
+    return false;
+  }
+
+  const terakhir = await findLatestSubscription(db, idperusahaan);
+  const aktif = terakhir !== null && terakhir.tglselesai.getTime() >= tglHariIni().getTime();
+
+  return aktif;
 }
 
 export async function createSnapTransaction(
@@ -70,9 +82,6 @@ export async function createSnapTransaction(
   const perusahaan = await findPerusahaanById(db, idperusahaan);
   if (!perusahaan) {
     throw new Error(`Perusahaan dengan id ${idperusahaan} tidak ditemukan`);
-  }
-  if (perusahaan.status !== 0) {
-    throw new Error("Perusahaan ini sudah aktif, tidak perlu membayar lagi");
   }
 
   const paket = findPaketByKode(kodepaket);
@@ -137,8 +146,7 @@ export async function handleMidtransNotification(
     throw new Error("gross_amount pada notifikasi tidak sesuai harga Paket Subscription");
   }
 
-  const tglmulai = new Date(new Date().toISOString().slice(0, 10));
-  const tglselesai = tglSelesaiDari(tglmulai, paket.masaberlakuhari);
+  const tglPembayaran = tglHariIni();
 
   try {
     const subscription = await insertSubscriptionDanAktifkanPerusahaan(
@@ -146,8 +154,7 @@ export async function handleMidtransNotification(
       diuraikan.idperusahaan,
       payload.order_id,
       paket,
-      tglmulai,
-      tglselesai,
+      tglPembayaran,
     );
     const hasil = { activated: true, subscription };
 
