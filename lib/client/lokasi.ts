@@ -1,5 +1,7 @@
 import { parseResponse } from "@/lib/client/apiResponse";
-import type { Lokasi } from "@/lib/server/lokasi/types";
+import type { Lokasi } from "@/app/master/lokasi/lib/types";
+
+export type { Lokasi };
 
 export async function fetchLokasiList(): Promise<Lokasi[]> {
   const response = await fetch("/api/master/lokasi", {

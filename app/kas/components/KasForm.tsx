@@ -8,7 +8,7 @@ import DatePicker from "@/components/DatePicker";
 import Dropdown, { type DropdownOption } from "@/components/Dropdown";
 import { fetchLokasiList } from "@/lib/client/lokasi";
 import { formatRupiah } from "@/lib/format";
-import type { Lokasi } from "@/lib/server/lokasi/types";
+import type { Lokasi } from "@/lib/client/lokasi";
 
 const jenisOptions: DropdownOption<JenisKas>[] = [
   { value: "MASUK", label: "Kas Masuk" },
