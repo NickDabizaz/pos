@@ -6,6 +6,7 @@ import { PrismaClient } from "@/lib/generated/prisma-global/client";
 import {
   createSnapTransaction,
   handleMidtransNotification,
+  isLanggananAktif,
   PAKET_SUBSCRIPTION,
   syncSnapTransaction,
 } from "@/lib/server/subscription/service";
@@ -42,6 +43,32 @@ async function buatPerusahaan(status: number): Promise<number> {
     },
   });
   return perusahaan.idperusahaan;
+}
+
+function tglRelatifHariIni(selisihHari: number): Date {
+  const hariIni = new Date(new Date().toISOString().slice(0, 10));
+  hariIni.setUTCDate(hariIni.getUTCDate() + selisihHari);
+
+  return hariIni;
+}
+
+async function buatSubscription(
+  idperusahaan: number,
+  tglmulai    : Date,
+  tglselesai  : Date,
+): Promise<void> {
+  idCounter += 1;
+  await prisma.subscription.create({
+    data: {
+      idperusahaan,
+      orderid        : `SEED-${idperusahaan}-${idCounter}`,
+      namapaket      : "Paket Bulanan",
+      hargapaket     : 150_000,
+      masaberlakuhari: 30,
+      tglmulai,
+      tglselesai,
+    },
+  });
 }
 
 function signaturePayload(order_id: string, status_code: string, gross_amount: string, serverKey = SERVER_KEY): string {
@@ -113,13 +140,16 @@ describe("Memilih paket membuka pembayaran Snap di mode sandbox", () => {
     expect(midtransClient.createTransaction).not.toHaveBeenCalled();
   });
 
-  it("memilih paket untuk Perusahaan yang sudah aktif ditolak", async () => {
+  it("memilih paket untuk Perusahaan yang sudah aktif berhasil membuat transaksi Snap baru (perpanjangan dini), tidak ditolak", async () => {
     const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-29), tglRelatifHariIni(1));
     const midtransClient = buatMidtransClient();
 
-    await expect(createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient)).rejects.toThrow(
-      /sudah aktif/,
-    );
+    const hasil = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+    expect(midtransClient.createTransaction).toHaveBeenCalledWith({
+      transaction_details: { order_id: hasil.orderid, gross_amount: 150_000 },
+    });
   });
 });
 
@@ -340,5 +370,233 @@ describe("syncSnapTransaction mengaktifkan Subscription lewat status Midtrans la
     expect(hasil.activated).toBe(false);
     const perusahaan = await prisma.perusahaan.findUniqueOrThrow({ where: { idperusahaan } });
     expect(perusahaan.status).toBe(0);
+  });
+});
+
+describe("Status Langganan ditentukan dari tanggal selesai, bukan flag statis", () => {
+  it("Perusahaan dengan Langganan yang tglselesai besok dianggap sedang aktif", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-29), tglRelatifHariIni(1));
+
+    await expect(isLanggananAktif(prisma, idperusahaan)).resolves.toBe(true);
+  });
+
+  it("Perusahaan dengan Langganan yang tglselesai kemarin dianggap kedaluwarsa", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-31), tglRelatifHariIni(-1));
+
+    await expect(isLanggananAktif(prisma, idperusahaan)).resolves.toBe(false);
+  });
+
+  it("Perusahaan yang belum pernah punya Langganan sama sekali dianggap belum aktif", async () => {
+    const idperusahaan = await buatPerusahaan(0);
+
+    await expect(isLanggananAktif(prisma, idperusahaan)).resolves.toBe(false);
+  });
+
+  it("Perusahaan dengan tglselesai persis hari ini masih dianggap aktif (batas hari terakhir termasuk)", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-30), tglRelatifHariIni(0));
+
+    await expect(isLanggananAktif(prisma, idperusahaan)).resolves.toBe(true);
+  });
+
+  it("Perusahaan dengan tglselesai persis kemarin (H+1 setelah batas) sudah dianggap kedaluwarsa", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-31), tglRelatifHariIni(-1));
+
+    await expect(isLanggananAktif(prisma, idperusahaan)).resolves.toBe(false);
+  });
+});
+
+describe("Membuat transaksi Snap baru tidak lagi ditolak karena Perusahaan sedang aktif", () => {
+  it("Perusahaan dengan Langganan yang sudah kedaluwarsa seminggu tetap berhasil membuat transaksi Snap baru", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-37), tglRelatifHariIni(-7));
+    const midtransClient = buatMidtransClient();
+
+    const hasil = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+    expect(hasil.orderid).toBeTruthy();
+    expect(midtransClient.createTransaction).toHaveBeenCalled();
+  });
+
+  it("Perusahaan yang belum pernah punya Langganan sama sekali berhasil membuat transaksi Snap pertama", async () => {
+    const idperusahaan = await buatPerusahaan(0);
+    const midtransClient = buatMidtransClient();
+
+    const hasil = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+    expect(hasil.orderid).toBeTruthy();
+  });
+});
+
+describe("Memperpanjang sebelum kedaluwarsa dihitung dari tanggal selesai lama", () => {
+  it("Langganan aktif ber-tglselesai besok diperpanjang Paket Bulanan: tglmulai = tglselesai lama, tglselesai baru = tglselesai lama + 30 hari", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-08-22T03:00:00Z"));
+      const idperusahaan = await buatPerusahaan(1);
+      const tglselesaiLama = new Date("2026-08-23T00:00:00Z");
+      await buatSubscription(idperusahaan, new Date("2026-07-24T00:00:00Z"), tglselesaiLama);
+      const midtransClient = buatMidtransClient();
+      const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+      await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "150000"));
+
+      const baru = await prisma.subscription.findFirstOrThrow({ where: { orderid: snap.orderid } });
+      expect(baru.tglmulai.toISOString().slice(0, 10)).toBe("2026-08-23");
+      expect(baru.tglselesai.toISOString().slice(0, 10)).toBe("2026-09-22");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Langganan aktif ber-tglselesai persis hari ini diperpanjang: tetap dihitung dari tglselesai lama (hari ini), bukan dari besok", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-08-22T03:00:00Z"));
+      const idperusahaan = await buatPerusahaan(1);
+      const tglselesaiLama = new Date("2026-08-22T00:00:00Z");
+      await buatSubscription(idperusahaan, new Date("2026-07-23T00:00:00Z"), tglselesaiLama);
+      const midtransClient = buatMidtransClient();
+      const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+      await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "150000"));
+
+      const baru = await prisma.subscription.findFirstOrThrow({ where: { orderid: snap.orderid } });
+      expect(baru.tglmulai.toISOString().slice(0, 10)).toBe("2026-08-22");
+      expect(baru.tglselesai.toISOString().slice(0, 10)).toBe("2026-09-21");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("Memperpanjang setelah kedaluwarsa dihitung dari hari pembayaran", () => {
+  it("Langganan yang tglselesai sudah lewat seminggu diperpanjang Paket Tahunan: tglmulai = tanggal notifikasi diproses, tglselesai = tanggal itu + 365 hari", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-08-22T03:00:00Z"));
+      const idperusahaan = await buatPerusahaan(1);
+      await buatSubscription(idperusahaan, new Date("2026-07-16T00:00:00Z"), new Date("2026-08-15T00:00:00Z"));
+      const midtransClient = buatMidtransClient();
+      const snap = await createSnapTransaction(prisma, idperusahaan, "tahunan", midtransClient);
+
+      await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "1500000"));
+
+      const baru = await prisma.subscription.findFirstOrThrow({ where: { orderid: snap.orderid } });
+      expect(baru.tglmulai.toISOString().slice(0, 10)).toBe("2026-08-22");
+      expect(baru.tglselesai.toISOString().slice(0, 10)).toBe("2027-08-22");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("notifikasi pembayaran untuk perpanjangan yang telat diproses sehari setelah tglselesai lama tetap dihitung dari hari notifikasi benar-benar diproses", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-08-22T03:00:00Z"));
+      const idperusahaan = await buatPerusahaan(1);
+      await buatSubscription(idperusahaan, new Date("2026-07-23T00:00:00Z"), new Date("2026-08-21T00:00:00Z"));
+      const midtransClient = buatMidtransClient();
+      const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+      vi.setSystemTime(new Date("2026-08-23T03:00:00Z"));
+      await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "150000"));
+
+      const baru = await prisma.subscription.findFirstOrThrow({ where: { orderid: snap.orderid } });
+      expect(baru.tglmulai.toISOString().slice(0, 10)).toBe("2026-08-23");
+      expect(baru.tglselesai.toISOString().slice(0, 10)).toBe("2026-09-22");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("Setiap perpanjangan menambah Langganan baru, riwayat tetap utuh", () => {
+  it("Perusahaan dengan dua riwayat Langganan sebelumnya melakukan perpanjangan ketiga menghasilkan tiga baris total, dua baris lama tidak berubah", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-395), tglRelatifHariIni(-366));
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-365), tglRelatifHariIni(1));
+    const sebelum = await prisma.subscription.findMany({ where: { idperusahaan }, orderBy: { idsubscription: "asc" } });
+    const midtransClient = buatMidtransClient();
+    const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+    await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "150000"));
+
+    const sesudah = await prisma.subscription.findMany({ where: { idperusahaan } });
+    expect(sesudah).toHaveLength(3);
+    const duaLama = await prisma.subscription.findMany({
+      where  : { idsubscription: { in: sebelum.map((row) => row.idsubscription) } },
+      orderBy: { idsubscription: "asc" },
+    });
+    expect(duaLama).toEqual(sebelum);
+  });
+
+  it("dua notifikasi pembayaran sukses dengan order_id yang sama untuk perpanjangan diproses bersamaan hanya menghasilkan satu Langganan baru", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-29), tglRelatifHariIni(1));
+    const midtransClient = buatMidtransClient();
+    const snap = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+    const payload = notifikasiSettlement(snap.orderid, "150000");
+
+    await Promise.allSettled([
+      handleMidtransNotification(prisma, payload),
+      handleMidtransNotification(prisma, payload),
+    ]);
+
+    expect(await prisma.subscription.count({ where: { orderid: snap.orderid } })).toBe(1);
+  });
+
+  it("dua transaksi Snap perpanjangan dengan order_id berbeda untuk Perusahaan yang sama, diproses nyaris bersamaan, menghasilkan dua Langganan berurutan", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    const tglselesaiLama = tglRelatifHariIni(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-29), tglselesaiLama);
+    const midtransClient = buatMidtransClient();
+    const snapA = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+    const snapB = await createSnapTransaction(prisma, idperusahaan, "bulanan", midtransClient);
+
+    await Promise.all([
+      handleMidtransNotification(prisma, notifikasiSettlement(snapA.orderid, "150000")),
+      handleMidtransNotification(prisma, notifikasiSettlement(snapB.orderid, "150000")),
+    ]);
+
+    const baruA = await prisma.subscription.findFirstOrThrow({ where: { orderid: snapA.orderid } });
+    const baruB = await prisma.subscription.findFirstOrThrow({ where: { orderid: snapB.orderid } });
+    const tglmulaiSet = new Set([baruA.tglmulai.getTime(), baruB.tglmulai.getTime()]);
+    expect(tglmulaiSet.size).toBe(2);
+    expect(tglmulaiSet.has(tglselesaiLama.getTime())).toBe(true);
+    const urutMulai = [baruA, baruB].sort((a, b) => a.tglmulai.getTime() - b.tglmulai.getTime());
+    expect(urutMulai[1].tglmulai.getTime()).toBe(urutMulai[0].tglselesai.getTime());
+  });
+
+  it("memperpanjang Langganan Perusahaan A tidak membuat atau mengubah baris Langganan milik Perusahaan B", async () => {
+    const idperusahaanA = await buatPerusahaan(1);
+    const idperusahaanB = await buatPerusahaan(1);
+    await buatSubscription(idperusahaanA, tglRelatifHariIni(-29), tglRelatifHariIni(1));
+    await buatSubscription(idperusahaanB, tglRelatifHariIni(-29), tglRelatifHariIni(1));
+    const subscriptionBSebelum = await prisma.subscription.findMany({ where: { idperusahaan: idperusahaanB } });
+    const midtransClient = buatMidtransClient();
+    const snap = await createSnapTransaction(prisma, idperusahaanA, "bulanan", midtransClient);
+
+    await handleMidtransNotification(prisma, notifikasiSettlement(snap.orderid, "150000"));
+
+    const subscriptionBSesudah = await prisma.subscription.findMany({ where: { idperusahaan: idperusahaanB } });
+    expect(subscriptionBSesudah).toEqual(subscriptionBSebelum);
+    expect(await prisma.subscription.count({ where: { idperusahaan: idperusahaanA } })).toBe(2);
+  });
+});
+
+describe("Data Perusahaan tidak pernah terhapus karena kedaluwarsa", () => {
+  it("setelah Langganan Perusahaan kedaluwarsa dan tidak diperpanjang, baris Perusahaan tetap ada dan kolomnya tidak berubah", async () => {
+    const idperusahaan = await buatPerusahaan(1);
+    await buatSubscription(idperusahaan, tglRelatifHariIni(-37), tglRelatifHariIni(-7));
+    const sebelum = await prisma.perusahaan.findUniqueOrThrow({ where: { idperusahaan } });
+
+    await expect(isLanggananAktif(prisma, idperusahaan)).resolves.toBe(false);
+
+    const sesudah = await prisma.perusahaan.findUniqueOrThrow({ where: { idperusahaan } });
+    expect(sesudah).toEqual(sebelum);
   });
 });
