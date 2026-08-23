@@ -41,6 +41,19 @@ export async function findMembership(
   return membership;
 }
 
+export async function findMembershipDenganOwner(
+  db          : GlobalClient,
+  iduser      : string,
+  idperusahaan: number,
+): Promise<{ isowner: boolean } | null> {
+  const membership = await db.userperusahaan.findUnique({
+    where : { iduser_idperusahaan: { iduser, idperusahaan } },
+    select: { isowner: true },
+  });
+
+  return membership;
+}
+
 export async function setSessionPerusahaanAktif(db: GlobalClient, idsesi: string, idperusahaan: number): Promise<void> {
   await db.session.update({ where: { id: idsesi }, data: { idperusahaan } });
 }

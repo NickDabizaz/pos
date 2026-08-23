@@ -2,6 +2,7 @@ import { getDatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/rep
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import {
   findMembership,
+  findMembershipDenganOwner,
   findNamadatabaseAktif,
   findPerusahaanByKode,
   findPerusahaanByNamadatabase,
@@ -133,6 +134,13 @@ async function runDaftarPerusahaan(
   await createDatabasePerusahaan(deps, perusahaan);
 
   return perusahaan;
+}
+
+export async function cekPemanggilOwner(db: GlobalClient, iduser: string, idperusahaan: number): Promise<void> {
+  const membership = await findMembershipDenganOwner(db, iduser, idperusahaan);
+  if (!membership || !membership.isowner) {
+    throw new Error("Hanya Owner yang dapat melakukan aksi ini", { cause: "BUKAN_OWNER" });
+  }
 }
 
 export async function pilihPerusahaan(db: GlobalClient, input: PilihPerusahaanInput): Promise<void> {

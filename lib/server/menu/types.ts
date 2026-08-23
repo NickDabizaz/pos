@@ -18,3 +18,10 @@ export interface AksesMenuParams {
   isOwner          : boolean;
   kodemenuDiizinkan: ReadonlySet<string>;
 }
+
+export interface ToggleHakMenuParams {
+  idpemanggil : string;
+  idusertarget: string;
+  idperusahaan: number;
+  kodemenu    : string;
+}
