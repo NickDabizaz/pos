@@ -1,6 +1,9 @@
-import type { Lokasi } from "@/lib/server/lokasi/types";
-
-export type { Lokasi };
+export type Lokasi = {
+  kodelokasi: string;
+  namalokasi: string;
+  keterangan: string;
+  status    : number;
+};
 
 export type LokasiFormErrors = {
   kodelokasi?: string;

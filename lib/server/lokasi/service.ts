@@ -1,40 +1,102 @@
+import { Prisma } from "@/lib/generated/prisma-perusahaan/client";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
+import { simpanDenganKode } from "@/lib/server/kodedokumen/service";
 import {
+  deleteLokasiByKode,
   findAllLokasi,
   findLokasiByKode,
   insertLokasi,
-  removeLokasi,
-  replaceLokasi,
+  updateLokasiByKode,
 } from "@/lib/server/lokasi/repository";
-import type { Lokasi } from "@/lib/server/lokasi/types";
+import type { CreateLokasiInput, Lokasi, UpdateLokasiInput } from "@/lib/server/lokasi/types";
 
-export function generateKodeLokasi(): string {
-  const kode = `LOK-AUTO-${String(findAllLokasi().length + 1).padStart(4, "0")}`;
+function isRecordNotFound(error: unknown): boolean {
+  const cocok = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
 
-  return kode;
+  return cocok;
 }
 
-export function createLokasi(input: Lokasi): Lokasi {
-  if (findLokasiByKode(input.kodelokasi)) {
-    throw new Error(`Kode lokasi ${input.kodelokasi} sudah digunakan`);
-  }
+function isForeignKeyConstraint(error: unknown): boolean {
+  const cocok = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003";
 
-  insertLokasi(input);
-  return input;
+  return cocok;
 }
 
-export function updateLokasi(kodelokasi: string, input: Lokasi): Lokasi {
-  if (!findLokasiByKode(kodelokasi)) {
-    throw new Error(`Lokasi ${kodelokasi} tidak ditemukan`);
-  }
-
-  replaceLokasi(kodelokasi, input);
-  return input;
+function pesanTidakDitemukan(kodelokasi: string): string {
+  return `Lokasi dengan kode "${kodelokasi}" tidak ditemukan`;
 }
 
-export function deleteLokasi(kodelokasi: string): void {
-  if (!findLokasiByKode(kodelokasi)) {
-    throw new Error(`Lokasi ${kodelokasi} tidak ditemukan`);
+export async function listLokasi(db: DatabasePerusahaanClient): Promise<Lokasi[]> {
+  const rows = await findAllLokasi(db);
+
+  return rows;
+}
+
+export async function findLokasi(db: DatabasePerusahaanClient, kodelokasi: string): Promise<Lokasi | null> {
+  const row = await findLokasiByKode(db, kodelokasi);
+
+  return row;
+}
+
+export async function createLokasi(db: DatabasePerusahaanClient, input: CreateLokasiInput): Promise<Lokasi> {
+  const namalokasi = input.namalokasi.trim();
+  if (!namalokasi) {
+    throw new Error("Nama Lokasi tidak boleh kosong", { cause: "INPUT_TIDAK_SAH" });
   }
 
-  removeLokasi(kodelokasi);
+  const keterangan = input.keterangan?.trim() || null;
+
+  const lokasi = await simpanDenganKode(db, "lokasi", new Date(), (kode) =>
+    insertLokasi(db, kode, namalokasi, keterangan),
+  );
+
+  return lokasi;
+}
+
+export async function updateLokasi(
+  db        : DatabasePerusahaanClient,
+  kodelokasi: string,
+  input     : UpdateLokasiInput,
+): Promise<Lokasi> {
+  const data: { namalokasi?: string; keterangan?: string | null } = {};
+
+  if (input.namalokasi !== undefined) {
+    const namalokasi = input.namalokasi.trim();
+    if (!namalokasi) {
+      throw new Error("Nama Lokasi tidak boleh kosong", { cause: "INPUT_TIDAK_SAH" });
+    }
+    data.namalokasi = namalokasi;
+  }
+
+  if (input.keterangan !== undefined) {
+    data.keterangan = input.keterangan?.trim() || null;
+  }
+
+  try {
+    const row = await updateLokasiByKode(db, kodelokasi, data);
+
+    return row;
+  } catch (error) {
+    if (isRecordNotFound(error)) {
+      throw new Error(pesanTidakDitemukan(kodelokasi), { cause: "TIDAK_DITEMUKAN" });
+    }
+    throw error;
+  }
+}
+
+export async function deleteLokasi(db: DatabasePerusahaanClient, kodelokasi: string): Promise<void> {
+  try {
+    await deleteLokasiByKode(db, kodelokasi);
+  } catch (error) {
+    if (isRecordNotFound(error)) {
+      throw new Error(pesanTidakDitemukan(kodelokasi), { cause: "TIDAK_DITEMUKAN" });
+    }
+    if (isForeignKeyConstraint(error)) {
+      throw new Error(
+        `Lokasi dengan kode "${kodelokasi}" masih dipakai transaksi lain, tidak bisa dihapus`,
+        { cause: "MASIH_DIPAKAI" },
+      );
+    }
+    throw error;
+  }
 }

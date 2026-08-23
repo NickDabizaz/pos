@@ -11,7 +11,7 @@ import DataTable, { type DataTableColumn } from "@/components/DataTable";
 import { fetchKasList, updateKas } from "@/lib/client/kas";
 import { fetchLokasiList } from "@/lib/client/lokasi";
 import { formatRupiah } from "@/lib/format";
-import type { Lokasi } from "@/lib/server/lokasi/types";
+import type { Lokasi } from "@/lib/client/lokasi";
 
 const emptyFilter: KasFilter = {
   query        : "",

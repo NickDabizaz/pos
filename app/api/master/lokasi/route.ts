@@ -1,28 +1,45 @@
 import { errorResponse, successResponse } from "@/lib/apiResponse";
-import { findAllLokasi } from "@/lib/server/lokasi/repository";
-import { createLokasi, generateKodeLokasi } from "@/lib/server/lokasi/service";
-import type { Lokasi } from "@/lib/server/lokasi/types";
+import { prisma } from "@/lib/prisma";
+import { requirePerusahaanAktif } from "@/lib/server/auth/guard";
+import { createLokasi, listLokasi } from "@/lib/server/lokasi/service";
+import { getDatabasePerusahaanAktif } from "@/lib/server/perusahaan/service";
+
+async function resolveDb() {
+  const session = await requirePerusahaanAktif();
+  const idperusahaan = session.session.idperusahaan;
+  if (!idperusahaan) {
+    throw new Error("Perusahaan Aktif tidak ditemukan pada sesi", { cause: "PERUSAHAAN_TIDAK_AKTIF" });
+  }
+
+  const db = await getDatabasePerusahaanAktif(prisma, idperusahaan);
+
+  return db;
+}
 
 export async function GET() {
-  return successResponse({
-    message: "Data lokasi berhasil diambil",
-    data   : findAllLokasi(),
-  });
+  try {
+    const db = await resolveDb();
+
+    return successResponse({
+      message: "Data lokasi berhasil diambil",
+      data   : await listLokasi(db),
+    });
+  } catch (error) {
+    return errorResponse({
+      message: error instanceof Error ? error.message : "Gagal mengambil data lokasi",
+    });
+  }
 }
 
 export async function POST(request: Request) {
   try {
+    const db = await resolveDb();
     const body = await request.json();
-    const autoGenerateKode = Boolean(body.autoGenerateKode);
 
-    const lokasi: Lokasi = {
-      kodelokasi: autoGenerateKode ? generateKodeLokasi() : String(body.kodelokasi ?? ""),
+    const created = await createLokasi(db, {
       namalokasi: String(body.namalokasi ?? ""),
-      keterangan: String(body.keterangan ?? ""),
-      status    : Number(body.status) === 1 ? 1 : 0,
-    };
-
-    const created = createLokasi(lokasi);
+      keterangan: body.keterangan ? String(body.keterangan) : null,
+    });
 
     return successResponse({
       statusCode: 201,
@@ -30,8 +47,8 @@ export async function POST(request: Request) {
       data      : created,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("sudah digunakan")) {
-      return errorResponse({ statusCode: 409, message: error.message });
+    if (error instanceof Error && error.cause === "INPUT_TIDAK_SAH") {
+      return errorResponse({ statusCode: 400, message: error.message });
     }
 
     return errorResponse({
