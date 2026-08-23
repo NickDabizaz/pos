@@ -80,10 +80,10 @@ describe("Lokasi tersimpan dan bertahan lewat CRUD dasar", () => {
     expect(found).toBeNull();
   });
 
-  it("listLokasi pada Database Perusahaan yang baru diprovisioning mengembalikan daftar kosong, bukan error", async () => {
+  it("listLokasi pada Database Perusahaan yang baru diprovisioning hanya berisi Lokasi seed default (TOKO), bukan error", async () => {
     const list = await listLokasi(db);
 
-    expect(list).toEqual([]);
+    expect(list.filter((lokasi) => lokasi.kodelokasi !== "TOKO")).toEqual([]);
   });
 
   it("listLokasi setelah tiga kali createLokasi mengembalikan tepat tiga Lokasi", async () => {
@@ -119,7 +119,7 @@ describe("Kode Lokasi dibuat oleh generator Kode Dokumen sesuai Config", () => {
       await expect(createLokasi(db, { namalokasi: "Toko Utama" })).rejects.toThrow(/tidak ditemukan/);
 
       const list = await listLokasi(db);
-      expect(list).toHaveLength(0);
+      expect(list.filter((lokasi) => lokasi.kodelokasi !== "TOKO")).toEqual([]);
     } finally {
       await db.config.createMany({
         data: [
@@ -147,7 +147,7 @@ describe("Kondisi gagal tertangani lengkap", () => {
     await expect(updateLokasi(db, "L-TIDAK-ADA", { namalokasi: "Apa Saja" })).rejects.toThrow(/tidak ditemukan/);
 
     const list = await listLokasi(db);
-    expect(list).toHaveLength(0);
+    expect(list.filter((lokasi) => lokasi.kodelokasi !== "TOKO")).toEqual([]);
   });
 
   it("deleteLokasi dengan kode yang tidak pernah ada ditolak dengan pesan tidak ditemukan", async () => {
@@ -163,7 +163,7 @@ describe("Kondisi gagal tertangani lengkap", () => {
     await expect(createLokasi(db, { namalokasi: "" })).rejects.toThrow(/tidak boleh kosong/);
 
     const list = await listLokasi(db);
-    expect(list).toHaveLength(0);
+    expect(list.filter((lokasi) => lokasi.kodelokasi !== "TOKO")).toEqual([]);
   });
 
   it("deleteLokasi terhadap Lokasi yang sudah dirujuk oleh baris transaksi ditolak dengan pesan jelas, bukan error mentah database", async () => {
@@ -191,10 +191,10 @@ describe("Isolasi antar Perusahaan", () => {
   });
 
   it("Lokasi yang dibuat lewat koneksi Database Perusahaan A tidak muncul pada listLokasi Database Perusahaan B", async () => {
-    await createLokasi(db, { namalokasi: "Lokasi Perusahaan A" });
+    const created = await createLokasi(db, { namalokasi: "Lokasi Perusahaan A" });
 
     const listLain = await listLokasi(dbLain);
-    expect(listLain).toHaveLength(0);
+    expect(listLain.some((lokasi) => lokasi.kodelokasi === created.kodelokasi)).toBe(false);
   });
 
   it("dua Perusahaan berbeda masing-masing berhasil memakai Kode Lokasi yang identik tanpa saling bentrok", async () => {

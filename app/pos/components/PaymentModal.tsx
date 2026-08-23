@@ -14,7 +14,7 @@ type PaymentModalProps = {
     amountPaid    : number;
     change        : number;
     paymentMethod : PaymentMethod;
-  }) => void;
+  }) => Promise<void>;
 };
 
 export default function PaymentModal({
@@ -26,6 +26,7 @@ export default function PaymentModal({
   const [method, setMethod]           = useState<PaymentMethod>("TUNAI");
   const [amountPaidInput, setAmount]  = useState<string>(String(grandTotal));
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError]             = useState<string | null>(null);
 
   const amountPaidNumber = Number(amountPaidInput.replace(/\D/g, "")) || 0;
   const change = useMemo(() => calculateChange(grandTotal, amountPaidNumber), [grandTotal, amountPaidNumber]);
@@ -42,18 +43,23 @@ export default function PaymentModal({
     setAmount(String(val));
   }
 
-  function handleComplete() {
+  async function handleComplete() {
     if (!isSufficient) return;
 
     setIsProcessing(true);
-    setTimeout(() => {
-      onCompleteAction({
+    setError(null);
+
+    try {
+      await onCompleteAction({
         amountPaid   : method === "TUNAI" ? amountPaidNumber : grandTotal,
         change       : method === "TUNAI" ? change : 0,
         paymentMethod: method,
       });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan transaksi");
+    } finally {
       setIsProcessing(false);
-    }, 200);
+    }
   }
 
   return (
@@ -216,6 +222,12 @@ export default function PaymentModal({
             </div>
           )}
         </div>
+
+        {error && (
+          <p className="mx-6 mb-2 rounded-lg border border-status-danger-border bg-status-danger-bg px-3 py-2 text-xs text-status-danger-fg">
+            {error}
+          </p>
+        )}
 
         <div className="flex items-center justify-end gap-3 border-t border-border bg-card px-6 py-4">
           <button

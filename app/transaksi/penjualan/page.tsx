@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { filterPenjualan } from "@/app/penjualan/lib/filterPenjualan";
-import type { JenisTransaksiPenjualan, Penjualan, PenjualanFilter } from "@/app/penjualan/lib/types";
+import { filterPenjualan } from "@/app/transaksi/penjualan/lib/filterPenjualan";
+import type { PenjualanFilter } from "@/app/transaksi/penjualan/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DataTable, { type DataTableColumn } from "@/components/DataTable";
-import { fetchPenjualanList, updatePenjualan } from "@/lib/client/penjualan";
+import { cancelPenjualan, fetchPenjualanList } from "@/lib/client/penjualan";
+import type { JenisTransaksiPenjualan, Penjualan } from "@/lib/server/penjualan/types";
 
 const emptyFilter: PenjualanFilter = {
   query         : "",
@@ -38,6 +39,7 @@ const columns: DataTableColumn<Penjualan>[] = [
     ),
   },
   { key: "namacustomer", label: "Customer", minWidth: "160px", width: "180px" },
+  { key: "namalokasi", label: "Lokasi", minWidth: "140px", width: "160px" },
   {
     key   : "total",
     label : "Total",
@@ -134,11 +136,7 @@ export default function PenjualanPage() {
     setIsCancelling(true);
 
     try {
-      const updated = await updatePenjualan(selected.kodejual, {
-        ...selected,
-        status     : "D",
-        alasanBatal: alasan,
-      });
+      const updated = await cancelPenjualan(selected.kodejual, alasan);
 
       setItems((prev) => prev.map((item) => (item.kodejual === updated.kodejual ? updated : item)));
       setSelected(null);
@@ -230,7 +228,7 @@ export default function PenjualanPage() {
           )}
           <button
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-            onClick={() => router.push("/penjualan/form")}
+            onClick={() => router.push("/transaksi/penjualan/form")}
             type="button"
           >
             Tambah Penjualan
@@ -249,7 +247,7 @@ export default function PenjualanPage() {
           emptyMessage          = {isLoading ? "Memuat data..." : "Tidak ada transaksi penjualan yang cocok"}
           getRowClassNameAction = {(row) => (row.status === "D" ? "bg-status-danger-bg/40 hover:bg-status-danger-bg/60" : "")}
           onRowClickAction      = {(row) => setSelected(row)}
-          onRowDoubleClickAction= {(row) => router.push(`/penjualan/${row.kodejual}`)}
+          onRowDoubleClickAction= {(row) => router.push(`/transaksi/penjualan/${row.kodejual}`)}
           rowKey                 = "kodejual"
         />
       )}

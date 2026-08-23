@@ -1,22 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { validatePenjualanForm } from "@/app/penjualan/lib/validatePenjualanForm";
-import type { Penjualan } from "@/app/penjualan/lib/types";
+import type { PenjualanFormValues } from "@/app/transaksi/penjualan/lib/types";
+import { validatePenjualanForm } from "@/app/transaksi/penjualan/lib/validatePenjualanForm";
 
-const validValues: Penjualan = {
-  kodejual      : "PJ-20260817-0001",
-  tanggal       : "2026-08-17",
-  jenistransaksi: "PESANAN",
-  kodecustomer  : "CUST-0001",
-  namacustomer  : "Budi Santoso",
-  items         : [
+const validValues: PenjualanFormValues = {
+  tanggal     : "2026-08-17",
+  kodecustomer: "CUST-0001",
+  namacustomer: "Budi Santoso",
+  kodelokasi  : "LOK-0001",
+  namalokasi  : "Toko Utama",
+  items       : [
     { kodebarang: "BRG-0001", namabarang: "Beras 5kg", satuan: "Karung", qty: 1, harga: 65000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 65000 },
   ],
-  total     : 65000,
-  diskon    : 0,
-  ppn       : 0,
-  grandtotal: 65000,
-  status    : "S",
 };
 
 describe("validatePenjualanForm", () => {
@@ -30,6 +25,10 @@ describe("validatePenjualanForm", () => {
 
   it("requires kodecustomer", () => {
     expect(validatePenjualanForm({ ...validValues, kodecustomer: "" }).kodecustomer).toBeDefined();
+  });
+
+  it("requires kodelokasi", () => {
+    expect(validatePenjualanForm({ ...validValues, kodelokasi: "" }).kodelokasi).toBeDefined();
   });
 
   it("requires at least one item", () => {

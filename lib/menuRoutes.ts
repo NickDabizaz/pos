@@ -5,7 +5,7 @@ export const menuRoutes: Record<string, string> = {
   "MDATA-LOK": "/master/lokasi",
   "KASIR-POS": "/pos",
   "TRANS-BEL": "/pembelian",
-  "TRANS-JUL": "/penjualan",
+  "TRANS-JUL": "/transaksi/penjualan",
   "KASIR-TTP": "/tutup-kasir",
   "TRANS-KAS": "/kas",
   LANGGANAN  : "/subscription",

@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { Penjualan, PenjualanFormErrors } from "@/app/penjualan/lib/types";
-import { validatePenjualanForm } from "@/app/penjualan/lib/validatePenjualanForm";
+import type { PenjualanFormErrors, PenjualanFormValues } from "@/app/transaksi/penjualan/lib/types";
+import { validatePenjualanForm } from "@/app/transaksi/penjualan/lib/validatePenjualanForm";
+import type { Lokasi } from "@/app/master/lokasi/lib/types";
 import ComboGrid, { type ComboGridColumn } from "@/components/ComboGrid";
 import DatePicker from "@/components/DatePicker";
 import ItemLinesTable from "@/components/ItemLinesTable";
-import { formatRupiah } from "@/lib/format";
 import { fetchBarangList } from "@/lib/client/barang";
 import { fetchCustomerList } from "@/lib/client/customer";
+import { fetchLokasiList } from "@/lib/client/lokasi";
+import { formatRupiah } from "@/lib/format";
 import type { Barang } from "@/lib/server/barang/types";
 import type { Customer } from "@/lib/server/customer/types";
 import { calculateHeaderTotals } from "@/lib/server/transaksi/calculations";
@@ -21,40 +23,60 @@ const customerColumns: ComboGridColumn<Customer>[] = [
   { key: "telepon", label: "Telepon", width: "150px" },
 ];
 
-type PenjualanFormProps = {
-  initialValues: Penjualan;
-  mode         : "create" | "edit";
-  onSubmit     : (values: Penjualan) => Promise<void>;
+const lokasiColumns: ComboGridColumn<Lokasi>[] = [
+  { key: "kodelokasi", label: "Kode", width: "120px" },
+  { key: "namalokasi", label: "Nama Lokasi", width: "220px" },
+];
+
+const emptyValues: PenjualanFormValues = {
+  tanggal     : new Date().toISOString().slice(0, 10),
+  kodecustomer: "",
+  namacustomer: "",
+  kodelokasi  : "",
+  namalokasi  : "",
+  items       : [],
 };
 
-export default function PenjualanForm({ initialValues, mode, onSubmit }: PenjualanFormProps) {
-  const [tanggal, setTanggal]           = useState(initialValues.tanggal);
-  const [kodecustomer, setKodecustomer] = useState(initialValues.kodecustomer);
-  const [namacustomer, setNamacustomer] = useState(initialValues.namacustomer);
-  const [items, setItems]               = useState<TransaksiItem[]>(initialValues.items);
-  const [syncedItems, setSyncedItems]   = useState(initialValues.items);
+type PenjualanFormProps = {
+  mode          : "create" | "view";
+  initialValues?: PenjualanFormValues;
+  onSubmit?     : (values: PenjualanFormValues) => Promise<void>;
+};
+
+export default function PenjualanForm({ mode, initialValues, onSubmit }: PenjualanFormProps) {
+  const isView = mode === "view";
+  const startingValues = initialValues ?? emptyValues;
+
+  const [tanggal, setTanggal]           = useState(startingValues.tanggal);
+  const [kodecustomer, setKodecustomer] = useState(startingValues.kodecustomer);
+  const [namacustomer, setNamacustomer] = useState(startingValues.namacustomer);
+  const [kodelokasi, setKodelokasi]     = useState(startingValues.kodelokasi);
+  const [namalokasi, setNamalokasi]     = useState(startingValues.namalokasi);
+  const [items, setItems]               = useState<TransaksiItem[]>(startingValues.items);
   const [customers, setCustomers]       = useState<Customer[]>([]);
+  const [lokasiList, setLokasiList]     = useState<Lokasi[]>([]);
   const [barangList, setBarangList]     = useState<Barang[]>([]);
   const [errors, setErrors]             = useState<PenjualanFormErrors>({});
   const [submitError, setSubmitError]   = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totals = useMemo(() => calculateHeaderTotals(items), [items]);
-  const isCancelled = mode === "edit" && initialValues.status === "D";
-
-  if (initialValues.items !== syncedItems) {
-    setSyncedItems(initialValues.items);
-    setItems(initialValues.items);
-  }
 
   useEffect(() => {
+    if (isView) return;
+
     let isMounted = true;
 
     async function loadOptions() {
-      const [customerData, barangData] = await Promise.all([fetchCustomerList(), fetchBarangList()]);
+      const [customerData, lokasiData, barangData] = await Promise.all([
+        fetchCustomerList(),
+        fetchLokasiList(),
+        fetchBarangList(),
+      ]);
 
       if (isMounted) {
         setCustomers(customerData);
+        setLokasiList(lokasiData);
         setBarangList(barangData);
       }
     }
@@ -64,16 +86,18 @@ export default function PenjualanForm({ initialValues, mode, onSubmit }: Penjual
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isView]);
 
   async function handleSubmit() {
-    const candidate: Penjualan = {
-      ...initialValues,
+    if (!onSubmit) return;
+
+    const candidate: PenjualanFormValues = {
       tanggal,
       kodecustomer,
       namacustomer,
+      kodelokasi,
+      namalokasi,
       items,
-      ...totals,
     };
 
     const validationErrors = validatePenjualanForm(candidate);
@@ -105,48 +129,42 @@ export default function PenjualanForm({ initialValues, mode, onSubmit }: Penjual
       )}
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-xs ring-1 ring-slate-950/5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Informasi Transaksi</h2>
-          <div className="flex items-center gap-2">
-            {mode === "edit" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/40 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                {initialValues.jenistransaksi === "POS" ? "Jenis Transaksi: POS" : "Jenis Transaksi: Penjualan Pesanan"}
-              </span>
-            )}
-            {isCancelled && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-status-danger-border bg-status-danger-bg px-2.5 py-0.5 text-xs font-medium text-status-danger-fg">
-                <span className="size-1.5 rounded-full bg-status-danger-dot" />
-                Dibatalkan
-              </span>
-            )}
-          </div>
-        </div>
-
-        {isCancelled && (
-          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-status-danger-border bg-status-danger-bg/70 px-3.5 py-2.5">
-            <svg className="mt-0.5 size-4 shrink-0 text-status-danger-fg" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M9.5 9.5l5 5m0-5-5 5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <p className="text-sm text-status-danger-fg">
-              <span className="font-semibold">Alasan pembatalan:</span>{" "}
-              {initialValues.alasanBatal || "Tidak ada alasan yang dicatat."}
-            </p>
-          </div>
-        )}
+        <h2 className="mb-4 text-sm font-semibold text-foreground">Informasi Transaksi</h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <DatePicker
+            disabled       = {isView}
             label          = "Tanggal"
             onChangeAction = {setTanggal}
             required
             value          = {tanggal}
           />
 
+          <div>
+            <ComboGrid
+              columns        = {lokasiColumns}
+              data           = {isView ? [{ kodelokasi, namalokasi, keterangan: "", status: 1 }] : lokasiList.filter((lokasi) => lokasi.status === 1)}
+              disabled       = {isView}
+              label          = "Lokasi"
+              labelKey       = "namalokasi"
+              onChangeAction = {(value, row) => {
+                setKodelokasi(row ? row.kodelokasi : "");
+                setNamalokasi(row ? row.namalokasi : "");
+              }}
+              placeholder    = "Cari nama atau kode lokasi..."
+              required
+              searchKeys     = {["namalokasi", "kodelokasi"]}
+              value          = {kodelokasi || undefined}
+              valueKey       = "kodelokasi"
+            />
+            {errors.kodelokasi && <p className="mt-1 text-xs text-status-danger-fg">{errors.kodelokasi}</p>}
+          </div>
+
           <div className="sm:col-span-2">
             <ComboGrid
               columns        = {customerColumns}
-              data           = {customers.filter((customer) => customer.status === 1)}
+              data           = {isView ? [{ idcustomer: 0, kodecustomer, namacustomer, telepon: null, email: null, alamat: null, status: 1 }] : customers.filter((customer) => customer.status === 1)}
+              disabled       = {isView}
               label          = "Customer"
               labelKey       = "namacustomer"
               onChangeAction = {(value, row) => {
@@ -166,13 +184,15 @@ export default function PenjualanForm({ initialValues, mode, onSubmit }: Penjual
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-xs ring-1 ring-slate-950/5">
         <h2 className="mb-4 text-sm font-semibold text-foreground">Daftar Barang</h2>
-        <ItemLinesTable
-          barangList     = {barangList}
-          items          = {items}
-          onChangeAction = {setItems}
-          priceField     = "hargajual"
-          priceLabel     = "Harga Jual"
-        />
+        <div className={isView ? "pointer-events-none opacity-75" : undefined}>
+          <ItemLinesTable
+            barangList     = {barangList}
+            items          = {items}
+            onChangeAction = {isView ? () => {} : setItems}
+            priceField     = "hargajual"
+            priceLabel     = "Harga Jual"
+          />
+        </div>
         {errors.items && <p className="mt-2 text-xs text-status-danger-fg">{errors.items}</p>}
 
         <div className="mt-4 flex flex-col items-end gap-1 border-t border-border pt-4 text-sm">
@@ -195,17 +215,18 @@ export default function PenjualanForm({ initialValues, mode, onSubmit }: Penjual
         </div>
       </section>
 
-      <div className="flex justify-end gap-3">
-        <button
-          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={isSubmitting || isCancelled}
-          onClick={handleSubmit}
-          title={isCancelled ? "Transaksi yang sudah dibatalkan tidak dapat diubah" : undefined}
-          type="button"
-        >
-          {isSubmitting ? "Menyimpan..." : "Simpan Penjualan"}
-        </button>
-      </div>
+      {!isView && (
+        <div className="flex justify-end gap-3">
+          <button
+            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={handleSubmit}
+            type="button"
+          >
+            {isSubmitting ? "Menyimpan..." : "Simpan Penjualan"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

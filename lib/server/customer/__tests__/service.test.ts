@@ -79,10 +79,10 @@ describe("Customer tersimpan dan bertahan lewat CRUD dasar", () => {
     expect(found).toBeNull();
   });
 
-  it("listCustomer pada Database Perusahaan yang baru diprovisioning mengembalikan daftar kosong, bukan error", async () => {
+  it("listCustomer pada Database Perusahaan yang baru diprovisioning hanya berisi Customer seed default (CASH), bukan error", async () => {
     const list = await listCustomer(db);
 
-    expect(list).toEqual([]);
+    expect(list.filter((customer) => customer.kodecustomer !== "CASH")).toEqual([]);
   });
 
   it("listCustomer setelah tiga kali createCustomer mengembalikan tepat tiga Customer", async () => {
@@ -118,7 +118,7 @@ describe("Kode Customer dibuat oleh generator Kode Dokumen sesuai Config", () =>
       await expect(createCustomer(db, inputCustomer)).rejects.toThrow(/tidak ditemukan/);
 
       const list = await listCustomer(db);
-      expect(list).toHaveLength(0);
+      expect(list.filter((customer) => customer.kodecustomer !== "CASH")).toEqual([]);
     } finally {
       await db.config.createMany({
         data: [
@@ -146,7 +146,7 @@ describe("Kondisi gagal tertangani lengkap untuk Customer", () => {
     await expect(updateCustomer(db, "C-TIDAK-ADA", { namacustomer: "Apa Saja" })).rejects.toThrow(/tidak ditemukan/);
 
     const list = await listCustomer(db);
-    expect(list).toHaveLength(0);
+    expect(list.filter((customer) => customer.kodecustomer !== "CASH")).toEqual([]);
   });
 
   it("deleteCustomer dengan kode yang tidak pernah ada ditolak dengan pesan tidak ditemukan", async () => {
@@ -162,7 +162,7 @@ describe("Kondisi gagal tertangani lengkap untuk Customer", () => {
     await expect(createCustomer(db, { ...inputCustomer, namacustomer: "" })).rejects.toThrow(/tidak boleh kosong/);
 
     const list = await listCustomer(db);
-    expect(list).toHaveLength(0);
+    expect(list.filter((customer) => customer.kodecustomer !== "CASH")).toEqual([]);
   });
 
   it("deleteCustomer terhadap Customer yang sudah dirujuk oleh baris jual ditolak dengan pesan jelas, bukan error mentah database", async () => {
@@ -190,10 +190,10 @@ describe("Isolasi antar Perusahaan untuk Customer", () => {
   });
 
   it("Customer yang dibuat lewat koneksi Database Perusahaan A tidak muncul pada listCustomer Database Perusahaan B", async () => {
-    await createCustomer(db, inputCustomer);
+    const created = await createCustomer(db, inputCustomer);
 
     const listLain = await listCustomer(dbLain);
-    expect(listLain).toHaveLength(0);
+    expect(listLain.some((customer) => customer.kodecustomer === created.kodecustomer)).toBe(false);
   });
 
   it("dua Perusahaan berbeda masing-masing berhasil memakai Kode Customer yang identik tanpa saling bentrok", async () => {

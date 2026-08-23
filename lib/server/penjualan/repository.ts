@@ -1,91 +1,163 @@
-import type { Penjualan } from "@/lib/server/penjualan/types";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
+import type { JenisTransaksiPenjualan, Penjualan, PpnMode, StatusTransaksi } from "@/lib/server/penjualan/types";
 
-const seedPenjualan: Penjualan[] = [
-  {
-    kodejual      : "PJ-20260810-0001",
-    tanggal       : "2026-08-10",
-    jenistransaksi: "POS",
-    kodecustomer  : "CUST-0006",
-    namacustomer  : "Pelanggan Umum (Walk-in)",
-    items         : [
-      { kodebarang: "BRG-0001", namabarang: "Beras 5kg", satuan: "Karung", qty: 1, harga: 65000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 65000 },
-      { kodebarang: "BRG-0002", namabarang: "Teh Botol", satuan: "Botol", qty: 2, harga: 5000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 10000 },
-    ],
-    total     : 75000,
-    diskon    : 0,
-    ppn       : 0,
-    grandtotal: 75000,
-    status    : "S",
-  },
-  {
-    kodejual      : "PJ-20260811-0001",
-    tanggal       : "2026-08-11",
-    jenistransaksi: "POS",
-    kodecustomer  : "CUST-0006",
-    namacustomer  : "Pelanggan Umum (Walk-in)",
-    items         : [
-      { kodebarang: "BRG-0005", namabarang: "Kopi Sachet", satuan: "Pcs", qty: 5, harga: 2000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 10000 },
-    ],
-    total     : 10000,
-    diskon    : 0,
-    ppn       : 0,
-    grandtotal: 10000,
-    status    : "S",
-  },
-  {
-    kodejual      : "PJ-20260812-0001",
-    tanggal       : "2026-08-12",
-    jenistransaksi: "PESANAN",
-    kodecustomer  : "CUST-0001",
-    namacustomer  : "Budi Santoso",
-    items         : [
-      { kodebarang: "BRG-0003", namabarang: "Minyak Goreng 2L", satuan: "Botol", qty: 10, harga: 34000, pakaiPpn: "EXCLUDE", diskon: 0, ppn: 37400, subtotal: 377400 },
-      { kodebarang: "BRG-0007", namabarang: "Gula Pasir 1kg", satuan: "Bungkus", qty: 20, harga: 16000, pakaiPpn: "TIDAK", diskon: 20000, ppn: 0, subtotal: 300000 },
-    ],
-    total     : 660000,
-    diskon    : 20000,
-    ppn       : 37400,
-    grandtotal: 677400,
-    status    : "S",
-  },
-  {
-    kodejual      : "PJ-20260814-0001",
-    tanggal       : "2026-08-14",
-    jenistransaksi: "PESANAN",
-    kodecustomer  : "CUST-0003",
-    namacustomer  : "Ahmad Hidayat",
-    items         : [
-      { kodebarang: "BRG-0006", namabarang: "Buku Tulis 38 Lembar", satuan: "Pcs", qty: 50, harga: 4000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 200000 },
-    ],
-    total      : 200000,
-    diskon     : 0,
-    ppn        : 0,
-    grandtotal : 200000,
-    status     : "D",
-    alasanBatal: "Pesanan dibatalkan atas permintaan customer",
-  },
-];
+type Decimalish = { toString(): string };
 
-let penjualanStore: Penjualan[] = [...seedPenjualan];
+type JualRow = {
+  kodejual      : string;
+  tgltrans      : Date;
+  jenistransaksi: string;
+  status        : string;
+  alasanbatal   : string | null;
+  total         : Decimalish;
+  diskon        : Decimalish;
+  ppn           : Decimalish;
+  grandtotal    : Decimalish;
+  customer      : { kodecustomer: string; namacustomer: string };
+  lokasi        : { kodelokasi: string; namalokasi: string };
+  details: Array<{
+    qty     : Decimalish;
+    harga   : Decimalish;
+    pakaippn: string;
+    diskon  : Decimalish;
+    ppn     : Decimalish;
+    subtotal: Decimalish;
+    barang  : { kodebarang: string; namabarang: string; satuan: string };
+  }>;
+  bayar: Array<{ tunai: Decimalish; nontunai: Decimalish; kembalian: Decimalish }>;
+};
 
-export function findAllPenjualan(): Penjualan[] {
-  return penjualanStore;
+const includeDetail = {
+  customer: true,
+  lokasi  : true,
+  details : { include: { barang: true }, orderBy: { urutan: "asc" as const } },
+  bayar   : true,
+};
+
+function toPenjualan(row: JualRow): Penjualan {
+  const bayar = row.bayar[0];
+
+  return {
+    kodejual      : row.kodejual,
+    tanggal       : row.tgltrans.toISOString().slice(0, 10),
+    jenistransaksi: row.jenistransaksi as JenisTransaksiPenjualan,
+    kodecustomer  : row.customer.kodecustomer,
+    namacustomer  : row.customer.namacustomer,
+    kodelokasi    : row.lokasi.kodelokasi,
+    namalokasi    : row.lokasi.namalokasi,
+    items: row.details.map((detail) => ({
+      kodebarang: detail.barang.kodebarang,
+      namabarang: detail.barang.namabarang,
+      satuan    : detail.barang.satuan,
+      qty       : Number(detail.qty),
+      harga     : Number(detail.harga),
+      pakaiPpn  : detail.pakaippn as PpnMode,
+      diskon    : Number(detail.diskon),
+      ppn       : Number(detail.ppn),
+      subtotal  : Number(detail.subtotal),
+    })),
+    total     : Number(row.total),
+    diskon    : Number(row.diskon),
+    ppn       : Number(row.ppn),
+    grandtotal: Number(row.grandtotal),
+    status    : row.status as StatusTransaksi,
+    alasanbatal: row.alasanbatal,
+    pembayaran: {
+      tunai    : bayar ? Number(bayar.tunai) : 0,
+      nontunai : bayar ? Number(bayar.nontunai) : 0,
+      kembalian: bayar ? Number(bayar.kembalian) : 0,
+    },
+  };
 }
 
-export function findPenjualanByKode(kodejual: string): Penjualan | undefined {
-  const found = penjualanStore.find((item) => item.kodejual === kodejual);
+export async function findConfigPpn(db: DatabasePerusahaanClient): Promise<{ config: string; nilai: string }[]> {
+  const rows = await db.config.findMany({ where: { modul: "ppn" }, select: { config: true, nilai: true } });
 
-  return found;
+  return rows;
 }
 
-export function insertPenjualan(penjualan: Penjualan): void {
-  penjualanStore = [...penjualanStore, penjualan];
+export async function findAllPenjualan(db: DatabasePerusahaanClient): Promise<Penjualan[]> {
+  const rows = await db.jual.findMany({ include: includeDetail, orderBy: { idjual: "asc" } });
+
+  return rows.map(toPenjualan);
 }
 
-export function replacePenjualan(kodejual: string, penjualan: Penjualan): void {
-  penjualanStore = penjualanStore.map((item) => (item.kodejual === kodejual ? penjualan : item));
+export async function findPenjualanByKode(db: DatabasePerusahaanClient, kodejual: string): Promise<Penjualan | null> {
+  const row = await db.jual.findUnique({ where: { kodejual }, include: includeDetail });
+
+  return row ? toPenjualan(row) : null;
 }
 
-export function resetPenjualanStoreForTests(): void {
-  penjualanStore = [...seedPenjualan];
+export type InsertPenjualanItemData = {
+  idbarang: number;
+  qty     : number;
+  harga   : number;
+  pakaippn: PpnMode;
+  diskon  : number;
+  ppn     : number;
+  subtotal: number;
+};
+
+export type InsertPenjualanData = {
+  tgltrans      : Date;
+  jenistransaksi: JenisTransaksiPenjualan;
+  idcustomer    : number;
+  idlokasi      : number;
+  total         : number;
+  diskon        : number;
+  ppn           : number;
+  grandtotal    : number;
+  items         : InsertPenjualanItemData[];
+  pembayaran    : { tunai: number; nontunai: number; kembalian: number };
+};
+
+export async function insertPenjualanLengkap(
+  db      : DatabasePerusahaanClient,
+  kodejual: string,
+  data    : InsertPenjualanData,
+): Promise<void> {
+  const jual = await db.jual.create({
+    data: {
+      kodejual,
+      tgltrans      : data.tgltrans,
+      jenistransaksi: data.jenistransaksi,
+      idcustomer    : data.idcustomer,
+      idlokasi      : data.idlokasi,
+      total         : data.total,
+      diskon        : data.diskon,
+      ppn           : data.ppn,
+      grandtotal    : data.grandtotal,
+    },
+  });
+
+  await db.jualdtl.createMany({
+    data: data.items.map((item, index) => ({
+      idjual  : jual.idjual,
+      urutan  : index + 1,
+      idbarang: item.idbarang,
+      qty     : item.qty,
+      harga   : item.harga,
+      pakaippn: item.pakaippn,
+      diskon  : item.diskon,
+      ppn     : item.ppn,
+      subtotal: item.subtotal,
+    })),
+  });
+
+  await db.bayar.create({
+    data: {
+      idjual   : jual.idjual,
+      tunai    : data.pembayaran.tunai,
+      nontunai : data.pembayaran.nontunai,
+      kembalian: data.pembayaran.kembalian,
+    },
+  });
+}
+
+export async function updateStatusPenjualanByKode(
+  db         : DatabasePerusahaanClient,
+  kodejual   : string,
+  alasanbatal: string | null,
+): Promise<void> {
+  await db.jual.update({ where: { kodejual }, data: { status: "D", alasanbatal } });
 }

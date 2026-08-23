@@ -12,9 +12,13 @@ import { usePosCart } from "@/app/pos/lib/usePosCart";
 import { usePosKeyboardShortcuts } from "@/app/pos/lib/usePosKeyboardShortcuts";
 import type { Barang, PaymentMethod, TransactionSummary } from "@/app/pos/lib/types";
 import { fetchBarangList } from "@/lib/client/barang";
+import { createPenjualan } from "@/lib/client/penjualan";
 import { cancelCloseShift, openShift, recordShiftTransaction } from "@/lib/client/shift";
 import { useShiftSession } from "@/lib/client/useShiftSession";
 import type { OpenShiftInput } from "@/lib/server/shift/types";
+
+const POS_KODELOKASI = "TOKO";
+const POS_KODECUSTOMER = "CASH";
 
 async function fetchBarangCatalog(): Promise<Barang[]> {
   try {
@@ -112,19 +116,33 @@ export default function PosPage() {
     change        : number;
     paymentMethod : PaymentMethod;
   }) {
-    const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const invoiceNumber = `INV-${dateStr}-${randomSuffix}`;
+    const tanggal = new Date().toISOString().slice(0, 10);
+
+    const created = await createPenjualan({
+      tanggal,
+      jenistransaksi: "POS",
+      kodecustomer  : POS_KODECUSTOMER,
+      kodelokasi    : POS_KODELOKASI,
+      items: cart.items.map((item, index) => ({
+        kodebarang: item.barang.kodebarang,
+        qty       : item.qty,
+        harga     : item.barang.hargajual,
+        pakaiPpn  : "TIDAK",
+        diskon    : index === 0 ? cart.discount : 0,
+      })),
+      pembayaran: paymentData.paymentMethod === "TUNAI"
+        ? { tunai: paymentData.amountPaid, nontunai: 0 }
+        : { tunai: 0, nontunai: paymentData.amountPaid },
+    });
 
     const summary: TransactionSummary = {
       amountPaid   : paymentData.amountPaid,
-      change       : paymentData.change,
-      date         : today,
+      change       : created.pembayaran.kembalian,
+      date         : new Date(created.tanggal),
       discount     : cart.discount,
-      grandTotal   : cart.grandTotal,
-      id           : invoiceNumber,
-      invoiceNumber: invoiceNumber,
+      grandTotal   : created.grandtotal,
+      id           : created.kodejual,
+      invoiceNumber: created.kodejual,
       items        : [...cart.items],
       kasirName    : session?.kasirName ?? "Kasir",
       paymentMethod: paymentData.paymentMethod,
@@ -137,7 +155,7 @@ export default function PosPage() {
     try {
       const updatedShift = await recordShiftTransaction({
         paymentMethod: paymentData.paymentMethod,
-        grandTotal   : cart.grandTotal,
+        grandTotal   : created.grandtotal,
       });
       setSession(updatedShift);
     } catch {

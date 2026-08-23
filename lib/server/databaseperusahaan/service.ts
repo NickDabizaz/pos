@@ -5,6 +5,7 @@ import {
   getDatabasePerusahaanClient,
   migrateDatabasePerusahaan,
   seedDefaultConfig,
+  seedDefaultMasterData,
 } from "@/lib/server/databaseperusahaan/repository";
 import type { ConfigRow, DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 
@@ -52,6 +53,7 @@ async function runDatabaseCreation(namadatabase: string): Promise<DatabasePerusa
     migrateDatabasePerusahaan(namadatabase);
     const client = getDatabasePerusahaanClient(namadatabase);
     await seedDefaultConfig(client, buildDefaultConfigRows());
+    await seedDefaultMasterData(client);
 
     return client;
   } catch (error) {

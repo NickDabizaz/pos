@@ -71,7 +71,7 @@ export function migrateDatabasePerusahaan(namadatabase: string): void {
   );
 }
 
-const databasePerusahaanClients = new Map<string, DatabasePerusahaanClient>();
+const databasePerusahaanClients = new Map<string, PrismaClient>();
 
 export function getDatabasePerusahaanClient(namadatabase: string): DatabasePerusahaanClient {
   const cached = databasePerusahaanClients.get(namadatabase);
@@ -107,4 +107,10 @@ export async function disposeDatabasePerusahaanClient(namadatabase: string): Pro
 
 export async function seedDefaultConfig(client: DatabasePerusahaanClient, rows: ConfigRow[]): Promise<void> {
   await client.config.createMany({ data: rows, skipDuplicates: true });
+}
+
+/** Lokasi & Customer tetap dipakai Kasir POS (kodelokasi "TOKO", kodecustomer "CASH"), lihat lib/client/penjualan konsumen di app/pos. */
+export async function seedDefaultMasterData(client: DatabasePerusahaanClient): Promise<void> {
+  await client.lokasi.createMany({ data: [{ kodelokasi: "TOKO", namalokasi: "TOKO" }], skipDuplicates: true });
+  await client.customer.createMany({ data: [{ kodecustomer: "CASH", namacustomer: "CASH" }], skipDuplicates: true });
 }

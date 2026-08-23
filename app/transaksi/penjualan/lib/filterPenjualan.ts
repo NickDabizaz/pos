@@ -1,5 +1,6 @@
+import type { PenjualanFilter } from "@/app/transaksi/penjualan/lib/types";
+import type { Penjualan } from "@/lib/server/penjualan/types";
 import { matchesSearch } from "@/lib/textSearch";
-import type { Penjualan, PenjualanFilter } from "@/app/penjualan/lib/types";
 
 export function filterPenjualan(items: Penjualan[], filter: PenjualanFilter): Penjualan[] {
   return items.filter((item) => {
