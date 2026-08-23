@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -80,7 +81,10 @@ export default function SubscriptionPage({ idperusahaan }: SubscriptionPageProps
             POS Boilerplate
           </span>
           <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground">Pilih Paket Subscription</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Aktifkan Perusahaan Anda dengan memilih salah satu paket di bawah.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Aktifkan atau perpanjang Langganan Perusahaan Anda dengan memilih salah satu paket di bawah.</p>
+          <Link className="mt-3 inline-block text-sm font-medium text-primary hover:underline" href="/daftar-perusahaan">
+            Daftarkan Perusahaan baru
+          </Link>
         </div>
 
         {error && (

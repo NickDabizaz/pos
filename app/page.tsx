@@ -1,8 +1,9 @@
-import Dashboard from "@/app/components/Dashboard";
+import { redirect } from "next/navigation";
+
 import { requirePerusahaanAktif } from "@/lib/server/auth/guard";
 
 export default async function Home() {
-  const session = await requirePerusahaanAktif();
+  await requirePerusahaanAktif();
 
-  return <Dashboard userEmail={session.user.email} />;
+  redirect("/pos");
 }

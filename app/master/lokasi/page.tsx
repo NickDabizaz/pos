@@ -140,13 +140,13 @@ export default function MasterLokasiPage() {
     }
   }
 
-  async function handleFormSubmit(values: Lokasi, autoGenerateKode: boolean) {
+  async function handleFormSubmit(values: Lokasi) {
     const isEdit = modalState?.mode === "edit";
 
     try {
       const result = isEdit
         ? await updateLokasi(modalState.values.kodelokasi, values)
-        : await createLokasi({ ...values, autoGenerateKode });
+        : await createLokasi(values);
 
       if (isEdit && selected?.kodelokasi === modalState.values.kodelokasi) {
         setSelected(result);

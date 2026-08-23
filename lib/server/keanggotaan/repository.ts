@@ -1,18 +1,21 @@
 import { Prisma } from "@/lib/generated/prisma-global/client";
-import type { GlobalClient, KandidatAnggota } from "@/lib/server/keanggotaan/types";
+import type { AnggotaRow, GlobalClient } from "@/lib/server/keanggotaan/types";
 
-export async function cariKandidatAnggota(db: GlobalClient, idperusahaan: number, kataKunci: string): Promise<KandidatAnggota[]> {
-  const rows = await db.user.findMany({
-    where: {
-      email          : { contains: kataKunci },
-      userperusahaans: { none: { idperusahaan } },
-    },
-    select: { id: true, email: true, name: true },
+export async function findAnggotaPerusahaan(db: GlobalClient, idperusahaan: number): Promise<AnggotaRow[]> {
+  const rows = await db.userperusahaan.findMany({
+    where  : { idperusahaan },
+    include: { user: { select: { id: true, email: true, name: true } } },
+    orderBy: { createdat: "asc" },
   });
 
-  const kandidat = rows.map((row) => ({ iduser: row.id, email: row.email, name: row.name }));
+  const anggota = rows.map((row) => ({
+    iduser : row.user.id,
+    email  : row.user.email,
+    name   : row.user.name,
+    isowner: row.isowner,
+  }));
 
-  return kandidat;
+  return anggota;
 }
 
 export async function insertMembership(db: GlobalClient, iduser: string, idperusahaan: number): Promise<void> {

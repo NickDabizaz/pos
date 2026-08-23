@@ -31,7 +31,7 @@ export default function SideBarNav({
   if (items.length === 0) {
     return (
       <div className="p-4 text-center">
-        <p className="text-xs text-muted-foreground">Tidak ada menu tersedia.</p>
+        <p className="text-xs text-muted-foreground">Belum ada menu yang bisa diakses.</p>
       </div>
     );
   }

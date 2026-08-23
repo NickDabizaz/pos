@@ -32,7 +32,7 @@ describe("skema Global memuat tabel bawaan Better Auth", () => {
 });
 
 describe("skema Global memuat tabel inti lintas Perusahaan", () => {
-  it("migration Global membuat tabel perusahaan, subscription, subscriptiondtl, menu, usermenu, dan userperusahaan", async () => {
+  it("migration Global membuat tabel perusahaan, subscription, subscriptiondtl, menu, usermenu, userperusahaan, dan invitationperusahaan", async () => {
     const tables = await listTables(dbName);
 
     expect(tables).toEqual(
@@ -43,6 +43,7 @@ describe("skema Global memuat tabel inti lintas Perusahaan", () => {
         "menu",
         "usermenu",
         "userperusahaan",
+        "invitationperusahaan",
       ]),
     );
   });

@@ -28,6 +28,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const updated = await updateLokasi(db, kodelokasi, {
       namalokasi: body.namalokasi !== undefined ? String(body.namalokasi) : undefined,
       keterangan: body.keterangan !== undefined ? String(body.keterangan) : undefined,
+      status    : body.status !== undefined ? (Number(body.status) as 0 | 1) : undefined,
     });
 
     return successResponse({

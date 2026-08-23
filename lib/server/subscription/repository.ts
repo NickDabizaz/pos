@@ -39,6 +39,7 @@ function tglSelesaiDari(tglmulai: Date, masaberlakuhari: number): Date {
   return hasil;
 }
 
+/** Date math stays here (not service.ts) — must run inside the same $transaction that locks the Perusahaan row (see FOR UPDATE below). */
 export async function insertSubscriptionDanAktifkanPerusahaan(
   db           : GlobalClient,
   idperusahaan : number,

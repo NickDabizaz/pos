@@ -61,6 +61,16 @@ describe("Lokasi tersimpan dan bertahan lewat CRUD dasar", () => {
     expect(found?.namalokasi).toBe("Toko Utama (Renovasi)");
   });
 
+  it("updateLokasi mengubah status Lokasi dan perubahan terbaca pada findLokasi berikutnya", async () => {
+    const created = await createLokasi(db, { namalokasi: "Toko Utama", keterangan: "Display etalase" });
+    expect(created.status).toBe(1);
+
+    await updateLokasi(db, created.kodelokasi, { status: 0 });
+
+    const found = await findLokasi(db, created.kodelokasi);
+    expect(found?.status).toBe(0);
+  });
+
   it("deleteLokasi menghapus Lokasi sehingga findLokasi dengan kode yang sama tidak lagi menemukannya", async () => {
     const created = await createLokasi(db, { namalokasi: "Toko Utama" });
 

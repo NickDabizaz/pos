@@ -15,16 +15,8 @@ describe("validateLokasiForm", () => {
     expect(validateLokasiForm(validLokasi)).toEqual({});
   });
 
-  it("requires kodelokasi when skipKodelokasi is not set", () => {
+  it("does not validate kodelokasi, since it is always server-generated", () => {
     const errors = validateLokasiForm({ ...validLokasi, kodelokasi: "" });
-    expect(errors.kodelokasi).toBe("Kode lokasi wajib diisi");
-  });
-
-  it("skips kodelokasi validation when skipKodelokasi is true", () => {
-    const errors = validateLokasiForm(
-      { ...validLokasi, kodelokasi: "" },
-      { skipKodelokasi: true },
-    );
     expect(errors.kodelokasi).toBeUndefined();
   });
 

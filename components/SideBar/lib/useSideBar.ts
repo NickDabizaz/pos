@@ -57,11 +57,11 @@ export function useSideBar({
           },
         });
 
-        if (!response.ok) {
+        if (!response.ok && response.status !== 403) {
           throw new Error(`Gagal mengambil data menu (${response.status})`);
         }
 
-        const json: MenuTreeApiResponse = await response.json();
+        const json: MenuTreeApiResponse = response.ok ? await response.json() : { data: [] };
         const menuData = json.data ?? [];
 
         if (isMounted) {

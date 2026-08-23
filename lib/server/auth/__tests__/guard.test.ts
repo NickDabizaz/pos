@@ -78,10 +78,8 @@ describe("Pengarahan setelah login", () => {
 
   it("Pengguna yang sudah memiliki Keanggotaan dengan Perusahaan aktif tidak diarahkan ke form pendaftaran (dilempar ke /)", async () => {
     const { headers, iduser } = await signUpAndGetHeaders("sudah-punya-perusahaan@norvyn.test");
-    const perusahaan = await prisma.perusahaan.create({
-      data: { kodeperusahaan: "PSH-GUARD-1", namaperusahaan: "Toko Guard", namadatabase: "pos_test_guard_1", status: 1 },
-    });
-    await prisma.userperusahaan.create({ data: { iduser, idperusahaan: perusahaan.idperusahaan, isowner: true } });
+    const idperusahaan = await tambahPerusahaan("PSH-GUARD-1");
+    await tambahKeanggotaanOwner(iduser, idperusahaan);
 
     const target = await redirectTargetOf(resolveDaftarPerusahaanAccess(auth, prisma, headers));
 
@@ -190,10 +188,8 @@ describe("Pengarahan ke halaman yang mensyaratkan Perusahaan aktif (mis. /)", ()
 
   it("Pengguna dengan Perusahaan aktif (status 1) tidak diarahkan (tidak melempar redirect)", async () => {
     const { headers, iduser } = await signUpAndGetHeaders("aktif-sudah-bayar@norvyn.test");
-    const perusahaan = await prisma.perusahaan.create({
-      data: { kodeperusahaan: "PSH-GUARD-4", namaperusahaan: "Toko Guard Sudah Bayar", namadatabase: "pos_test_guard_4", status: 1 },
-    });
-    await prisma.userperusahaan.create({ data: { iduser, idperusahaan: perusahaan.idperusahaan, isowner: true } });
+    const idperusahaan = await tambahPerusahaan("PSH-GUARD-4");
+    await tambahKeanggotaanOwner(iduser, idperusahaan);
 
     const session = await resolvePerusahaanAktifAccess(auth, prisma, headers);
 
@@ -211,6 +207,23 @@ async function tambahPerusahaan(kodeperusahaan: string, status = 1): Promise<num
   const perusahaan = await prisma.perusahaan.create({
     data: { kodeperusahaan, namaperusahaan: `Toko ${kodeperusahaan}`, namadatabase: `pos_test_${kodeperusahaan.toLowerCase()}`, status },
   });
+
+  if (status === 1) {
+    const tglmulai = new Date();
+    const tglselesai = new Date(tglmulai);
+    tglselesai.setUTCDate(tglselesai.getUTCDate() + 30);
+    await prisma.subscription.create({
+      data: {
+        idperusahaan   : perusahaan.idperusahaan,
+        orderid        : `TEST-${kodeperusahaan}`,
+        namapaket      : "Paket Bulanan",
+        hargapaket     : 150_000,
+        masaberlakuhari: 30,
+        tglmulai,
+        tglselesai,
+      },
+    });
+  }
 
   return perusahaan.idperusahaan;
 }

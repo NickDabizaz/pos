@@ -7,10 +7,11 @@ model perusahaan {
   status         Int      @default(0) @db.SmallInt
   createdat      DateTime @default(now())
 
-  subscriptions    subscription[]
-  userperusahaans  userperusahaan[]
-  usermenus        usermenu[]
-  sessions         Session[]
+  subscriptions        subscription[]
+  userperusahaans      userperusahaan[]
+  usermenus            usermenu[]
+  sessions             Session[]
+  invitationperusahaan invitationperusahaan?
 }
 
 /// Status Subscription: 1 = aktif. Baris hanya dibuat setelah pembayaran dikonfirmasi lunas,
@@ -74,4 +75,16 @@ model userperusahaan {
   perusahaan perusahaan @relation(fields: [idperusahaan], references: [idperusahaan])
 
   @@id([iduser, idperusahaan])
+}
+
+/// Link invitation Perusahaan: satu Perusahaan hanya punya satu link aktif — membuat link baru
+/// menggantikan yang lama. Siapa pun yang membuka link ini jadi anggota non-Owner Perusahaan
+/// tersebut; link tidak sekali pakai, berlaku sampai expiresat.
+model invitationperusahaan {
+  token        String   @id @db.VarChar(64)
+  idperusahaan Int      @unique
+  expiresat    DateTime
+  createdat    DateTime @default(now())
+
+  perusahaan perusahaan @relation(fields: [idperusahaan], references: [idperusahaan], onDelete: Cascade)
 }

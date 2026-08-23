@@ -7,7 +7,7 @@ type LokasiFormModalProps = {
   initialValues: Lokasi;
   mode         : "create" | "edit";
   onCancel     : () => void;
-  onSubmit     : (values: Lokasi, autoGenerateKode: boolean) => Promise<void>;
+  onSubmit     : (values: Lokasi) => Promise<void>;
 };
 
 export default function LokasiFormModal({
@@ -18,12 +18,11 @@ export default function LokasiFormModal({
 }: LokasiFormModalProps) {
   const [values, setValues]             = useState<Lokasi>(initialValues);
   const [errors, setErrors]             = useState<LokasiFormErrors>({});
-  const [autoGenerate, setAutoGenerate] = useState(false);
   const [submitError, setSubmitError]   = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleTextChange(field: keyof Lokasi) {
-    return (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    return (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setValues((previous) => ({ ...previous, [field]: event.target.value }));
     };
   }
@@ -31,11 +30,7 @@ export default function LokasiFormModal({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const candidate: Lokasi = {
-      ...values,
-      kodelokasi: autoGenerate ? "" : values.kodelokasi,
-    };
-    const validationErrors = validateLokasiForm(candidate, { skipKodelokasi: autoGenerate });
+    const validationErrors = validateLokasiForm(values);
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -47,7 +42,7 @@ export default function LokasiFormModal({
     setIsSubmitting(true);
 
     try {
-      await onSubmit(candidate, autoGenerate);
+      await onSubmit(values);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Gagal menyimpan lokasi");
     } finally {
@@ -64,6 +59,7 @@ export default function LokasiFormModal({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Lengkapi data toko, gudang, atau rak lokasi penyimpanan.
+            {mode === "create" && " Kode Lokasi akan dibuat otomatis."}
           </p>
         </div>
 
@@ -74,27 +70,17 @@ export default function LokasiFormModal({
         )}
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <FormField error={errors.kodelokasi} htmlFor="kodelokasi" label="Kode Lokasi">
-            <input
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
-              disabled={autoGenerate}
-              id="kodelokasi"
-              onChange={handleTextChange("kodelokasi")}
-              placeholder={autoGenerate ? "Akan digenerate otomatis" : ""}
-              type="text"
-              value={autoGenerate ? "" : values.kodelokasi}
-            />
-            {mode === "create" && (
-              <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  checked={autoGenerate}
-                  onChange={(event) => setAutoGenerate(event.target.checked)}
-                  type="checkbox"
-                />
-                Generate otomatis
-              </label>
-            )}
-          </FormField>
+          {mode === "edit" && (
+            <FormField htmlFor="kodelokasi" label="Kode Lokasi">
+              <input
+                className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-muted-foreground"
+                disabled
+                id="kodelokasi"
+                type="text"
+                value={values.kodelokasi}
+              />
+            </FormField>
+          )}
 
           <FormField error={errors.namalokasi} htmlFor="namalokasi" label="Nama Lokasi">
             <input
@@ -118,16 +104,18 @@ export default function LokasiFormModal({
             />
           </FormField>
 
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              checked={values.status === 1}
-              onChange={(event) =>
-                setValues((previous) => ({ ...previous, status: event.target.checked ? 1 : 0 }))
-              }
-              type="checkbox"
-            />
-            Aktif
-          </label>
+          {mode === "edit" && (
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                checked={values.status === 1}
+                onChange={(event) =>
+                  setValues((previous) => ({ ...previous, status: event.target.checked ? 1 : 0 }))
+                }
+                type="checkbox"
+              />
+              Aktif
+            </label>
+          )}
 
           <div className="mt-2 flex justify-end gap-3">
             <button

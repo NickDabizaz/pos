@@ -14,4 +14,5 @@ export type CreateLokasiInput = {
 export type UpdateLokasiInput = {
   namalokasi?: string;
   keterangan?: string | null;
+  status     ?: 0 | 1;
 };

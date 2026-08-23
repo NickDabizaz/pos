@@ -27,7 +27,7 @@ export async function insertLokasi(
 export async function updateLokasiByKode(
   db        : DatabasePerusahaanClient,
   kodelokasi: string,
-  data      : { namalokasi?: string; keterangan?: string | null },
+  data      : { namalokasi?: string; keterangan?: string | null; status?: number },
 ): Promise<Lokasi> {
   const row = await db.lokasi.update({ where: { kodelokasi }, data });
 

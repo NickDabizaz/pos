@@ -7,7 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { findSession, type AuthInstance, type UserSession } from "@/lib/server/auth/service";
 import { findKodemenuHakMenuAktif } from "@/lib/server/menu/repository";
 import { bolehAksesMenu } from "@/lib/server/menu/service";
-import { resolvePerusahaanAktif } from "@/lib/server/perusahaan/service";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
+import { cekPemanggilOwner, getDatabasePerusahaanAktif, resolvePerusahaanAktif } from "@/lib/server/perusahaan/service";
+import { isLanggananAktif } from "@/lib/server/subscription/service";
 import { findPerusahaanByUser } from "@/lib/server/user/repository";
 import type { GlobalClient, PerusahaanMembership } from "@/lib/server/user/types";
 
@@ -71,7 +73,8 @@ export async function resolveDaftarPerusahaanAccess(
   const memberships = await findPerusahaanByUser(globalDb, session.user.id);
   if (memberships.length > 0) {
     const aktif = await resolvePerusahaanAktifOrRedirect(globalDb, session, memberships);
-    redirect(aktif.status === 1 ? "/" : "/subscription");
+    const langgananAktif = await isLanggananAktif(globalDb, aktif.idperusahaan);
+    redirect(langgananAktif ? "/" : "/subscription");
   }
 
   return session;
@@ -116,7 +119,7 @@ export async function resolvePerusahaanAktifAccess(
 
   const memberships = await findPerusahaanByUser(globalDb, session.user.id);
   const aktif = await resolvePerusahaanAktifOrRedirect(globalDb, session, memberships);
-  if (aktif.status !== 1) {
+  if (!(await isLanggananAktif(globalDb, aktif.idperusahaan))) {
     redirect("/subscription");
   }
 
@@ -127,6 +130,18 @@ export async function requirePerusahaanAktif(): Promise<UserSession> {
   const session = await resolvePerusahaanAktifAccess(auth, prisma, await headers());
 
   return session;
+}
+
+export async function requireDatabasePerusahaanAktif(): Promise<DatabasePerusahaanClient> {
+  const session = await requirePerusahaanAktif();
+  const idperusahaan = session.session.idperusahaan;
+  if (!idperusahaan) {
+    throw new Error("Perusahaan Aktif tidak ditemukan pada sesi", { cause: "PERUSAHAAN_TIDAK_AKTIF" });
+  }
+
+  const db = await getDatabasePerusahaanAktif(prisma, idperusahaan);
+
+  return db;
 }
 
 export interface AksesMenuResult {
@@ -156,7 +171,7 @@ export async function requireAksesMenu(
   if (!aktif) {
     throw new Error("Perusahaan Aktif tidak ditemukan", { cause: "PERUSAHAAN_TIDAK_AKTIF" });
   }
-  if (aktif.status !== 1) {
+  if (!(await isLanggananAktif(globalDb, aktif.idperusahaan))) {
     throw new Error("Langganan Perusahaan tidak aktif", { cause: "LANGGANAN_TIDAK_AKTIF" });
   }
 
@@ -171,4 +186,42 @@ export async function requireAksesMenu(
   const hasil: AksesMenuResult = { session, isOwner: aktif.isowner, kodemenuDiizinkan };
 
   return hasil;
+}
+
+export async function requireOwnerPerusahaanAktif(): Promise<UserSession & { idperusahaan: number }> {
+  const session = await requirePerusahaanAktif();
+  const idperusahaan = session.session.idperusahaan!;
+  try {
+    await cekPemanggilOwner(prisma, session.user.id, idperusahaan);
+  } catch {
+    redirect("/");
+  }
+
+  return { ...session, idperusahaan };
+}
+
+export interface OwnerApiSessionResult {
+  session     : UserSession;
+  idperusahaan: number;
+}
+
+/** Owner-only session guard for Manajemen User & Hak Menu endpoints — JSON 401/403 instead of redirect, so it stays testable and correct for an API route. */
+export async function requireOwnerApiSession(
+  instance      : AuthInstance,
+  globalDb      : GlobalClient,
+  requestHeaders: Headers,
+): Promise<OwnerApiSessionResult> {
+  const session = await findSession(instance, requestHeaders);
+  if (!session) {
+    throw new Error("Anda harus login terlebih dahulu", { cause: "TIDAK_LOGIN" });
+  }
+
+  const idperusahaan = session.session.idperusahaan;
+  if (!idperusahaan) {
+    throw new Error("Perusahaan Aktif tidak ditemukan pada sesi", { cause: "PERUSAHAAN_TIDAK_AKTIF" });
+  }
+
+  await cekPemanggilOwner(globalDb, session.user.id, idperusahaan);
+
+  return { session, idperusahaan };
 }

@@ -78,19 +78,19 @@ CREATE TABLE `menu` (
 
 -- SeedData
 INSERT INTO `menu` (`kodemenu`, `kodeinduk`, `namamenu`, `jenis`, `urutan`, `status`) VALUES
-    ('MDATA',     NULL,    'Master Data', 'HEADER', '010', 1),
-    ('MDATA-BRG', 'MDATA', 'Barang',      'DETAIL', '011', 1),
-    ('MDATA-CUS', 'MDATA', 'Customer',    'DETAIL', '012', 1),
-    ('MDATA-SUP', 'MDATA', 'Supplier',    'DETAIL', '013', 1),
-    ('MDATA-LOK', 'MDATA', 'Lokasi',      'DETAIL', '014', 1),
-    ('TRANS',     NULL,    'Transaksi',   'HEADER', '020', 1),
-    ('TRANS-JUL', 'TRANS', 'Penjualan',   'DETAIL', '021', 1),
-    ('TRANS-BEL', 'TRANS', 'Pembelian',   'DETAIL', '022', 1),
-    ('TRANS-KAS', 'TRANS', 'Kas',         'DETAIL', '023', 1),
-    ('KASIR',     NULL,    'Kasir',       'HEADER', '030', 1),
-    ('KASIR-POS', 'KASIR', 'POS',         'DETAIL', '031', 1),
-    ('KASIR-TTP', 'KASIR', 'Tutup Kasir', 'DETAIL', '032', 1),
-    ('LANGGANAN', NULL,    'Langganan',   'DETAIL', '040', 1);
+    ('KASIR-POS', NULL,    'Kasir POS',   'DETAIL', '1', 1),
+    ('MDATA',     NULL,    'Master Data', 'HEADER', '2', 1),
+    ('MDATA-BRG', 'MDATA', 'Barang',      'DETAIL', '2.1', 1),
+    ('MDATA-CUS', 'MDATA', 'Customer',    'DETAIL', '2.2', 1),
+    ('MDATA-SUP', 'MDATA', 'Supplier',    'DETAIL', '2.3', 1),
+    ('MDATA-LOK', 'MDATA', 'Lokasi',      'DETAIL', '2.4', 1),
+    ('TRANS',     NULL,    'Transaksi',   'HEADER', '3', 1),
+    ('TRANS-JUL', 'TRANS', 'Penjualan',   'DETAIL', '3.1', 1),
+    ('TRANS-BEL', 'TRANS', 'Pembelian',   'DETAIL', '3.2', 1),
+    ('TRANS-KAS', 'TRANS', 'Kas',         'DETAIL', '3.3', 1),
+    ('KASIR-TTP', NULL,    'Tutup Kasir', 'DETAIL', '4', 1),
+    ('LANGGANAN', NULL,    'Subscription',   'DETAIL', '5', 1),
+    ('PENGGUNA',  NULL,    'Manajemen User', 'DETAIL', '6', 1);
 
 -- CreateTable
 CREATE TABLE `perusahaan` (
@@ -155,6 +155,17 @@ CREATE TABLE `userperusahaan` (
     PRIMARY KEY (`iduser`, `idperusahaan`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `invitationperusahaan` (
+    `token` VARCHAR(64) NOT NULL,
+    `idperusahaan` INTEGER NOT NULL,
+    `expiresat` DATETIME(3) NOT NULL,
+    `createdat` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `invitationperusahaan_idperusahaan_key`(`idperusahaan`),
+    PRIMARY KEY (`token`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `session` ADD CONSTRAINT `session_iduser_fkey` FOREIGN KEY (`iduser`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -181,3 +192,6 @@ ALTER TABLE `userperusahaan` ADD CONSTRAINT `userperusahaan_iduser_fkey` FOREIGN
 
 -- AddForeignKey
 ALTER TABLE `userperusahaan` ADD CONSTRAINT `userperusahaan_idperusahaan_fkey` FOREIGN KEY (`idperusahaan`) REFERENCES `perusahaan`(`idperusahaan`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `invitationperusahaan` ADD CONSTRAINT `invitationperusahaan_idperusahaan_fkey` FOREIGN KEY (`idperusahaan`) REFERENCES `perusahaan`(`idperusahaan`) ON DELETE CASCADE ON UPDATE CASCADE;

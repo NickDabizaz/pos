@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaClient } from "@/lib/generated/prisma-global/client";
-import { cabutStatusOwner, keluarkanAnggota, tambahAnggota } from "@/lib/server/keanggotaan/service";
+import { insertMembership } from "@/lib/server/keanggotaan/repository";
+import { cabutStatusOwner, keluarkanAnggota } from "@/lib/server/keanggotaan/service";
 import { setUpMigratedDatabase } from "@/prisma/__tests__/testDatabase";
 
 let prisma: PrismaClient;
@@ -49,54 +50,6 @@ async function tambahPerusahaan(kodeperusahaan: string): Promise<number> {
 async function tambahMembership(iduser: string, idperusahaan: number, isowner: boolean): Promise<void> {
   await prisma.userperusahaan.create({ data: { iduser, idperusahaan, isowner } });
 }
-
-describe("Owner menambahkan Pengguna terdaftar sebagai anggota", () => {
-  it("Owner menambahkan Pengguna hasil pencarian sebagai anggota Perusahaan berhasil, dan Pengguna itu tercatat sebagai non-Owner secara default", async () => {
-    const idperusahaan = await tambahPerusahaan("PSH-TAMBAH-1");
-    const owner = await tambahPengguna("owner1@toko.id");
-    await tambahMembership(owner, idperusahaan, true);
-    const target = await tambahPengguna("karyawan1@toko.id");
-
-    await tambahAnggota(prisma, { idpemanggil: owner, idusertarget: target, idperusahaan });
-
-    const membership = await prisma.userperusahaan.findUniqueOrThrow({
-      where: { iduser_idperusahaan: { iduser: target, idperusahaan } },
-    });
-    expect(membership.isowner).toBe(false);
-  });
-
-  it("Owner menambahkan Pengguna yang sudah menjadi anggota Perusahaan itu ditolak sebagai Keanggotaan duplikat", async () => {
-    const idperusahaan = await tambahPerusahaan("PSH-TAMBAH-2");
-    const owner = await tambahPengguna("owner2@toko.id");
-    await tambahMembership(owner, idperusahaan, true);
-    const target = await tambahPengguna("karyawan2@toko.id");
-    await tambahMembership(target, idperusahaan, false);
-
-    await expect(tambahAnggota(prisma, { idpemanggil: owner, idusertarget: target, idperusahaan })).rejects.toThrow(
-      /sudah menjadi anggota/,
-    );
-  });
-
-  it("Pengguna yang sudah menjadi anggota Perusahaan lain berhasil ditambahkan sebagai anggota Perusahaan ini juga, tanpa memengaruhi Keanggotaannya di Perusahaan lain", async () => {
-    const perusahaanA = await tambahPerusahaan("PSH-TAMBAH-3A");
-    const perusahaanB = await tambahPerusahaan("PSH-TAMBAH-3B");
-    const ownerB = await tambahPengguna("ownerb3@toko.id");
-    await tambahMembership(ownerB, perusahaanB, true);
-    const target = await tambahPengguna("karyawan3@toko.id");
-    await tambahMembership(target, perusahaanA, false);
-
-    await tambahAnggota(prisma, { idpemanggil: ownerB, idusertarget: target, idperusahaan: perusahaanB });
-
-    const membershipA = await prisma.userperusahaan.findUniqueOrThrow({
-      where: { iduser_idperusahaan: { iduser: target, idperusahaan: perusahaanA } },
-    });
-    const membershipB = await prisma.userperusahaan.findUniqueOrThrow({
-      where: { iduser_idperusahaan: { iduser: target, idperusahaan: perusahaanB } },
-    });
-    expect(membershipA.isowner).toBe(false);
-    expect(membershipB.isowner).toBe(false);
-  });
-});
 
 describe("Owner tidak dapat mencabut status Owner sendiri bila satu-satunya Owner", () => {
   it("Perusahaan dengan tepat satu Owner: mencoba mencabut status Owner-nya sendiri ditolak, dan Keanggotaannya tetap Owner", async () => {
@@ -148,17 +101,6 @@ describe("Owner tidak dapat mencabut status Owner sendiri bila satu-satunya Owne
 });
 
 describe("Anggota bukan Owner tidak dapat menjalankan aksi manajemen pengguna", () => {
-  it("Anggota non-Owner mencoba menambahkan anggota baru ditolak dengan pesan jelas", async () => {
-    const idperusahaan = await tambahPerusahaan("PSH-NONOWNER-1");
-    const nonOwner = await tambahPengguna("nonowner1@toko.id");
-    await tambahMembership(nonOwner, idperusahaan, false);
-    const target = await tambahPengguna("targetnonowner1@toko.id");
-
-    await expect(tambahAnggota(prisma, { idpemanggil: nonOwner, idusertarget: target, idperusahaan })).rejects.toThrow(
-      /Owner/,
-    );
-  });
-
   it("Anggota non-Owner mencoba mengeluarkan anggota lain ditolak", async () => {
     const idperusahaan = await tambahPerusahaan("PSH-NONOWNER-3");
     const nonOwner = await tambahPengguna("nonowner3@toko.id");
@@ -202,7 +144,7 @@ describe("Owner mengeluarkan anggota dan anggota kehilangan akses", () => {
     await prisma.usermenu.create({ data: { iduser: target, idperusahaan, kodemenu: "M01D1", status: 1 } });
 
     await keluarkanAnggota(prisma, { idpemanggil: owner, idusertarget: target, idperusahaan });
-    await tambahAnggota(prisma, { idpemanggil: owner, idusertarget: target, idperusahaan });
+    await insertMembership(prisma, target, idperusahaan);
 
     const usermenuRows = await prisma.usermenu.findMany({ where: { iduser: target, idperusahaan } });
     expect(usermenuRows).toEqual([]);

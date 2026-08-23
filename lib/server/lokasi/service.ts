@@ -58,7 +58,7 @@ export async function updateLokasi(
   kodelokasi: string,
   input     : UpdateLokasiInput,
 ): Promise<Lokasi> {
-  const data: { namalokasi?: string; keterangan?: string | null } = {};
+  const data: { namalokasi?: string; keterangan?: string | null; status?: number } = {};
 
   if (input.namalokasi !== undefined) {
     const namalokasi = input.namalokasi.trim();
@@ -70,6 +70,10 @@ export async function updateLokasi(
 
   if (input.keterangan !== undefined) {
     data.keterangan = input.keterangan?.trim() || null;
+  }
+
+  if (input.status !== undefined) {
+    data.status = input.status;
   }
 
   try {

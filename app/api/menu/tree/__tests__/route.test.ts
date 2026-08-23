@@ -42,6 +42,24 @@ async function tambahPerusahaan(kodeperusahaan: string, status = 1): Promise<num
   const perusahaan = await prisma.perusahaan.create({
     data: { kodeperusahaan, namaperusahaan: `Toko ${kodeperusahaan}`, namadatabase: `pos_test_${kodeperusahaan.toLowerCase()}`, status },
   });
+
+  if (status === 1) {
+    const tglmulai = new Date();
+    const tglselesai = new Date(tglmulai);
+    tglselesai.setUTCDate(tglselesai.getUTCDate() + 30);
+    await prisma.subscription.create({
+      data: {
+        idperusahaan   : perusahaan.idperusahaan,
+        orderid        : `TEST-${kodeperusahaan}`,
+        namapaket      : "Paket Bulanan",
+        hargapaket     : 150_000,
+        masaberlakuhari: 30,
+        tglmulai,
+        tglselesai,
+      },
+    });
+  }
+
   return perusahaan.idperusahaan;
 }
 

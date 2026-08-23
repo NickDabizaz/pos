@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaClient } from "@/lib/generated/prisma-global/client";
-import { cariKandidatAnggota } from "@/lib/server/keanggotaan/repository";
+import { findAnggotaPerusahaan } from "@/lib/server/keanggotaan/repository";
 import { setUpMigratedDatabase } from "@/prisma/__tests__/testDatabase";
 
 let prisma: PrismaClient;
@@ -46,34 +46,40 @@ async function tambahPerusahaan(kodeperusahaan: string): Promise<number> {
   return perusahaan.idperusahaan;
 }
 
-describe("Owner mencari kandidat anggota lewat email", () => {
-  it('mencari "budi" menemukan Pengguna dengan email budi@toko.id maupun BUDI2@toko.id', async () => {
-    const idperusahaan = await tambahPerusahaan("PSH-KAND-1");
-    await tambahPengguna("budi@toko.id");
-    await tambahPengguna("BUDI2@toko.id");
-    await tambahPengguna("lain@toko.id");
+describe("Owner melihat daftar anggota Perusahaan", () => {
+  it("mengembalikan seluruh anggota beserta status Owner-nya", async () => {
+    const idperusahaan = await tambahPerusahaan("PSH-ANGG-1");
+    const idowner = await tambahPengguna("owner@toko.id");
+    const idkaryawan = await tambahPengguna("karyawan@toko.id");
+    await prisma.userperusahaan.create({ data: { iduser: idowner, idperusahaan, isowner: true } });
+    await prisma.userperusahaan.create({ data: { iduser: idkaryawan, idperusahaan, isowner: false } });
 
-    const hasil = await cariKandidatAnggota(prisma, idperusahaan, "budi");
+    const hasil = await findAnggotaPerusahaan(prisma, idperusahaan);
 
-    const emails = hasil.map((kandidat) => kandidat.email).sort();
-    expect(emails).toEqual(["BUDI2@toko.id", "budi@toko.id"]);
+    expect(hasil).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ iduser: idowner, email: "owner@toko.id", isowner: true }),
+        expect.objectContaining({ iduser: idkaryawan, email: "karyawan@toko.id", isowner: false }),
+      ]),
+    );
+    expect(hasil).toHaveLength(2);
   });
 
-  it("mencari email yang tidak cocok dengan Pengguna manapun mengembalikan daftar kandidat kosong, bukan error", async () => {
-    const idperusahaan = await tambahPerusahaan("PSH-KAND-2");
-    await tambahPengguna("ada@toko.id");
+  it("Perusahaan tanpa anggota mengembalikan daftar kosong, bukan error", async () => {
+    const idperusahaan = await tambahPerusahaan("PSH-ANGG-2");
 
-    const hasil = await cariKandidatAnggota(prisma, idperusahaan, "tidak-ada-yang-cocok");
+    const hasil = await findAnggotaPerusahaan(prisma, idperusahaan);
 
     expect(hasil).toEqual([]);
   });
 
-  it("Pengguna yang sudah menjadi anggota Perusahaan ini tidak muncul di hasil pencarian kandidat", async () => {
-    const idperusahaan = await tambahPerusahaan("PSH-KAND-3");
-    const iduser = await tambahPengguna("sudahanggota@toko.id");
-    await prisma.userperusahaan.create({ data: { iduser, idperusahaan, isowner: false } });
+  it("anggota Perusahaan lain tidak ikut muncul", async () => {
+    const idperusahaanA = await tambahPerusahaan("PSH-ANGG-3A");
+    const idperusahaanB = await tambahPerusahaan("PSH-ANGG-3B");
+    const iduser = await tambahPengguna("lintas@toko.id");
+    await prisma.userperusahaan.create({ data: { iduser, idperusahaan: idperusahaanA, isowner: true } });
 
-    const hasil = await cariKandidatAnggota(prisma, idperusahaan, "sudahanggota");
+    const hasil = await findAnggotaPerusahaan(prisma, idperusahaanB);
 
     expect(hasil).toEqual([]);
   });
