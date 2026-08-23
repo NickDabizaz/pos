@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { filterPembelian } from "@/app/pembelian/lib/filterPembelian";
-import type { Pembelian, PembelianFilter } from "@/app/pembelian/lib/types";
+import { filterPembelian } from "@/app/transaksi/pembelian/lib/filterPembelian";
+import type { PembelianFilter } from "@/app/transaksi/pembelian/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DataTable, { type DataTableColumn } from "@/components/DataTable";
-import { fetchPembelianList, updatePembelian } from "@/lib/client/pembelian";
+import { cancelPembelian, fetchPembelianList } from "@/lib/client/pembelian";
+import type { Pembelian } from "@/lib/server/pembelian/types";
 
 const emptyFilter: PembelianFilter = {
   query        : "",
@@ -19,7 +20,8 @@ const columns: DataTableColumn<Pembelian>[] = [
   { type: "rowNumber", width: "56px" },
   { key: "kodebeli", label: "Kode", width: "160px" },
   { key: "tanggal", label: "Tanggal", width: "120px" },
-  { key: "namasupplier", label: "Supplier", minWidth: "160px", width: "200px" },
+  { key: "namasupplier", label: "Supplier", minWidth: "160px", width: "180px" },
+  { key: "namalokasi", label: "Lokasi", minWidth: "140px", width: "160px" },
   {
     key   : "total",
     label : "Total",
@@ -116,11 +118,7 @@ export default function PembelianPage() {
     setIsCancelling(true);
 
     try {
-      const updated = await updatePembelian(selected.kodebeli, {
-        ...selected,
-        status     : "D",
-        alasanBatal: alasan,
-      });
+      const updated = await cancelPembelian(selected.kodebeli, alasan);
 
       setItems((prev) => prev.map((item) => (item.kodebeli === updated.kodebeli ? updated : item)));
       setSelected(null);
@@ -139,7 +137,7 @@ export default function PembelianPage() {
           Pembelian
         </h1>
         <p className="text-sm text-muted-foreground">
-          Riwayat transaksi pembelian barang dari supplier.
+          Riwayat transaksi pembelian barang dari Supplier.
         </p>
       </div>
 
@@ -196,7 +194,7 @@ export default function PembelianPage() {
           )}
           <button
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-            onClick={() => router.push("/pembelian/form")}
+            onClick={() => router.push("/transaksi/pembelian/form")}
             type="button"
           >
             Tambah Pembelian
@@ -215,7 +213,7 @@ export default function PembelianPage() {
           emptyMessage          = {isLoading ? "Memuat data..." : "Tidak ada transaksi pembelian yang cocok"}
           getRowClassNameAction = {(row) => (row.status === "D" ? "bg-status-danger-bg/40 hover:bg-status-danger-bg/60" : "")}
           onRowClickAction      = {(row) => setSelected(row)}
-          onRowDoubleClickAction= {(row) => router.push(`/pembelian/${row.kodebeli}`)}
+          onRowDoubleClickAction= {(row) => router.push(`/transaksi/pembelian/${row.kodebeli}`)}
           rowKey                 = "kodebeli"
         />
       )}

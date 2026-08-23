@@ -1,5 +1,6 @@
+import type { PembelianFilter } from "@/app/transaksi/pembelian/lib/types";
+import type { Pembelian } from "@/lib/server/pembelian/types";
 import { matchesSearch } from "@/lib/textSearch";
-import type { Pembelian, PembelianFilter } from "@/app/pembelian/lib/types";
 
 export function filterPembelian(items: Pembelian[], filter: PembelianFilter): Pembelian[] {
   return items.filter((item) => {

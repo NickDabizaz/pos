@@ -1,6 +1,6 @@
-import type { Pembelian, PembelianFormErrors } from "@/app/pembelian/lib/types";
+import type { PembelianFormErrors, PembelianFormValues } from "@/app/transaksi/pembelian/lib/types";
 
-export function validatePembelianForm(values: Pembelian): PembelianFormErrors {
+export function validatePembelianForm(values: PembelianFormValues): PembelianFormErrors {
   const errors: PembelianFormErrors = {};
 
   if (!values.tanggal.trim()) {
@@ -8,6 +8,9 @@ export function validatePembelianForm(values: Pembelian): PembelianFormErrors {
   }
   if (!values.kodesupplier.trim()) {
     errors.kodesupplier = "Supplier wajib dipilih";
+  }
+  if (!values.kodelokasi.trim()) {
+    errors.kodelokasi = "Lokasi wajib dipilih";
   }
   if (values.items.length === 0) {
     errors.items = "Minimal 1 barang harus ditambahkan";

@@ -1,73 +1,141 @@
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import type { Pembelian } from "@/lib/server/pembelian/types";
+import type { PpnMode, StatusTransaksi } from "@/lib/server/transaksi/types";
 
-const seedPembelian: Pembelian[] = [
-  {
-    kodebeli    : "PB-20260805-0001",
-    tanggal     : "2026-08-05",
-    kodesupplier: "SUP-0001",
-    namasupplier: "PT Sumber Berkah Pangan",
-    items       : [
-      { kodebarang: "BRG-0001", namabarang: "Beras 5kg", satuan: "Karung", qty: 40, harga: 55000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 2200000 },
-      { kodebarang: "BRG-0007", namabarang: "Gula Pasir 1kg", satuan: "Bungkus", qty: 60, harga: 13000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 780000 },
-    ],
-    total     : 2980000,
-    diskon    : 0,
-    ppn       : 0,
-    grandtotal: 2980000,
-    status    : "S",
-  },
-  {
-    kodebeli    : "PB-20260809-0001",
-    tanggal     : "2026-08-09",
-    kodesupplier: "SUP-0003",
-    namasupplier: "PT Distributor Sembako Nusantara",
-    items       : [
-      { kodebarang: "BRG-0003", namabarang: "Minyak Goreng 2L", satuan: "Botol", qty: 24, harga: 28000, pakaiPpn: "EXCLUDE", diskon: 0, ppn: 73920, subtotal: 745920 },
-    ],
-    total     : 672000,
-    diskon    : 0,
-    ppn       : 73920,
-    grandtotal: 745920,
-    status    : "S",
-  },
-  {
-    kodebeli    : "PB-20260813-0001",
-    tanggal     : "2026-08-13",
-    kodesupplier: "SUP-0001",
-    namasupplier: "PT Sumber Berkah Pangan",
-    items       : [
-      { kodebarang: "BRG-0005", namabarang: "Kopi Sachet", satuan: "Pcs", qty: 200, harga: 1000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 200000 },
-      { kodebarang: "BRG-0002", namabarang: "Teh Botol", satuan: "Botol", qty: 100, harga: 3000, pakaiPpn: "TIDAK", diskon: 0, ppn: 0, subtotal: 300000 },
-    ],
-    total      : 500000,
-    diskon     : 0,
-    ppn        : 0,
-    grandtotal : 500000,
-    status     : "D",
-    alasanBatal: "Barang tidak sesuai kesepakatan dengan supplier",
-  },
-];
+type Decimalish = { toString(): string };
 
-let pembelianStore: Pembelian[] = [...seedPembelian];
+type BeliRow = {
+  kodebeli   : string;
+  tgltrans   : Date;
+  status     : string;
+  alasanbatal: string | null;
+  total      : Decimalish;
+  diskon     : Decimalish;
+  ppn        : Decimalish;
+  grandtotal : Decimalish;
+  supplier   : { kodesupplier: string; namasupplier: string };
+  lokasi     : { kodelokasi: string; namalokasi: string };
+  details: Array<{
+    qty     : Decimalish;
+    harga   : Decimalish;
+    pakaippn: string;
+    diskon  : Decimalish;
+    ppn     : Decimalish;
+    subtotal: Decimalish;
+    barang  : { kodebarang: string; namabarang: string; satuan: string };
+  }>;
+};
 
-export function findAllPembelian(): Pembelian[] {
-  return pembelianStore;
+const includeDetail = {
+  supplier: true,
+  lokasi  : true,
+  details : { include: { barang: true }, orderBy: { urutan: "asc" as const } },
+};
+
+function toPembelian(row: BeliRow): Pembelian {
+  return {
+    kodebeli    : row.kodebeli,
+    tanggal     : row.tgltrans.toISOString().slice(0, 10),
+    kodesupplier: row.supplier.kodesupplier,
+    namasupplier: row.supplier.namasupplier,
+    kodelokasi  : row.lokasi.kodelokasi,
+    namalokasi  : row.lokasi.namalokasi,
+    items: row.details.map((detail) => ({
+      kodebarang: detail.barang.kodebarang,
+      namabarang: detail.barang.namabarang,
+      satuan    : detail.barang.satuan,
+      qty       : Number(detail.qty),
+      harga     : Number(detail.harga),
+      pakaiPpn  : detail.pakaippn as PpnMode,
+      diskon    : Number(detail.diskon),
+      ppn       : Number(detail.ppn),
+      subtotal  : Number(detail.subtotal),
+    })),
+    total      : Number(row.total),
+    diskon     : Number(row.diskon),
+    ppn        : Number(row.ppn),
+    grandtotal : Number(row.grandtotal),
+    status     : row.status as StatusTransaksi,
+    alasanbatal: row.alasanbatal,
+  };
 }
 
-export function findPembelianByKode(kodebeli: string): Pembelian | undefined {
-  const found = pembelianStore.find((item) => item.kodebeli === kodebeli);
+export async function findConfigPpn(db: DatabasePerusahaanClient): Promise<{ config: string; nilai: string }[]> {
+  const rows = await db.config.findMany({ where: { modul: "ppn" }, select: { config: true, nilai: true } });
 
-  return found;
+  return rows;
 }
 
-export function insertPembelian(pembelian: Pembelian): void {
-  pembelianStore = [...pembelianStore, pembelian];
+export async function findAllPembelian(db: DatabasePerusahaanClient): Promise<Pembelian[]> {
+  const rows = await db.beli.findMany({ include: includeDetail, orderBy: { idbeli: "asc" } });
+
+  return rows.map(toPembelian);
 }
 
-export function replacePembelian(kodebeli: string, pembelian: Pembelian): void {
-  pembelianStore = pembelianStore.map((item) => (item.kodebeli === kodebeli ? pembelian : item));
+export async function findPembelianByKode(db: DatabasePerusahaanClient, kodebeli: string): Promise<Pembelian | null> {
+  const row = await db.beli.findUnique({ where: { kodebeli }, include: includeDetail });
+
+  return row ? toPembelian(row) : null;
 }
 
-export function resetPembelianStoreForTests(): void {
-  pembelianStore = [...seedPembelian];
+export type InsertPembelianItemData = {
+  idbarang: number;
+  qty     : number;
+  harga   : number;
+  pakaippn: PpnMode;
+  diskon  : number;
+  ppn     : number;
+  subtotal: number;
+};
+
+export type InsertPembelianData = {
+  tgltrans  : Date;
+  idsupplier: number;
+  idlokasi  : number;
+  total     : number;
+  diskon    : number;
+  ppn       : number;
+  grandtotal: number;
+  items     : InsertPembelianItemData[];
+};
+
+export async function insertPembelianLengkap(
+  db      : DatabasePerusahaanClient,
+  kodebeli: string,
+  data    : InsertPembelianData,
+): Promise<void> {
+  const beli = await db.beli.create({
+    data: {
+      kodebeli,
+      tgltrans  : data.tgltrans,
+      idsupplier: data.idsupplier,
+      idlokasi  : data.idlokasi,
+      total     : data.total,
+      diskon    : data.diskon,
+      ppn       : data.ppn,
+      grandtotal: data.grandtotal,
+    },
+  });
+
+  await db.belidtl.createMany({
+    data: data.items.map((item, index) => ({
+      idbeli  : beli.idbeli,
+      urutan  : index + 1,
+      idbarang: item.idbarang,
+      qty     : item.qty,
+      harga   : item.harga,
+      pakaippn: item.pakaippn,
+      diskon  : item.diskon,
+      ppn     : item.ppn,
+      subtotal: item.subtotal,
+    })),
+  });
+}
+
+export async function updateStatusPembelianByKode(
+  db         : DatabasePerusahaanClient,
+  kodebeli   : string,
+  alasanbatal: string | null,
+): Promise<void> {
+  await db.beli.update({ where: { kodebeli }, data: { status: "D", alasanbatal } });
 }
