@@ -1,5 +1,5 @@
 import { parseResponse } from "@/lib/client/apiResponse";
-import type { CreatePenjualanInput, Penjualan } from "@/lib/server/penjualan/types";
+import type { CreatePenjualanInput, Penjualan, UpdatePenjualanInput } from "@/lib/server/penjualan/types";
 
 export type { Penjualan };
 
@@ -22,6 +22,16 @@ export async function fetchPenjualanByKode(kodejual: string): Promise<Penjualan>
 export async function createPenjualan(input: CreatePenjualanInput): Promise<Penjualan> {
   const response = await fetch("/api/transaksi/penjualan", {
     method : "POST",
+    headers: { "Content-Type": "application/json" },
+    body   : JSON.stringify(input),
+  });
+
+  return parseResponse<Penjualan>(response);
+}
+
+export async function updatePenjualan(kodejual: string, input: UpdatePenjualanInput): Promise<Penjualan> {
+  const response = await fetch(`/api/transaksi/penjualan/${kodejual}`, {
+    method : "PATCH",
     headers: { "Content-Type": "application/json" },
     body   : JSON.stringify(input),
   });

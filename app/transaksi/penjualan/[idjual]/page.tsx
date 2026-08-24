@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import PenjualanForm from "@/app/transaksi/penjualan/components/PenjualanForm";
 import type { PenjualanFormValues } from "@/app/transaksi/penjualan/lib/types";
-import { fetchPenjualanByKode } from "@/lib/client/penjualan";
+import { fetchPenjualanByKode, updatePenjualan } from "@/lib/client/penjualan";
 import type { Penjualan } from "@/lib/server/penjualan/types";
 
 function toFormValues(penjualan: Penjualan): PenjualanFormValues {
@@ -23,6 +23,7 @@ export default function PenjualanDetailPage() {
   const router = useRouter();
   const params = useParams<{ idjual: string }>();
   const [penjualan, setPenjualan] = useState<Penjualan | null>(null);
+  const [mode, setMode] = useState<"view" | "edit">("view");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -53,6 +54,24 @@ export default function PenjualanDetailPage() {
       isMounted = false;
     };
   }, [params.idjual]);
+
+  async function handleUpdate(values: PenjualanFormValues) {
+    if (!penjualan) return;
+
+    const updated = await updatePenjualan(penjualan.kodejual, {
+      kodecustomer: values.kodecustomer,
+      items: values.items.map((item) => ({
+        kodebarang: item.kodebarang,
+        qty       : item.qty,
+        harga     : item.harga,
+        pakaiPpn  : item.pakaiPpn,
+        diskon    : item.diskon,
+      })),
+    });
+
+    setPenjualan(updated);
+    setMode("view");
+  }
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Memuat data...</p>;
@@ -94,6 +113,18 @@ export default function PenjualanDetailPage() {
             Dibatalkan
           </span>
         )}
+
+        {!isCancelled && mode === "view" && (
+          <button
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={penjualan.jenistransaksi === "POS"}
+            onClick={() => setMode("edit")}
+            title={penjualan.jenistransaksi === "POS" ? "Transaksi POS tidak bisa diubah" : undefined}
+            type="button"
+          >
+            Ubah
+          </button>
+        )}
       </div>
 
       {isCancelled && (
@@ -105,7 +136,12 @@ export default function PenjualanDetailPage() {
         </div>
       )}
 
-      <PenjualanForm initialValues={toFormValues(penjualan)} mode="view" />
+      <PenjualanForm
+        initialValues = {toFormValues(penjualan)}
+        key          = {`${penjualan.kodejual}:${mode}`}
+        mode          = {mode}
+        onSubmit      = {mode === "edit" ? handleUpdate : undefined}
+      />
     </>
   );
 }

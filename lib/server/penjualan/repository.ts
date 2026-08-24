@@ -154,6 +154,60 @@ export async function insertPenjualanLengkap(
   });
 }
 
+export type UpdatePenjualanData = {
+  idcustomer: number;
+  total     : number;
+  diskon    : number;
+  ppn       : number;
+  grandtotal: number;
+  items     : InsertPenjualanItemData[];
+  pembayaran: { tunai: number; nontunai: number; kembalian: number };
+};
+
+export async function updatePenjualanLengkap(
+  db      : DatabasePerusahaanClient,
+  kodejual: string,
+  data    : UpdatePenjualanData,
+): Promise<void> {
+  const jual = await db.jual.update({
+    where: { kodejual },
+    data : {
+      idcustomer: data.idcustomer,
+      total     : data.total,
+      diskon    : data.diskon,
+      ppn       : data.ppn,
+      grandtotal: data.grandtotal,
+    },
+  });
+
+  await db.jualdtl.deleteMany({ where: { idjual: jual.idjual } });
+
+  await db.jualdtl.createMany({
+    data: data.items.map((item, index) => ({
+      idjual  : jual.idjual,
+      urutan  : index + 1,
+      idbarang: item.idbarang,
+      qty     : item.qty,
+      harga   : item.harga,
+      pakaippn: item.pakaippn,
+      diskon  : item.diskon,
+      ppn     : item.ppn,
+      subtotal: item.subtotal,
+    })),
+  });
+
+  await db.bayar.deleteMany({ where: { idjual: jual.idjual } });
+
+  await db.bayar.create({
+    data: {
+      idjual   : jual.idjual,
+      tunai    : data.pembayaran.tunai,
+      nontunai : data.pembayaran.nontunai,
+      kembalian: data.pembayaran.kembalian,
+    },
+  });
+}
+
 export async function updateStatusPenjualanByKode(
   db         : DatabasePerusahaanClient,
   kodejual   : string,

@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createDatabasePerusahaan } from "@/lib/server/databaseperusahaan/service";
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
-import { cancelPenjualan, createPenjualan, findPenjualan, listPenjualan } from "@/lib/server/penjualan/service";
-import type { CreatePenjualanInput } from "@/lib/server/penjualan/types";
+import { cancelPenjualan, createPenjualan, findPenjualan, listPenjualan, updatePenjualan } from "@/lib/server/penjualan/service";
+import type { CreatePenjualanInput, UpdatePenjualanInput } from "@/lib/server/penjualan/types";
 import { getTestDb, resetTables } from "@/lib/test/db";
 import { dropDatabase, uniqueDatabaseName } from "@/prisma/__tests__/testDatabase";
 
@@ -437,6 +437,21 @@ describe("Total pembayaran tidak boleh kurang dari grand total", () => {
 
     expect(created.pembayaran.kembalian).toBe(1);
   });
+
+  it("komponen pembayaran negatif ditolak di jalur create — cek yang sama dipakai edit", async () => {
+    await siapkanDasar();
+
+    await expect(
+      createPenjualan(
+        db,
+        buildInput({
+          items     : [{ kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+          pembayaran: { tunai: 300000, nontunai: -190000 },
+        }),
+      ),
+    ).rejects.toThrow(/negatif/);
+    expect(await bacaJumlahBaris()).toEqual({ jual: 0, jualdtl: 0, bayar: 0 });
+  });
 });
 
 describe("Lokasi dan Customer pada Penjualan harus sah — tidak ditemukan maupun nonaktif ditolak", () => {
@@ -528,4 +543,335 @@ describe("Isolasi antar Database Perusahaan", () => {
 
     expect(createdLain.kodejual).toBe("JL2608250001");
   }, 30_000);
+
+  it("edit Penjualan di Perusahaan A tidak mengubah dokumen bernomor sama di Perusahaan B", async () => {
+    await siapkanDasar();
+    const createdA = await createPenjualan(db, buildInput({ tanggal: "2026-08-25" }));
+
+    await siapkanDasar(dbLain);
+    const createdB = await createPenjualan(dbLain, buildInput({ tanggal: "2026-08-25" }));
+    expect(createdA.kodejual).toBe(createdB.kodejual);
+
+    await updatePenjualan(
+      db,
+      createdA.kodejual,
+      buildUpdateInput({
+        items     : [{ kodebarang: "BRG01", qty: 5, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+        pembayaran: { tunai: 50000, nontunai: 0 },
+      }),
+    );
+
+    const utuhB = await findPenjualan(dbLain, createdB.kodejual);
+    expect(utuhB?.items).toHaveLength(1);
+    expect(utuhB?.items[0].qty).toBe(1);
+    expect(utuhB?.grandtotal).toBe(10000);
+  }, 30_000);
+});
+
+function buildUpdateInput(overrides: Partial<UpdatePenjualanInput> = {}): UpdatePenjualanInput {
+  return {
+    kodecustomer: "CUST01",
+    items       : [{ kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    pembayaran  : { tunai: 10000, nontunai: 0 },
+    ...overrides,
+  };
+}
+
+async function buatPenjualanSiapEdit(overrides: Partial<CreatePenjualanInput> = {}) {
+  await siapkanDasar();
+  await buatBarang(db, "BRG02", 5000);
+
+  return createPenjualan(
+    db,
+    buildInput({
+      items: [
+        { kodebarang: "BRG01", qty: 2, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 },
+        { kodebarang: "BRG02", qty: 1, harga: 5000, pakaiPpn: "TIDAK", diskon: 0 },
+      ],
+      pembayaran: { tunai: 25000, nontunai: 0 },
+      ...overrides,
+    }),
+  );
+}
+
+describe("Edit Penjualan — angka otoritatif server", () => {
+  it("angka fiktif kiriman client diabaikan — baris dan header tersimpan hasil hitung server dari rate PPN config", async () => {
+    const created = await buatPenjualanSiapEdit();
+    await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "1" } });
+
+    try {
+      const hasil = await updatePenjualan(db, created.kodejual, {
+        kodecustomer: "CUST01",
+        items       : [
+          { kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "EXCLUDE", diskon: 0, ppn: 999, subtotal: 999 },
+        ] as unknown as UpdatePenjualanInput["items"],
+        pembayaran: { tunai: 11100, nontunai: 0 },
+      });
+
+      expect(hasil.items[0].ppn).toBeCloseTo(1100);
+      expect(hasil.items[0].subtotal).toBeCloseTo(11100);
+      expect(hasil.total).toBe(10000);
+      expect(hasil.diskon).toBe(0);
+      expect(hasil.ppn).toBeCloseTo(1100);
+      expect(hasil.grandtotal).toBeCloseTo(11100);
+    } finally {
+      await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "0" } });
+    }
+  });
+});
+
+describe("Edit Penjualan — aturan pembayaran", () => {
+  it("totalBayar kurang dari grandtotal hasil edit ditolak dan tidak ada perubahan tersisa", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    await expect(
+      updatePenjualan(
+        db,
+        created.kodejual,
+        buildUpdateInput({
+          items     : [{ kodebarang: "BRG01", qty: 3, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+          pembayaran: { tunai: 29000, nontunai: 0 },
+        }),
+      ),
+    ).rejects.toThrow(/kurang/);
+
+    const utuh = await findPenjualan(db, created.kodejual);
+    expect(utuh?.items).toHaveLength(2);
+    expect(utuh?.grandtotal).toBe(25000);
+  });
+
+  it("item diedit lebih mahal sementara pembayaran pas untuk grandtotal lama — tetap ditolak kurang bayar", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    await expect(
+      updatePenjualan(
+        db,
+        created.kodejual,
+        buildUpdateInput({
+          items     : [{ kodebarang: "BRG01", qty: 3, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+          pembayaran: { tunai: 25000, nontunai: 0 },
+        }),
+      ),
+    ).rejects.toThrow(/kurang/);
+  });
+
+  it("pembayaran pas dengan grandtotal hasil edit diterima dan kembalian tersimpan 0", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    const hasil = await updatePenjualan(
+      db,
+      created.kodejual,
+      buildUpdateInput({
+        items     : [{ kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 1000 }],
+        pembayaran: { tunai: 9000, nontunai: 0 },
+      }),
+    );
+
+    expect(hasil.grandtotal).toBe(9000);
+    expect(hasil.pembayaran.kembalian).toBe(0);
+  });
+
+  it("tanpa pembayaran di input dianggap lunas tunai sebesar grandtotal hasil edit, kembalian 0", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    const hasil = await updatePenjualan(db, created.kodejual, {
+      kodecustomer: "CUST01",
+      items       : [{ kodebarang: "BRG02", qty: 2, harga: 5000, pakaiPpn: "TIDAK", diskon: 0 }],
+    });
+
+    expect(hasil.grandtotal).toBe(10000);
+    expect(hasil.pembayaran.tunai).toBe(10000);
+    expect(hasil.pembayaran.nontunai).toBe(0);
+    expect(hasil.pembayaran.kembalian).toBe(0);
+  });
+
+  it("komponen pembayaran negatif ditolak sebagai input tidak sah walau jumlahnya mencukupi grandtotal", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    await expect(
+      updatePenjualan(
+        db,
+        created.kodejual,
+        buildUpdateInput({
+          items     : [{ kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+          pembayaran: { tunai: 300000, nontunai: -190000 },
+        }),
+      ),
+    ).rejects.toThrow(/negatif/);
+
+    const utuh = await findPenjualan(db, created.kodejual);
+    expect(utuh?.pembayaran).toEqual(created.pembayaran);
+  });
+});
+
+describe("Edit Penjualan — validasi create dipakai ulang", () => {
+  it("items kosong ditolak sebagai input tidak sah — baris lama tetap utuh, tidak jadi kosong", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    await expect(
+      updatePenjualan(db, created.kodejual, { kodecustomer: "CUST01", items: [] }),
+    ).rejects.toThrow(/minimal 1/);
+
+    const utuh = await findPenjualan(db, created.kodejual);
+    expect(utuh?.items).toHaveLength(2);
+  });
+
+  it("customer tidak terdaftar maupun nonaktif ditolak — customer lama tetap tersimpan beserta seluruh barisnya", async () => {
+    await siapkanDasar();
+    await buatCustomer(db, "CUST02", 0);
+    const created = await createPenjualan(db, buildInput());
+
+    await expect(updatePenjualan(db, created.kodejual, buildUpdateInput({ kodecustomer: "TIDAKADA" }))).rejects.toThrow(/Customer.*tidak ditemukan/);
+    await expect(updatePenjualan(db, created.kodejual, buildUpdateInput({ kodecustomer: "CUST02" }))).rejects.toThrow(/Customer.*nonaktif/);
+
+    const utuh = await findPenjualan(db, created.kodejual);
+    expect(utuh?.kodecustomer).toBe("CUST01");
+    expect(utuh?.items).toHaveLength(1);
+  });
+});
+
+describe("Edit Penjualan — field terkunci tidak bergeser dan status tetap S", () => {
+  it("input edit menyertakan tanggal, jenistransaksi, kodelokasi palsu — nilai lama di database tetap", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    const hasil = await updatePenjualan(db, created.kodejual, {
+      ...buildUpdateInput(),
+      tanggal        : "2001-01-01",
+      jenistransaksi : "POS",
+      kodelokasi     : "PALSU",
+    } as unknown as UpdatePenjualanInput & { tanggal: string; kodelokasi: string });
+
+    expect(hasil.kodejual).toBe(created.kodejual);
+    expect(hasil.tanggal).toBe(created.tanggal);
+    expect(hasil.jenistransaksi).toBe(created.jenistransaksi);
+    expect(hasil.kodelokasi).toBe(created.kodelokasi);
+  });
+
+  it("edit Penjualan berstatus S berhasil dan statusnya tetap S tanpa alasanbatal", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    const hasil = await updatePenjualan(db, created.kodejual, buildUpdateInput());
+
+    expect(hasil.status).toBe("S");
+    expect(hasil.alasanbatal).toBeNull();
+  });
+
+  it("setelah edit sukses, jalur batal biasa masih bekerja — status S ke D dengan alasanbatal tercatat, baris dan Pembayaran hasil edit tetap utuh", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    const hasilEdit = await updatePenjualan(
+      db,
+      created.kodejual,
+      buildUpdateInput({
+        items     : [{ kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+        pembayaran: { tunai: 10000, nontunai: 0 },
+      }),
+    );
+    const batal = await cancelPenjualan(db, created.kodejual, "Customer menyesal");
+
+    expect(batal.status).toBe("D");
+    expect(batal.alasanbatal).toBe("Customer menyesal");
+    expect(batal.items).toEqual(hasilEdit.items);
+    expect(batal.pembayaran).toEqual(hasilEdit.pembayaran);
+    expect(await bacaJumlahBaris()).toEqual({ jual: 1, jualdtl: 1, bayar: 1 });
+  });
+});
+
+describe("Guard edit Penjualan — status dan keberadaan dokumen", () => {
+  it("edit kodejual yang tidak ada ditolak dengan error tidak ditemukan", async () => {
+    await siapkanDasar();
+
+    await expect(updatePenjualan(db, "JL0000000000", buildUpdateInput())).rejects.toThrow(/tidak ditemukan/);
+  });
+
+  it("edit Penjualan berstatus D ditolak dengan pesan sudah dibatalkan", async () => {
+    const created = await buatPenjualanSiapEdit();
+    await cancelPenjualan(db, created.kodejual);
+
+    await expect(updatePenjualan(db, created.kodejual, buildUpdateInput())).rejects.toThrow(/sudah dibatalkan/);
+  });
+
+  it("edit Penjualan PESANAN mengganti detail penuh — nilai kembalian updatePenjualan menunjukkan data terbaru dan jualdtl hanya berisi baris baru", async () => {
+    const created = await buatPenjualanSiapEdit({ jenistransaksi: "PESANAN" });
+    await buatBarang(db, "BRG03", 7000);
+
+    const hasil = await updatePenjualan(
+      db,
+      created.kodejual,
+      buildUpdateInput({
+        items     : [{ kodebarang: "BRG03", qty: 3, harga: 7000, pakaiPpn: "TIDAK", diskon: 1000 }],
+        pembayaran: { tunai: 21000, nontunai: 0 },
+      }),
+    );
+
+    expect(hasil.kodejual).toBe(created.kodejual);
+    expect(hasil.kodecustomer).toBe("CUST01");
+    expect(hasil.items).toHaveLength(1);
+    expect(hasil.items[0].kodebarang).toBe("BRG03");
+    expect(hasil.items[0].qty).toBe(3);
+    expect(await bacaJumlahBaris()).toEqual({ jual: 1, jualdtl: 1, bayar: 1 });
+  });
+
+  it("kegagalan validasi di tengah (barang kedua tidak ada) menyisakan data lama utuh — tidak ada replace separuh", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    await expect(
+      updatePenjualan(
+        db,
+        created.kodejual,
+        buildUpdateInput({
+          items     : [
+            { kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 },
+            { kodebarang: "TIDAKADA", qty: 1, harga: 5000, pakaiPpn: "TIDAK", diskon: 0 },
+          ],
+          pembayaran: { tunai: 15000, nontunai: 0 },
+        }),
+      ),
+    ).rejects.toThrow(/Barang.*tidak ditemukan/);
+
+    const utuh = await findPenjualan(db, created.kodejual);
+    expect(utuh?.items).toHaveLength(2);
+    expect(utuh?.grandtotal).toBe(created.grandtotal);
+  });
+
+  it("baris bayar lama diganti penuh oleh nilai pembayaran baru, bukan bertambah", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    const hasil = await updatePenjualan(
+      db,
+      created.kodejual,
+      buildUpdateInput({
+        items     : [{ kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+        pembayaran: { tunai: 6000, nontunai: 5000 },
+      }),
+    );
+
+    expect(await db.bayar.count()).toBe(1);
+    expect(hasil.pembayaran).toEqual({ tunai: 6000, nontunai: 5000, kembalian: 1000 });
+    expect(hasil.grandtotal).toBe(10000);
+  });
+
+  it("urutan detail hasil edit berurutan mulai 1", async () => {
+    const created = await buatPenjualanSiapEdit();
+
+    const hasil = await updatePenjualan(
+      db,
+      created.kodejual,
+      buildUpdateInput({
+        items: [
+          { kodebarang: "BRG02", qty: 1, harga: 5000, pakaiPpn: "TIDAK", diskon: 0 },
+          { kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 },
+        ],
+        pembayaran: { tunai: 15000, nontunai: 0 },
+      }),
+    );
+
+    expect(hasil.items.map((item) => [item.qty, item.harga])).toEqual([[1, 5000], [1, 10000]]);
+
+    const baris = await db.jualdtl.findMany({ where: { jual: { kodejual: created.kodejual } }, orderBy: { urutan: "asc" } });
+
+    expect(baris.map((barisItem) => barisItem.urutan)).toEqual([1, 2]);
+    expect(baris[0].harga.toString()).toBe("5000");
+    expect(baris[1].harga.toString()).toBe("10000");
+  });
 });

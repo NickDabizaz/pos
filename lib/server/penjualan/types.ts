@@ -46,3 +46,9 @@ export type CreatePenjualanInput = {
   items         : CreatePenjualanItemInput[];
   pembayaran   ?: { tunai: number; nontunai: number };
 };
+
+export type UpdatePenjualanInput = {
+  kodecustomer: string;
+  items       : CreatePenjualanItemInput[];
+  pembayaran ?: { tunai: number; nontunai: number };
+};
