@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchCurrentShift } from "@/lib/client/shift";
+import { fetchShiftStatus } from "@/lib/client/shift";
 import type { Shift } from "@/lib/server/shift/types";
+
+const POS_KODELOKASI = "TOKO";
 
 export function useShiftSession() {
   const [shift, setShift]         = useState<Shift | null>(null);
@@ -11,7 +13,7 @@ export function useShiftSession() {
   useEffect(() => {
     let ignore = false;
 
-    fetchCurrentShift()
+    fetchShiftStatus(POS_KODELOKASI)
       .then((data) => {
         if (!ignore) setShift(data);
       })
@@ -28,7 +30,7 @@ export function useShiftSession() {
   }, []);
 
   const refresh = useCallback(async () => {
-    const data = await fetchCurrentShift();
+    const data = await fetchShiftStatus(POS_KODELOKASI);
     setShift(data);
     return data;
   }, []);

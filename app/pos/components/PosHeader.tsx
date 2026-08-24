@@ -61,16 +61,16 @@ export default function PosHeader({
               <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
             </span>
             <span className="text-sm font-bold tracking-tight text-foreground">
-              {session?.kasirName ?? "Kasir"}
+              {session?.namakasir ?? "Kasir"}
             </span>
           </div>
 
           <span className="text-xs text-muted-foreground/40">•</span>
 
-          {session?.modalAwal !== undefined && (
+          {session?.modalawal !== undefined && (
             <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/70 px-2.5 py-0.5 text-xs font-semibold text-foreground">
               <span className="text-muted-foreground">Modal Awal:</span>
-              <span className="text-status-active-fg">{formatRupiah(session.modalAwal)}</span>
+              <span className="text-status-active-fg">{formatRupiah(session.modalawal)}</span>
             </div>
           )}
 

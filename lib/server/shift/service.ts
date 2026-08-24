@@ -1,125 +1,208 @@
-import { getCurrentShift, setCurrentShift } from "@/lib/server/shift/repository";
+import { Prisma } from "@/lib/generated/prisma-perusahaan/client";
+import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
+import { findLokasiByKode } from "@/lib/server/lokasi/repository";
+import type { Lokasi } from "@/lib/server/lokasi/types";
+import {
+  deleteSetoranKasir,
+  findModalAwal,
+  findSetoranKasir,
+  insertModalAwal,
+  insertSetoranKasir,
+  sumPembayaranHarian,
+  type ModalAwalRow,
+} from "@/lib/server/shift/repository";
 import type {
+  CancelCloseShiftInput,
   CloseShiftInput,
   OpenShiftInput,
-  RecordShiftTransactionInput,
   Shift,
+  ShiftStatusInput,
 } from "@/lib/server/shift/types";
+import { findUserNama } from "@/lib/server/user/repository";
+import type { GlobalClient } from "@/lib/server/user/types";
 
-function isSameDay(isoDate: string, reference: Date): boolean {
-  const date = new Date(isoDate);
-  const sama =
-    date.getFullYear() === reference.getFullYear() &&
-    date.getMonth() === reference.getMonth() &&
-    date.getDate() === reference.getDate();
+const NAMA_KASIR_FALLBACK = "Pengguna Tidak Dikenal";
 
-  return sama;
+function isUniqueConstraint(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
-export function getActiveShift(): Shift | null {
-  const shift = getCurrentShift();
-  const active = shift && shift.status === "OPEN" ? shift : null;
-
-  return active;
-}
-
-export function getShiftForToday(): Shift | null {
-  const shift = getCurrentShift();
-  const today = shift && isSameDay(shift.openedAt, new Date()) ? shift : null;
-
-  return today;
-}
-
-export function openShift(input: OpenShiftInput): Shift {
-  if (getActiveShift()) {
-    throw new Error("Shift sudah dibuka, tutup shift sebelumnya terlebih dahulu", { cause: "SHIFT_CONFLICT" });
+async function resolveLokasiAktif(db: DatabasePerusahaanClient, kodelokasi: string): Promise<Lokasi> {
+  const lokasi = await findLokasiByKode(db, kodelokasi);
+  if (!lokasi) {
+    throw new Error(`Lokasi dengan kode "${kodelokasi}" tidak ditemukan`, { cause: "TIDAK_DITEMUKAN" });
+  }
+  if (lokasi.status !== 1) {
+    throw new Error(`Lokasi dengan kode "${kodelokasi}" nonaktif, tidak bisa dipakai membuka Shift`, { cause: "INPUT_TIDAK_SAH" });
   }
 
-  if (getShiftForToday()) {
-    throw new Error(
-      "Shift hari ini sudah ditutup. Batalkan penutupan shift untuk melanjutkan, bukan membuka shift baru.",
-      { cause: "SHIFT_CONFLICT" },
-    );
+  return lokasi;
+}
+
+async function resolveNamaKasir(globalDb: GlobalClient, idkasir: string): Promise<string> {
+  const nama = await findUserNama(globalDb, idkasir);
+
+  return nama ?? NAMA_KASIR_FALLBACK;
+}
+
+async function buildShiftSnapshot(
+  db        : DatabasePerusahaanClient,
+  globalDb  : GlobalClient,
+  tanggal   : string,
+  kodelokasi: string,
+  lokasi    : Lokasi,
+  modalAwal : ModalAwalRow,
+): Promise<Shift> {
+  const tgltrans = new Date(tanggal);
+  const namakasir = await resolveNamaKasir(globalDb, modalAwal.idkasir);
+  const agregasi = await sumPembayaranHarian(db, tgltrans, lokasi.idlokasi);
+  const setoran = await findSetoranKasir(db, tgltrans, lokasi.idlokasi);
+
+  if (!setoran) {
+    return {
+      status         : "TERBUKA",
+      tanggal,
+      kodelokasi,
+      idkasir        : modalAwal.idkasir,
+      namakasir,
+      modalawal      : Number(modalAwal.nominal),
+      totaltunai     : agregasi.totaltunai,
+      totalnontunai  : agregasi.totalnontunai,
+      jumlahtransaksi: agregasi.jumlahtransaksi,
+    };
   }
 
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-
-  const shift: Shift = {
-    shiftCode        : `SFT-${dateStr}-${randomSuffix}`,
-    kasirName        : input.kasirName,
-    modalAwal        : input.modalAwal,
-    openedAt         : new Date().toISOString(),
-    penjualanTunai   : 0,
-    penjualanNonTunai: 0,
-    jumlahTransaksi  : 0,
-    status           : "OPEN",
+  return {
+    status         : "TERTUTUP",
+    tanggal,
+    kodelokasi,
+    idkasir        : modalAwal.idkasir,
+    namakasir,
+    modalawal      : Number(modalAwal.nominal),
+    totaltunai     : Number(setoran.totaltunai),
+    totalnontunai  : Number(setoran.totalnontunai),
+    jumlahtransaksi: agregasi.jumlahtransaksi,
+    kasaktual      : Number(setoran.kasaktual),
+    selisih        : Number(setoran.selisih),
+    catatan        : setoran.catatan,
   };
-
-  setCurrentShift(shift);
-
-  return shift;
 }
 
-export function recordShiftTransaction(input: RecordShiftTransactionInput): Shift {
-  const shift = getActiveShift();
+export async function getShiftStatus(
+  db      : DatabasePerusahaanClient,
+  globalDb: GlobalClient,
+  input   : ShiftStatusInput,
+): Promise<Shift> {
+  const lokasi = await resolveLokasiAktif(db, input.kodelokasi);
+  const tgltrans = new Date(input.tanggal);
+  const modalAwal = await findModalAwal(db, tgltrans, lokasi.idlokasi);
 
-  if (!shift) {
-    throw new Error("Tidak ada shift yang sedang aktif", { cause: "SHIFT_CONFLICT" });
+  if (!modalAwal) {
+    return { status: "BELUM_DIBUKA", tanggal: input.tanggal, kodelokasi: input.kodelokasi };
   }
 
-  const updated: Shift = {
-    ...shift,
-    penjualanTunai   : shift.penjualanTunai + (input.paymentMethod === "TUNAI" ? input.grandTotal : 0),
-    penjualanNonTunai: shift.penjualanNonTunai + (input.paymentMethod === "TUNAI" ? 0 : input.grandTotal),
-    jumlahTransaksi  : shift.jumlahTransaksi + 1,
-  };
-
-  setCurrentShift(updated);
-
-  return updated;
+  return buildShiftSnapshot(db, globalDb, input.tanggal, input.kodelokasi, lokasi, modalAwal);
 }
 
-export function cancelCloseShift(): Shift {
-  if (getActiveShift()) {
-    throw new Error("Shift sedang aktif, tidak ada penutupan yang perlu dibatalkan", { cause: "SHIFT_CONFLICT" });
+export async function openShift(
+  db      : DatabasePerusahaanClient,
+  globalDb: GlobalClient,
+  input   : OpenShiftInput,
+): Promise<Shift> {
+  if (!(input.modalawal >= 0)) {
+    throw new Error("Nominal Modal Awal tidak boleh negatif", { cause: "INPUT_TIDAK_SAH" });
   }
 
-  const shift = getShiftForToday();
+  const lokasi = await resolveLokasiAktif(db, input.kodelokasi);
+  const tgltrans = new Date(input.tanggal);
 
-  if (!shift) {
-    throw new Error("Tidak ada penutupan shift hari ini yang bisa dibatalkan", { cause: "SHIFT_CONFLICT" });
+  const existing = await findModalAwal(db, tgltrans, lokasi.idlokasi);
+  if (existing) {
+    const setoran = await findSetoranKasir(db, tgltrans, lokasi.idlokasi);
+    if (setoran) {
+      throw new Error(
+        "Shift hari ini sudah ditutup. Batalkan penutupan untuk melanjutkan, bukan membuka shift baru.",
+        { cause: "SHIFT_KONFLIK" },
+      );
+    }
+    throw new Error("Shift sudah terbuka untuk Lokasi dan tanggal ini", { cause: "SHIFT_KONFLIK" });
   }
 
-  const resumed: Shift = {
-    ...shift,
-    status   : "OPEN",
-    closedAt : undefined,
-    kasAktual: undefined,
-    catatan  : undefined,
-  };
+  try {
+    await insertModalAwal(db, tgltrans, lokasi.idlokasi, input.idkasir, input.modalawal);
+  } catch (error) {
+    if (isUniqueConstraint(error)) {
+      throw new Error("Shift sudah terbuka untuk Lokasi dan tanggal ini", { cause: "SHIFT_KONFLIK" });
+    }
+    throw error;
+  }
 
-  setCurrentShift(resumed);
-
-  return resumed;
+  return getShiftStatus(db, globalDb, { tanggal: input.tanggal, kodelokasi: input.kodelokasi });
 }
 
-export function closeShift(input: CloseShiftInput): Shift {
-  const shift = getActiveShift();
-
-  if (!shift) {
-    throw new Error("Tidak ada shift yang sedang aktif", { cause: "SHIFT_CONFLICT" });
+export async function closeShift(
+  db      : DatabasePerusahaanClient,
+  globalDb: GlobalClient,
+  input   : CloseShiftInput,
+): Promise<Shift> {
+  if (!(input.kasaktual >= 0)) {
+    throw new Error("Nominal kas aktual tidak boleh negatif", { cause: "INPUT_TIDAK_SAH" });
   }
 
-  const updated: Shift = {
-    ...shift,
-    closedAt : new Date().toISOString(),
-    kasAktual: input.kasAktual,
-    catatan  : input.catatan,
-    status   : "CLOSED",
-  };
+  const lokasi = await resolveLokasiAktif(db, input.kodelokasi);
+  const tgltrans = new Date(input.tanggal);
 
-  setCurrentShift(updated);
+  const modalAwal = await findModalAwal(db, tgltrans, lokasi.idlokasi);
+  if (!modalAwal) {
+    throw new Error("Shift belum dibuka untuk Lokasi dan tanggal ini", { cause: "SHIFT_BELUM_DIBUKA" });
+  }
 
-  return updated;
+  const existingSetoran = await findSetoranKasir(db, tgltrans, lokasi.idlokasi);
+  if (existingSetoran) {
+    throw new Error("Shift ini sudah ditutup", { cause: "SHIFT_SUDAH_TERTUTUP" });
+  }
+
+  const agregasi = await sumPembayaranHarian(db, tgltrans, lokasi.idlokasi);
+  const totalDiharapkan = Number(modalAwal.nominal) + agregasi.totaltunai;
+  const selisih = input.kasaktual - totalDiharapkan;
+
+  try {
+    await insertSetoranKasir(db, tgltrans, lokasi.idlokasi, {
+      totaltunai   : agregasi.totaltunai,
+      totalnontunai: agregasi.totalnontunai,
+      kasaktual    : input.kasaktual,
+      selisih,
+      catatan      : input.catatan?.trim() || null,
+    });
+  } catch (error) {
+    if (isUniqueConstraint(error)) {
+      throw new Error("Shift ini sudah ditutup", { cause: "SHIFT_SUDAH_TERTUTUP" });
+    }
+    throw error;
+  }
+
+  return getShiftStatus(db, globalDb, { tanggal: input.tanggal, kodelokasi: input.kodelokasi });
+}
+
+export async function cancelCloseShift(
+  db      : DatabasePerusahaanClient,
+  globalDb: GlobalClient,
+  input   : CancelCloseShiftInput,
+): Promise<Shift> {
+  const lokasi = await resolveLokasiAktif(db, input.kodelokasi);
+  const tgltrans = new Date(input.tanggal);
+
+  const modalAwal = await findModalAwal(db, tgltrans, lokasi.idlokasi);
+  if (!modalAwal) {
+    throw new Error("Shift belum pernah dibuka untuk Lokasi dan tanggal ini", { cause: "SHIFT_BELUM_DIBUKA" });
+  }
+
+  const setoran = await findSetoranKasir(db, tgltrans, lokasi.idlokasi);
+  if (!setoran) {
+    throw new Error("Shift ini belum ditutup, tidak ada penutupan yang perlu dibatalkan", { cause: "SHIFT_BELUM_TERTUTUP" });
+  }
+
+  await deleteSetoranKasir(db, tgltrans, lokasi.idlokasi);
+
+  return getShiftStatus(db, globalDb, { tanggal: input.tanggal, kodelokasi: input.kodelokasi });
 }

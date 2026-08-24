@@ -1,20 +1,15 @@
 import { parseResponse } from "@/lib/client/apiResponse";
-import type {
-  CloseShiftInput,
-  OpenShiftInput,
-  RecordShiftTransactionInput,
-  Shift,
-} from "@/lib/server/shift/types";
+import type { CloseShiftInput, Shift } from "@/lib/server/shift/types";
 
-export async function fetchCurrentShift(): Promise<Shift | null> {
-  const response = await fetch("/api/pos/shift", {
+export async function fetchShiftStatus(kodelokasi: string): Promise<Shift> {
+  const response = await fetch(`/api/pos/shift?kodelokasi=${encodeURIComponent(kodelokasi)}`, {
     headers: { Accept: "application/json" },
   });
 
-  return parseResponse<Shift | null>(response);
+  return parseResponse<Shift>(response);
 }
 
-export async function openShift(input: OpenShiftInput): Promise<Shift> {
+export async function openShift(input: { kodelokasi: string; modalawal: number }): Promise<Shift> {
   const response = await fetch("/api/pos/shift", {
     method : "POST",
     headers: { "Content-Type": "application/json" },
@@ -24,25 +19,17 @@ export async function openShift(input: OpenShiftInput): Promise<Shift> {
   return parseResponse<Shift>(response);
 }
 
-export async function cancelCloseShift(): Promise<Shift> {
+export async function cancelCloseShift(kodelokasi: string): Promise<Shift> {
   const response = await fetch("/api/pos/shift/cancel-close", {
-    method: "POST",
-  });
-
-  return parseResponse<Shift>(response);
-}
-
-export async function recordShiftTransaction(input: RecordShiftTransactionInput): Promise<Shift> {
-  const response = await fetch("/api/pos/shift/transaction", {
     method : "POST",
     headers: { "Content-Type": "application/json" },
-    body   : JSON.stringify(input),
+    body   : JSON.stringify({ kodelokasi }),
   });
 
   return parseResponse<Shift>(response);
 }
 
-export async function closeShift(input: CloseShiftInput): Promise<Shift> {
+export async function closeShift(input: Omit<CloseShiftInput, "tanggal">): Promise<Shift> {
   const response = await fetch("/api/pos/shift/close", {
     method : "POST",
     headers: { "Content-Type": "application/json" },

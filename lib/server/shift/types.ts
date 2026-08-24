@@ -1,32 +1,40 @@
-export type ShiftStatus = "OPEN" | "CLOSED";
-
-export type PaymentMethod = "TUNAI" | "QRIS" | "TRANSFER";
+export type ShiftStatus = "BELUM_DIBUKA" | "TERBUKA" | "TERTUTUP";
 
 export type Shift = {
-  shiftCode         : string;
-  kasirName         : string;
-  modalAwal         : number;
-  openedAt          : string;
-  closedAt         ?: string;
-  kasAktual        ?: number;
-  catatan          ?: string;
-  penjualanTunai    : number;
-  penjualanNonTunai : number;
-  jumlahTransaksi   : number;
-  status            : ShiftStatus;
+  status          : ShiftStatus;
+  tanggal         : string;
+  kodelokasi      : string;
+  idkasir        ?: string;
+  namakasir      ?: string;
+  modalawal      ?: number;
+  totaltunai     ?: number;
+  totalnontunai  ?: number;
+  jumlahtransaksi?: number;
+  kasaktual      ?: number;
+  selisih        ?: number;
+  catatan        ?: string | null;
+};
+
+export type ShiftStatusInput = {
+  tanggal   : string;
+  kodelokasi: string;
 };
 
 export type OpenShiftInput = {
-  kasirName : string;
-  modalAwal : number;
-};
-
-export type RecordShiftTransactionInput = {
-  paymentMethod : PaymentMethod;
-  grandTotal    : number;
+  tanggal   : string;
+  kodelokasi: string;
+  idkasir   : string;
+  modalawal : number;
 };
 
 export type CloseShiftInput = {
-  kasAktual : number;
+  tanggal   : string;
+  kodelokasi: string;
+  kasaktual : number;
   catatan  ?: string;
+};
+
+export type CancelCloseShiftInput = {
+  tanggal   : string;
+  kodelokasi: string;
 };

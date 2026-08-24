@@ -1,9 +1,9 @@
 import type { Barang } from "@/lib/server/barang/types";
-import type { PaymentMethod as ShiftPaymentMethod, Shift } from "@/lib/server/shift/types";
+import type { Shift } from "@/lib/server/shift/types";
 
 export type { Barang };
 export type { Shift as ShiftSession };
-export type PaymentMethod = ShiftPaymentMethod;
+export type PaymentMethod = "TUNAI" | "QRIS" | "TRANSFER";
 
 export type CartItem = {
   barang : Barang;

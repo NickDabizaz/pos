@@ -2,8 +2,9 @@
 
 import { type FormEvent, useState } from "react";
 
-import type { OpenShiftInput, Shift } from "@/lib/server/shift/types";
+import { authClient } from "@/lib/client/auth";
 import { formatRupiah } from "@/lib/format";
+import type { Shift } from "@/lib/server/shift/types";
 
 type ModalAwalDialogProps = {
   closedShift        ?: Shift | null;
@@ -11,7 +12,8 @@ type ModalAwalDialogProps = {
   isOpen              : boolean;
   isSubmitting       ?: boolean;
   onCancelCloseAction : () => void;
-  onSubmitAction       : (input: OpenShiftInput) => void;
+  onCloseAction       ?: () => void;
+  onSubmitAction       : (input: { modalawal: number }) => void;
 };
 
 const quickNominals = [100000, 200000, 300000, 500000, 1000000];
@@ -22,10 +24,11 @@ export default function ModalAwalDialog({
   isOpen,
   isSubmitting = false,
   onCancelCloseAction,
+  onCloseAction,
   onSubmitAction,
 }: ModalAwalDialogProps) {
-  const [kasirName, setKasirName]   = useState("Kasir 1");
-  const [modalAwal, setModalAwal]   = useState<number>(200000);
+  const { data: session } = authClient.useSession();
+  const [modalawal, setModalawal]   = useState<number>(200000);
   const [inputVal, setInputVal]     = useState("200000");
   const [validationError, setError] = useState<string | null>(null);
 
@@ -34,36 +37,42 @@ export default function ModalAwalDialog({
   function handleNominalChange(val: string) {
     const rawNumber = Number(val.replace(/\D/g, ""));
     setInputVal(val.replace(/\D/g, ""));
-    setModalAwal(rawNumber);
-    if (rawNumber > 0) setError(null);
+    setModalawal(rawNumber);
+    if (rawNumber >= 0) setError(null);
   }
 
   function handleQuickPreset(amount: number) {
-    setModalAwal(amount);
+    setModalawal(amount);
     setInputVal(String(amount));
     setError(null);
   }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!kasirName.trim()) {
-      setError("Silakan isi nama kasir");
-      return;
-    }
-    if (modalAwal < 0 || isNaN(modalAwal)) {
+    if (modalawal < 0 || isNaN(modalawal)) {
       setError("Nominal modal awal tidak valid");
       return;
     }
 
-    onSubmitAction({
-      kasirName: kasirName.trim(),
-      modalAwal: modalAwal,
-    });
+    onSubmitAction({ modalawal });
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-in fade-in">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl ring-1 ring-slate-950/5">
+      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl ring-1 ring-slate-950/5">
+        {onCloseAction && (
+          <button
+            aria-label="Tutup"
+            className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            onClick={onCloseAction}
+            type="button"
+          >
+            <svg className="size-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+
         {closedShift ? (
           <>
             <div className="mb-6 flex items-start gap-4">
@@ -79,7 +88,7 @@ export default function ModalAwalDialog({
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Satu hari hanya boleh ada satu shift. Batalkan penutupan untuk melanjutkan shift
-                  {" "}{closedShift.kasirName}, bukan membuka shift baru.
+                  {" "}{closedShift.namakasir}, bukan membuka shift baru.
                 </p>
               </div>
             </div>
@@ -93,16 +102,16 @@ export default function ModalAwalDialog({
             <div className="mb-6 space-y-2 rounded-xl border border-border bg-secondary/40 p-3.5 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Kasir</span>
-                <span className="font-semibold text-foreground">{closedShift.kasirName}</span>
+                <span className="font-semibold text-foreground">{closedShift.namakasir}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Modal Awal</span>
-                <span className="font-semibold text-foreground">{formatRupiah(closedShift.modalAwal)}</span>
+                <span className="font-semibold text-foreground">{formatRupiah(closedShift.modalawal ?? 0)}</span>
               </div>
-              {closedShift.kasAktual !== undefined && (
+              {closedShift.kasaktual !== undefined && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Kas Aktual Tercatat</span>
-                  <span className="font-semibold text-foreground">{formatRupiah(closedShift.kasAktual)}</span>
+                  <span className="font-semibold text-foreground">{formatRupiah(closedShift.kasaktual)}</span>
                 </div>
               )}
             </div>
@@ -143,32 +152,19 @@ export default function ModalAwalDialog({
             )}
 
             <form className="space-y-4" onSubmit={handleSubmit}>
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="kasirName">
-                  Nama / ID Kasir
-                </label>
-                <input
-                  autoFocus
-                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  id="kasirName"
-                  onChange={(e) => {
-                    setKasirName(e.target.value);
-                    if (e.target.value.trim()) setError(null);
-                  }}
-                  placeholder="Contoh: Kasir 1 / Budi"
-                  type="text"
-                  value={kasirName}
-                />
+              <div className="rounded-xl border border-border bg-secondary/40 px-3.5 py-2.5 text-sm">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kasir</span>
+                <p className="mt-0.5 font-semibold text-foreground">{session?.user.name ?? "Memuat..."}</p>
               </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="modalAwal">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground" htmlFor="modalawal">
                     Modal Awal (Rp)
                   </label>
-                  {modalAwal > 0 && (
+                  {modalawal > 0 && (
                     <span className="text-xs font-semibold text-status-active-fg">
-                      {formatRupiah(modalAwal)}
+                      {formatRupiah(modalawal)}
                     </span>
                   )}
                 </div>
@@ -177,8 +173,9 @@ export default function ModalAwalDialog({
                     Rp
                   </span>
                   <input
+                    autoFocus
                     className="w-full rounded-xl border border-border bg-background py-2.5 pr-3.5 pl-10 text-base font-semibold tracking-wide text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    id="modalAwal"
+                    id="modalawal"
                     onChange={(e) => handleNominalChange(e.target.value)}
                     placeholder="0"
                     type="text"
@@ -190,7 +187,7 @@ export default function ModalAwalDialog({
                   {quickNominals.map((amount) => (
                     <button
                       className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-all ${
-                        modalAwal === amount
+                        modalawal === amount
                           ? "border-primary bg-primary text-primary-foreground shadow-xs"
                           : "border-border bg-secondary/60 text-secondary-foreground hover:bg-secondary"
                       }`}

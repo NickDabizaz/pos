@@ -8,7 +8,7 @@ import {
 
 describe("calculateTotalKasDiharapkan", () => {
   it("adds the opening float to cash sales", () => {
-    expect(calculateTotalKasDiharapkan({ modalAwal: 200000, penjualanTunai: 450000 })).toBe(650000);
+    expect(calculateTotalKasDiharapkan({ modalawal: 200000, totaltunai: 450000 })).toBe(650000);
   });
 });
 

@@ -2,12 +2,12 @@ import type { Shift } from "@/app/tutup-kasir/lib/types";
 
 export type SelisihStatus = "PAS" | "SURPLUS" | "MINUS";
 
-export function calculateTotalKasDiharapkan(shift: Pick<Shift, "modalAwal" | "penjualanTunai">): number {
-  return shift.modalAwal + shift.penjualanTunai;
+export function calculateTotalKasDiharapkan(shift: Pick<Shift, "modalawal" | "totaltunai">): number {
+  return (shift.modalawal ?? 0) + (shift.totaltunai ?? 0);
 }
 
-export function calculateSelisih(kasAktual: number, totalKasDiharapkan: number): number {
-  return kasAktual - totalKasDiharapkan;
+export function calculateSelisih(kasaktual: number, totalKasDiharapkan: number): number {
+  return kasaktual - totalKasDiharapkan;
 }
 
 export function getSelisihStatus(selisih: number): SelisihStatus {

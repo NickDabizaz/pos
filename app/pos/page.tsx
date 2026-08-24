@@ -13,9 +13,8 @@ import { usePosKeyboardShortcuts } from "@/app/pos/lib/usePosKeyboardShortcuts";
 import type { Barang, PaymentMethod, TransactionSummary } from "@/app/pos/lib/types";
 import { fetchBarangList } from "@/lib/client/barang";
 import { createPenjualan } from "@/lib/client/penjualan";
-import { cancelCloseShift, openShift, recordShiftTransaction } from "@/lib/client/shift";
+import { cancelCloseShift, openShift } from "@/lib/client/shift";
 import { useShiftSession } from "@/lib/client/useShiftSession";
-import type { OpenShiftInput } from "@/lib/server/shift/types";
 
 const POS_KODELOKASI = "TOKO";
 const POS_KODECUSTOMER = "CASH";
@@ -30,10 +29,11 @@ async function fetchBarangCatalog(): Promise<Barang[]> {
 }
 
 export default function PosPage() {
-  const { isLoading: isShiftLoading, loadError: shiftLoadError, setShift: setSession, shift: session } =
+  const { isLoading: isShiftLoading, loadError: shiftLoadError, refresh: refreshShift, setShift: setSession, shift: session } =
     useShiftSession();
   const [isOpeningShift, setIsOpeningShift]     = useState(false);
   const [shiftError, setShiftError]             = useState<string | null>(null);
+  const [isShiftGateOpen, setIsShiftGateOpen]   = useState(false);
   const [products, setProducts]                 = useState<Barang[]>([]);
   const [isLoading, setIsLoading]               = useState(true);
   const [searchQuery, setSearchQuery]           = useState("");
@@ -58,12 +58,26 @@ export default function PosPage() {
     };
   }, []);
 
-  async function handleOpenShift(input: OpenShiftInput) {
+  function handlePayClick() {
+    if (isShiftLoading) return;
+
+    if (!session || session.status !== "TERBUKA") {
+      setShiftError(null);
+      setIsShiftGateOpen(true);
+      return;
+    }
+
+    setIsPaymentOpen(true);
+  }
+
+  async function handleOpenShift(input: { modalawal: number }) {
     setIsOpeningShift(true);
     setShiftError(null);
 
     try {
-      setSession(await openShift(input));
+      setSession(await openShift({ kodelokasi: POS_KODELOKASI, modalawal: input.modalawal }));
+      setIsShiftGateOpen(false);
+      setIsPaymentOpen(true);
     } catch (error) {
       setShiftError(error instanceof Error ? error.message : "Gagal membuka shift");
     } finally {
@@ -76,7 +90,9 @@ export default function PosPage() {
     setShiftError(null);
 
     try {
-      setSession(await cancelCloseShift());
+      setSession(await cancelCloseShift(POS_KODELOKASI));
+      setIsShiftGateOpen(false);
+      setIsPaymentOpen(true);
     } catch (error) {
       setShiftError(error instanceof Error ? error.message : "Gagal membatalkan penutupan shift");
     } finally {
@@ -87,6 +103,7 @@ export default function PosPage() {
   usePosKeyboardShortcuts({
     onEscape: () => {
       if (isPaymentOpen) setIsPaymentOpen(false);
+      if (isShiftGateOpen) setIsShiftGateOpen(false);
     },
     onFocusSearch: () => {
       searchInputRef.current?.focus();
@@ -94,7 +111,7 @@ export default function PosPage() {
     },
     onTriggerPayment: () => {
       if (cart.items.length > 0 && !isPaymentOpen && !completedTx) {
-        setIsPaymentOpen(true);
+        handlePayClick();
       }
     },
   });
@@ -144,7 +161,7 @@ export default function PosPage() {
       id           : created.kodejual,
       invoiceNumber: created.kodejual,
       items        : [...cart.items],
-      kasirName    : session?.kasirName ?? "Kasir",
+      kasirName    : session?.namakasir ?? "Kasir",
       paymentMethod: paymentData.paymentMethod,
       subtotal     : cart.subtotal,
     };
@@ -153,11 +170,7 @@ export default function PosPage() {
     setIsPaymentOpen(false);
 
     try {
-      const updatedShift = await recordShiftTransaction({
-        paymentMethod: paymentData.paymentMethod,
-        grandTotal   : created.grandtotal,
-      });
-      setSession(updatedShift);
+      await refreshShift();
     } catch {
     }
   }
@@ -192,7 +205,7 @@ export default function PosPage() {
           grandTotal          = {cart.grandTotal}
           items               = {cart.items}
           onClearCartAction   = {cart.clearCart}
-          onPayAction         = {() => setIsPaymentOpen(true)}
+          onPayAction         = {handlePayClick}
           onRemoveItemAction  = {cart.removeItem}
           onSetDiscountAction = {cart.setDiscount}
           onUpdateQtyAction   = {cart.updateQty}
@@ -202,11 +215,12 @@ export default function PosPage() {
       </div>
 
       <ModalAwalDialog
-        closedShift         = {session?.status === "CLOSED" ? session : null}
+        closedShift         = {session?.status === "TERTUTUP" ? session : null}
         errorMessage        = {shiftError ?? shiftLoadError}
-        isOpen              = {!isShiftLoading && session?.status !== "OPEN"}
+        isOpen              = {isShiftGateOpen}
         isSubmitting        = {isOpeningShift}
         onCancelCloseAction = {handleCancelCloseShift}
+        onCloseAction       = {() => setIsShiftGateOpen(false)}
         onSubmitAction      = {handleOpenShift}
       />
 

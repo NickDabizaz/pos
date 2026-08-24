@@ -14,8 +14,8 @@ model modalawal {
   @@unique([tgltrans, idlokasi], map: "tgltrans_idlokasi")
 }
 
-/// Ringkasan uang saat Shift ditutup. selisih = kasaktual dikurangi jumlah tunai yang seharusnya
-/// ada menurut sistem (totaltunai).
+/// Ringkasan uang saat Shift ditutup. selisih = kasaktual dikurangi jumlah yang seharusnya ada
+/// secara fisik di laci menurut sistem (modalawal + totaltunai milik modalawal pasangannya).
 model setorankasir {
   idsetorankasir Int      @id @default(autoincrement())
   tgltrans       DateTime @db.Date
