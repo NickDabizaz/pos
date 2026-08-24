@@ -1,8 +1,10 @@
 import { parseResponse } from "@/lib/client/apiResponse";
-import type { Kas } from "@/lib/server/kas/types";
+import type { CreateKasInput, Kas } from "@/lib/server/kas/types";
+
+export type { Kas };
 
 export async function fetchKasList(): Promise<Kas[]> {
-  const response = await fetch("/api/kas", {
+  const response = await fetch("/api/transaksi/kas", {
     headers: { Accept: "application/json" },
   });
 
@@ -10,15 +12,15 @@ export async function fetchKasList(): Promise<Kas[]> {
 }
 
 export async function fetchKasByKode(kodekas: string): Promise<Kas> {
-  const response = await fetch(`/api/kas/${kodekas}`, {
+  const response = await fetch(`/api/transaksi/kas/${kodekas}`, {
     headers: { Accept: "application/json" },
   });
 
   return parseResponse<Kas>(response);
 }
 
-export async function createKas(input: Kas): Promise<Kas> {
-  const response = await fetch("/api/kas", {
+export async function createKas(input: CreateKasInput): Promise<Kas> {
+  const response = await fetch("/api/transaksi/kas", {
     method : "POST",
     headers: { "Content-Type": "application/json" },
     body   : JSON.stringify(input),
@@ -27,11 +29,11 @@ export async function createKas(input: Kas): Promise<Kas> {
   return parseResponse<Kas>(response);
 }
 
-export async function updateKas(kodekas: string, input: Kas): Promise<Kas> {
-  const response = await fetch(`/api/kas/${kodekas}`, {
+export async function cancelKas(kodekas: string, alasanbatal?: string): Promise<Kas> {
+  const response = await fetch(`/api/transaksi/kas/${kodekas}`, {
     method : "PUT",
     headers: { "Content-Type": "application/json" },
-    body   : JSON.stringify(input),
+    body   : JSON.stringify({ alasanbatal }),
   });
 
   return parseResponse<Kas>(response);

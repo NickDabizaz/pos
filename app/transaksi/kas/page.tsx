@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { calculateKasSummary } from "@/app/kas/lib/calculations";
-import { filterKas } from "@/app/kas/lib/filterKas";
-import type { JenisKas, Kas, KasFilter } from "@/app/kas/lib/types";
+import { calculateKasSummary } from "@/app/transaksi/kas/lib/calculations";
+import { filterKas } from "@/app/transaksi/kas/lib/filterKas";
+import type { JenisKas, Kas, KasFilter } from "@/app/transaksi/kas/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DataTable, { type DataTableColumn } from "@/components/DataTable";
-import { fetchKasList, updateKas } from "@/lib/client/kas";
+import { cancelKas, fetchKasList } from "@/lib/client/kas";
 import { fetchLokasiList } from "@/lib/client/lokasi";
 import { formatRupiah } from "@/lib/format";
 import type { Lokasi } from "@/lib/client/lokasi";
@@ -43,10 +43,9 @@ const columns: DataTableColumn<Kas>[] = [
     ),
   },
   { key: "namalokasi", label: "Lokasi", minWidth: "160px", width: "180px" },
-  { key: "keterangan", label: "Keterangan", minWidth: "200px", width: "260px" },
   {
-    key   : "nominal",
-    label : "Nominal",
+    key   : "grandtotal",
+    label : "Grand Total",
     width : "150px",
     align : "right",
     format: { type: "currency", decimalPlaces: 0 },
@@ -122,11 +121,7 @@ export default function KasPage() {
     setIsCancelling(true);
 
     try {
-      const updated = await updateKas(selected.kodekas, {
-        ...selected,
-        status     : "D",
-        alasanBatal: alasan,
-      });
+      const updated = await cancelKas(selected.kodekas, alasan);
 
       setItems((prev) => prev.map((item) => (item.kodekas === updated.kodekas ? updated : item)));
       setSelected(null);
@@ -145,7 +140,7 @@ export default function KasPage() {
           Kas
         </h1>
         <p className="text-sm text-muted-foreground">
-          Catatan kas masuk dan kas keluar di luar transaksi penjualan.
+          Catatan kas masuk dan kas keluar di luar transaksi penjualan dan pembelian.
         </p>
       </div>
 
@@ -248,7 +243,7 @@ export default function KasPage() {
           )}
           <button
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-            onClick={() => router.push("/kas/form")}
+            onClick={() => router.push("/transaksi/kas/form")}
             type="button"
           >
             Tambah Kas
@@ -267,7 +262,7 @@ export default function KasPage() {
           emptyMessage          = {isLoading ? "Memuat data..." : "Tidak ada entri kas yang cocok"}
           getRowClassNameAction = {(row) => (row.status === "D" ? "bg-status-danger-bg/40 hover:bg-status-danger-bg/60" : "")}
           onRowClickAction      = {(row) => setSelected(row)}
-          onRowDoubleClickAction= {(row) => router.push(`/kas/${row.kodekas}`)}
+          onRowDoubleClickAction= {(row) => router.push(`/transaksi/kas/${row.kodekas}`)}
           rowKey                 = "kodekas"
         />
       )}

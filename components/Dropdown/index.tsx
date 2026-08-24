@@ -44,7 +44,7 @@ export default function Dropdown<T extends string = string>({
       <button
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className={`flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-foreground disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground ${
+        className={`flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-left text-sm text-foreground disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground disabled:opacity-60 ${
           isOpen ? "ring-2 ring-ring" : ""
         }`}
         disabled={disabled}

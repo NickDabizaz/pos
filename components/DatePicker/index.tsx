@@ -68,7 +68,11 @@ export default function DatePicker({
         </label>
       )}
 
-      <div className="flex items-center rounded-lg border border-border bg-background focus-within:ring-2 focus-within:ring-ring">
+      <div
+        className={`flex items-center rounded-lg border border-border bg-background focus-within:ring-2 focus-within:ring-ring ${
+          disabled ? "cursor-not-allowed opacity-60" : ""
+        }`}
+      >
         <input
           className="w-full bg-transparent px-3 py-2 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:text-muted-foreground"
           disabled={disabled}

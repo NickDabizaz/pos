@@ -7,7 +7,7 @@ export const menuRoutes: Record<string, string> = {
   "TRANS-BEL": "/transaksi/pembelian",
   "TRANS-JUL": "/transaksi/penjualan",
   "KASIR-TTP": "/tutup-kasir",
-  "TRANS-KAS": "/kas",
+  "TRANS-KAS": "/transaksi/kas",
   LANGGANAN  : "/subscription",
   PENGGUNA   : "/manajemen-user",
 };
