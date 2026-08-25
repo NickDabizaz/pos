@@ -34,3 +34,8 @@ export type CreatePembelianInput = {
   kodelokasi  : string;
   items       : CreatePembelianItemInput[];
 };
+
+export type UpdatePembelianInput = {
+  kodesupplier: string;
+  items       : CreatePembelianItemInput[];
+};

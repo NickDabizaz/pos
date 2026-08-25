@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createDatabasePerusahaan } from "@/lib/server/databaseperusahaan/service";
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
-import { cancelPembelian, createPembelian, findPembelian, listPembelian } from "@/lib/server/pembelian/service";
-import type { CreatePembelianInput } from "@/lib/server/pembelian/types";
+import { cancelPembelian, createPembelian, findPembelian, listPembelian, updatePembelian } from "@/lib/server/pembelian/service";
+import type { CreatePembelianInput, UpdatePembelianInput } from "@/lib/server/pembelian/types";
 import { getTestDb, resetTables } from "@/lib/test/db";
 import { dropDatabase, uniqueDatabaseName } from "@/prisma/__tests__/testDatabase";
 
@@ -473,4 +473,271 @@ describe("Isolasi antar Database Perusahaan", () => {
 
     expect(createdLain.kodebeli).toBe("PB2608250001");
   }, 30_000);
+
+  it("edit Pembelian di Perusahaan A tidak mengubah dokumen bernomor sama di Perusahaan B", async () => {
+    await siapkanDasar();
+    const createdA = await createPembelian(db, buildInput({ tanggal: "2026-08-25" }));
+
+    await siapkanDasar(dbLain);
+    const createdB = await createPembelian(dbLain, buildInput({ tanggal: "2026-08-25" }));
+    expect(createdA.kodebeli).toBe(createdB.kodebeli);
+
+    await updatePembelian(
+      db,
+      createdA.kodebeli,
+      buildUpdateInput({
+        items: [{ kodebarang: "BRG01", qty: 9, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+      }),
+    );
+
+    const utuhB = await findPembelian(dbLain, createdB.kodebeli);
+    expect(utuhB?.items).toHaveLength(1);
+    expect(utuhB?.items[0].qty).toBe(1);
+    expect(utuhB?.grandtotal).toBe(10000);
+  }, 30_000);
+});
+
+function buildUpdateInput(overrides: Partial<UpdatePembelianInput> = {}): UpdatePembelianInput {
+  return {
+    kodesupplier: "SUP01",
+    items       : [{ kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    ...overrides,
+  };
+}
+
+async function buatPembelianSiapEdit() {
+  await siapkanDasar();
+  await buatBarang(db, "BRG02", 5000);
+  await buatBarang(db, "BRG03", 7000);
+
+  return createPembelian(
+    db,
+    buildInput({
+      items: [
+        { kodebarang: "BRG01", qty: 2, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 },
+        { kodebarang: "BRG02", qty: 1, harga: 5000, pakaiPpn: "TIDAK", diskon: 0 },
+        { kodebarang: "BRG03", qty: 1, harga: 7000, pakaiPpn: "TIDAK", diskon: 0 },
+      ],
+    }),
+  );
+}
+
+describe("Guard edit Pembelian — status dan keberadaan dokumen", () => {
+  it("edit kodebeli yang tidak ada ditolak dengan error tidak ditemukan", async () => {
+    await siapkanDasar();
+
+    await expect(updatePembelian(db, "PB0000000000", buildUpdateInput())).rejects.toThrow(/tidak ditemukan/);
+  });
+
+  it("edit Pembelian berstatus D ditolak dengan pesan sudah dibatalkan", async () => {
+    const created = await buatPembelianSiapEdit();
+    await cancelPembelian(db, created.kodebeli);
+
+    await expect(updatePembelian(db, created.kodebeli, buildUpdateInput())).rejects.toThrow(/sudah dibatalkan/);
+  });
+
+  it("edit Pembelian berstatus S berhasil dan statusnya tetap S tanpa alasanbatal", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    const hasil = await updatePembelian(db, created.kodebeli, buildUpdateInput());
+
+    expect(hasil.status).toBe("S");
+    expect(hasil.alasanbatal).toBeNull();
+  });
+
+  it("setelah edit sukses, jalur batal biasa masih bekerja — status S ke D dengan alasanbatal tercatat, baris hasil edit tetap utuh", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    const hasilEdit = await updatePembelian(db, created.kodebeli, buildUpdateInput());
+    const batal = await cancelPembelian(db, created.kodebeli, "Faktur supplier salah");
+
+    expect(batal.status).toBe("D");
+    expect(batal.alasanbatal).toBe("Faktur supplier salah");
+    expect(batal.items).toEqual(hasilEdit.items);
+    expect(await bacaJumlahBaris()).toEqual({ beli: 1, belidtl: 1 });
+  });
+});
+
+describe("Edit Pembelian — validasi create dipakai ulang", () => {
+  it("baris kedua memakai kodebarang yang tidak terdaftar — ketiga baris lama tetap utuh, tidak ada replace separuh", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    await expect(
+      updatePembelian(
+        db,
+        created.kodebeli,
+        buildUpdateInput({
+          items: [
+            { kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 },
+            { kodebarang: "TIDAKADA", qty: 1, harga: 5000, pakaiPpn: "TIDAK", diskon: 0 },
+          ],
+        }),
+      ),
+    ).rejects.toThrow(/Barang.*tidak ditemukan/);
+
+    const utuh = await findPembelian(db, created.kodebeli);
+    expect(utuh?.items).toHaveLength(3);
+    expect(utuh?.grandtotal).toBe(created.grandtotal);
+  });
+
+  it("items kosong ditolak sebagai input tidak sah — baris lama tetap utuh, tidak jadi kosong", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    await expect(
+      updatePembelian(db, created.kodebeli, { kodesupplier: "SUP01", items: [] }),
+    ).rejects.toThrow(/minimal 1/);
+
+    const utuh = await findPembelian(db, created.kodebeli);
+    expect(utuh?.items).toHaveLength(3);
+  });
+
+  it("harga negatif ditolak dengan pesan harga tidak sah, tidak ada perubahan tersisa", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    await expect(
+      updatePembelian(
+        db,
+        created.kodebeli,
+        buildUpdateInput({
+          items: [{ kodebarang: "BRG01", qty: 1, harga: -5000, pakaiPpn: "TIDAK", diskon: 0 }],
+        }),
+      ),
+    ).rejects.toThrow(/[Hh]arga.*negatif/);
+
+    const utuh = await findPembelian(db, created.kodebeli);
+    expect(utuh?.items).toHaveLength(3);
+    expect(utuh?.grandtotal).toBe(created.grandtotal);
+  });
+
+  it("supplier tidak terdaftar maupun nonaktif ditolak seperti aturan create — supplier lama tetap tersimpan beserta seluruh barisnya", async () => {
+    await siapkanDasar();
+    await buatSupplier(db, "SUP02", 0);
+    const created = await createPembelian(db, buildInput());
+
+    await expect(updatePembelian(db, created.kodebeli, buildUpdateInput({ kodesupplier: "TIDAKADA" }))).rejects.toThrow(/Supplier.*tidak ditemukan/);
+    await expect(updatePembelian(db, created.kodebeli, buildUpdateInput({ kodesupplier: "SUP02" }))).rejects.toThrow(/Supplier.*nonaktif/);
+
+    const utuh = await findPembelian(db, created.kodebeli);
+    expect(utuh?.kodesupplier).toBe("SUP01");
+    expect(utuh?.items).toHaveLength(1);
+  });
+});
+
+describe("Edit Pembelian — angka otoritatif server", () => {
+  it("angka fiktif kiriman client diabaikan — baris dan header tersimpan hasil hitung server dari rate PPN config", async () => {
+    const created = await buatPembelianSiapEdit();
+    await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "1" } });
+
+    try {
+      const hasil = await updatePembelian(db, created.kodebeli, {
+        kodesupplier: "SUP01",
+        items       : [
+          { kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "EXCLUDE", diskon: 0, subtotal: 999 },
+        ] as unknown as UpdatePembelianInput["items"],
+      });
+
+      expect(hasil.items[0].ppn).toBeCloseTo(1100);
+      expect(hasil.items[0].subtotal).toBeCloseTo(11100);
+      expect(hasil.total).toBe(10000);
+      expect(hasil.ppn).toBeCloseTo(1100);
+      expect(hasil.grandtotal).toBeCloseTo(11100);
+    } finally {
+      await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "0" } });
+    }
+  });
+
+  it("header total/diskon/grandtotal tersimpan hasil calculateHeaderTotals, bukan kiriman client", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    const hasil = await updatePembelian(
+      db,
+      created.kodebeli,
+      buildUpdateInput({
+        items: [
+          { kodebarang: "BRG01", qty: 2, harga: 10000, pakaiPpn: "TIDAK", diskon: 2000 },
+          { kodebarang: "BRG02", qty: 1, harga: 5000, pakaiPpn: "TIDAK", diskon: 500 },
+        ],
+      }),
+    );
+
+    expect(hasil.total).toBe(25000);
+    expect(hasil.diskon).toBe(2500);
+    expect(hasil.grandtotal).toBe(22500);
+  });
+});
+
+describe("Edit Pembelian — field terkunci tidak bergeser", () => {
+  it("input edit menyertakan tanggal dan kodelokasi palsu — tgltrans, idlokasi, kodebeli di database tetap nilai semula", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    const hasil = await updatePembelian(db, created.kodebeli, {
+      ...buildUpdateInput(),
+      tanggal   : "2001-01-01",
+      kodelokasi: "PALSU",
+    } as unknown as UpdatePembelianInput & { tanggal: string; kodelokasi: string });
+
+    expect(hasil.kodebeli).toBe(created.kodebeli);
+    expect(hasil.tanggal).toBe(created.tanggal);
+    expect(hasil.kodelokasi).toBe(created.kodelokasi);
+  });
+});
+
+describe("Guard edit Pembelian — status dan keberadaan dokumen", () => {
+  it("edit kodebeli yang tidak ada ditolak dengan error tidak ditemukan", async () => {
+    await siapkanDasar();
+
+    await expect(updatePembelian(db, "PB0000000000", buildUpdateInput())).rejects.toThrow(/tidak ditemukan/);
+  });
+
+  it("edit Pembelian berstatus D ditolak dengan pesan sudah dibatalkan", async () => {
+    const created = await buatPembelianSiapEdit();
+    await cancelPembelian(db, created.kodebeli);
+
+    await expect(updatePembelian(db, created.kodebeli, buildUpdateInput())).rejects.toThrow(/sudah dibatalkan/);
+  });
+
+  it("Pembelian dengan 3 item lama diedit menjadi 2 item berbeda: nilai kembalian updatePembelian menunjukkan data terbaru dan belidtl hanya berisi 2 baris baru itu", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    const hasil = await updatePembelian(
+      db,
+      created.kodebeli,
+      buildUpdateInput({
+        items: [
+          { kodebarang: "BRG02", qty: 4, harga: 5000, pakaiPpn: "TIDAK", diskon: 500 },
+          { kodebarang: "BRG03", qty: 2, harga: 7000, pakaiPpn: "TIDAK", diskon: 0 },
+        ],
+      }),
+    );
+
+    expect(hasil.kodebeli).toBe(created.kodebeli);
+    expect(hasil.kodesupplier).toBe("SUP01");
+    expect(hasil.items).toHaveLength(2);
+    expect(hasil.items.map((item) => item.kodebarang)).toEqual(["BRG02", "BRG03"]);
+    expect(hasil.items[0].qty).toBe(4);
+    expect(await bacaJumlahBaris()).toEqual({ beli: 1, belidtl: 2 });
+  });
+
+  it("urutan detail hasil edit berurutan mulai 1", async () => {
+    const created = await buatPembelianSiapEdit();
+
+    const hasil = await updatePembelian(
+      db,
+      created.kodebeli,
+      buildUpdateInput({
+        items: [
+          { kodebarang: "BRG03", qty: 1, harga: 7000, pakaiPpn: "TIDAK", diskon: 0 },
+          { kodebarang: "BRG01", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 },
+        ],
+      }),
+    );
+
+    expect(hasil.items.map((item) => [item.kodebarang, item.harga])).toEqual([["BRG03", 7000], ["BRG01", 10000]]);
+
+    const baris = await db.belidtl.findMany({ where: { beli: { kodebeli: created.kodebeli } }, orderBy: { urutan: "asc" } });
+
+    expect(baris.map((barisItem) => barisItem.urutan)).toEqual([1, 2]);
+    expect(baris[0].harga.toString()).toBe("7000");
+    expect(baris[1].harga.toString()).toBe("10000");
+  });
 });

@@ -38,13 +38,15 @@ const emptyValues: PembelianFormValues = {
 };
 
 type PembelianFormProps = {
-  mode          : "create" | "view";
+  mode          : "create" | "view" | "edit";
   initialValues?: PembelianFormValues;
   onSubmit?     : (values: PembelianFormValues) => Promise<void>;
 };
 
 export default function PembelianForm({ mode, initialValues, onSubmit }: PembelianFormProps) {
   const isView = mode === "view";
+  const isEdit = mode === "edit";
+  const isCreate = mode === "create";
   const startingValues = initialValues ?? emptyValues;
 
   const [tanggal, setTanggal]           = useState(startingValues.tanggal);
@@ -133,7 +135,7 @@ export default function PembelianForm({ mode, initialValues, onSubmit }: Pembeli
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <DatePicker
-            disabled       = {isView}
+            disabled       = {!isCreate}
             label          = "Tanggal"
             onChangeAction = {setTanggal}
             required
@@ -143,8 +145,8 @@ export default function PembelianForm({ mode, initialValues, onSubmit }: Pembeli
           <div>
             <ComboGrid
               columns        = {lokasiColumns}
-              data           = {isView ? [{ kodelokasi, namalokasi, keterangan: "", status: 1 }] : lokasiList.filter((lokasi) => lokasi.status === 1)}
-              disabled       = {isView}
+              data           = {isCreate ? lokasiList.filter((lokasi) => lokasi.status === 1) : [{ kodelokasi, namalokasi, keterangan: "", status: 1 }]}
+              disabled       = {!isCreate}
               label          = "Lokasi"
               labelKey       = "namalokasi"
               onChangeAction = {(value, row) => {
@@ -223,7 +225,7 @@ export default function PembelianForm({ mode, initialValues, onSubmit }: Pembeli
             onClick={handleSubmit}
             type="button"
           >
-            {isSubmitting ? "Menyimpan..." : "Simpan Pembelian"}
+            {isSubmitting ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Pembelian"}
           </button>
         </div>
       )}

@@ -132,6 +132,48 @@ export async function insertPembelianLengkap(
   });
 }
 
+export type UpdatePembelianData = {
+  idsupplier: number;
+  total     : number;
+  diskon    : number;
+  ppn       : number;
+  grandtotal: number;
+  items     : InsertPembelianItemData[];
+};
+
+export async function updatePembelianLengkap(
+  db      : DatabasePerusahaanClient,
+  kodebeli: string,
+  data    : UpdatePembelianData,
+): Promise<void> {
+  const beli = await db.beli.update({
+    where: { kodebeli },
+    data : {
+      idsupplier: data.idsupplier,
+      total     : data.total,
+      diskon    : data.diskon,
+      ppn       : data.ppn,
+      grandtotal: data.grandtotal,
+    },
+  });
+
+  await db.belidtl.deleteMany({ where: { idbeli: beli.idbeli } });
+
+  await db.belidtl.createMany({
+    data: data.items.map((item, index) => ({
+      idbeli  : beli.idbeli,
+      urutan  : index + 1,
+      idbarang: item.idbarang,
+      qty     : item.qty,
+      harga   : item.harga,
+      pakaippn: item.pakaippn,
+      diskon  : item.diskon,
+      ppn     : item.ppn,
+      subtotal: item.subtotal,
+    })),
+  });
+}
+
 export async function updateStatusPembelianByKode(
   db         : DatabasePerusahaanClient,
   kodebeli   : string,

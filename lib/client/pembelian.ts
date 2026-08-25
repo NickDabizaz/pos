@@ -1,5 +1,5 @@
 import { parseResponse } from "@/lib/client/apiResponse";
-import type { CreatePembelianInput, Pembelian } from "@/lib/server/pembelian/types";
+import type { CreatePembelianInput, Pembelian, UpdatePembelianInput } from "@/lib/server/pembelian/types";
 
 export type { Pembelian };
 
@@ -22,6 +22,16 @@ export async function fetchPembelianByKode(kodebeli: string): Promise<Pembelian>
 export async function createPembelian(input: CreatePembelianInput): Promise<Pembelian> {
   const response = await fetch("/api/transaksi/pembelian", {
     method : "POST",
+    headers: { "Content-Type": "application/json" },
+    body   : JSON.stringify(input),
+  });
+
+  return parseResponse<Pembelian>(response);
+}
+
+export async function updatePembelian(kodebeli: string, input: UpdatePembelianInput): Promise<Pembelian> {
+  const response = await fetch(`/api/transaksi/pembelian/${kodebeli}`, {
+    method : "PATCH",
     headers: { "Content-Type": "application/json" },
     body   : JSON.stringify(input),
   });

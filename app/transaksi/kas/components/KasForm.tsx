@@ -30,7 +30,7 @@ const emptyValues: KasFormValues = {
 };
 
 type KasFormProps = {
-  mode          : "create" | "view";
+  mode          : "create" | "view" | "edit";
   initialValues?: KasFormValues;
   onSubmit?     : (values: KasFormValues) => Promise<void>;
 };
@@ -40,6 +40,8 @@ function parseNominal(raw: string): number {
 }
 
 export default function KasForm({ mode, initialValues, onSubmit }: KasFormProps) {
+  const isCreate = mode === "create";
+  const isEdit = mode === "edit";
   const isView = mode === "view";
   const startingValues = initialValues ?? emptyValues;
 
@@ -136,7 +138,7 @@ export default function KasForm({ mode, initialValues, onSubmit }: KasFormProps)
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <DatePicker
-            disabled       = {isView}
+            disabled       = {!isCreate}
             label          = "Tanggal"
             onChangeAction = {setTanggal}
             required
@@ -157,8 +159,8 @@ export default function KasForm({ mode, initialValues, onSubmit }: KasFormProps)
           <div className="sm:col-span-2">
             <ComboGrid
               columns        = {lokasiColumns}
-              data           = {isView ? [{ kodelokasi, namalokasi, keterangan: "", status: 1 }] : lokasiList.filter((lokasi) => lokasi.status === 1)}
-              disabled       = {isView}
+              data           = {isCreate ? lokasiList.filter((lokasi) => lokasi.status === 1) : [{ kodelokasi, namalokasi, keterangan: "", status: 1 }]}
+              disabled       = {!isCreate}
               label          = "Lokasi"
               labelKey       = "namalokasi"
               onChangeAction = {(value, row) => {
@@ -253,7 +255,7 @@ export default function KasForm({ mode, initialValues, onSubmit }: KasFormProps)
             onClick={handleSubmit}
             type="button"
           >
-            {isSubmitting ? "Menyimpan..." : "Simpan Kas"}
+            {isSubmitting ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Kas"}
           </button>
         </div>
       )}

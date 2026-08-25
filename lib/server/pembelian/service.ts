@@ -7,10 +7,11 @@ import {
   findConfigPpn,
   findPembelianByKode,
   insertPembelianLengkap,
+  updatePembelianLengkap,
   updateStatusPembelianByKode,
   type InsertPembelianItemData,
 } from "@/lib/server/pembelian/repository";
-import type { CreatePembelianInput, Pembelian } from "@/lib/server/pembelian/types";
+import type { CreatePembelianInput, CreatePembelianItemInput, Pembelian, UpdatePembelianInput } from "@/lib/server/pembelian/types";
 import { findSupplierByKode } from "@/lib/server/supplier/repository";
 import { calculateHeaderTotals, withComputedAmounts } from "@/lib/server/transaksi/calculations";
 import type { TransaksiItem } from "@/lib/server/transaksi/types";
@@ -27,6 +28,54 @@ async function bacaPpnRate(db: DatabasePerusahaanClient): Promise<number> {
   const rate = aktif ? persentase / 100 : 0;
 
   return rate;
+}
+
+type TransaksiItemDenganBarang = TransaksiItem & { idbarang: number };
+
+async function cekDanHitungItems(
+  db      : DatabasePerusahaanClient,
+  items   : CreatePembelianItemInput[],
+  ppnRate : number,
+): Promise<TransaksiItemDenganBarang[]> {
+  const hasil: TransaksiItemDenganBarang[] = [];
+
+  for (const item of items) {
+    if (!(item.qty > 0)) {
+      throw new Error(`Jumlah barang "${item.kodebarang}" harus lebih dari nol`, { cause: "INPUT_TIDAK_SAH" });
+    }
+    if (item.harga < 0) {
+      throw new Error(`Harga barang "${item.kodebarang}" tidak boleh negatif`, { cause: "INPUT_TIDAK_SAH" });
+    }
+
+    const barang = await findBarangByKode(db, item.kodebarang);
+    if (!barang) {
+      throw new Error(`Barang dengan kode "${item.kodebarang}" tidak ditemukan`, { cause: "TIDAK_DITEMUKAN" });
+    }
+
+    hasil.push({
+      ...withComputedAmounts(
+        { kodebarang: item.kodebarang, namabarang: barang.namabarang, satuan: barang.satuan, qty: item.qty, harga: item.harga, pakaiPpn: item.pakaiPpn, diskon: item.diskon },
+        ppnRate,
+      ),
+      idbarang: barang.idbarang,
+    });
+  }
+
+  return hasil;
+}
+
+function toInsertItems(transaksiItems: TransaksiItemDenganBarang[]): InsertPembelianItemData[] {
+  const items = transaksiItems.map((item) => ({
+    idbarang: item.idbarang,
+    qty     : item.qty,
+    harga   : item.harga,
+    pakaippn: item.pakaiPpn,
+    diskon  : item.diskon,
+    ppn     : item.ppn,
+    subtotal: item.subtotal,
+  }));
+
+  return items;
 }
 
 export async function listPembelian(db: DatabasePerusahaanClient): Promise<Pembelian[]> {
@@ -64,40 +113,11 @@ export async function createPembelian(db: DatabasePerusahaanClient, input: Creat
 
   const ppnRate = await bacaPpnRate(db);
 
-  const transaksiItems: (TransaksiItem & { idbarang: number })[] = [];
-  for (const item of input.items) {
-    if (!(item.qty > 0)) {
-      throw new Error(`Jumlah barang "${item.kodebarang}" harus lebih dari nol`, { cause: "INPUT_TIDAK_SAH" });
-    }
-    if (item.harga < 0) {
-      throw new Error(`Harga barang "${item.kodebarang}" tidak boleh negatif`, { cause: "INPUT_TIDAK_SAH" });
-    }
-
-    const barang = await findBarangByKode(db, item.kodebarang);
-    if (!barang) {
-      throw new Error(`Barang dengan kode "${item.kodebarang}" tidak ditemukan`, { cause: "TIDAK_DITEMUKAN" });
-    }
-
-    transaksiItems.push({
-      ...withComputedAmounts(
-        { kodebarang: item.kodebarang, namabarang: barang.namabarang, satuan: barang.satuan, qty: item.qty, harga: item.harga, pakaiPpn: item.pakaiPpn, diskon: item.diskon },
-        ppnRate,
-      ),
-      idbarang: barang.idbarang,
-    });
-  }
+  const transaksiItems = await cekDanHitungItems(db, input.items, ppnRate);
 
   const { diskon, grandtotal, ppn, total } = calculateHeaderTotals(transaksiItems);
 
-  const items: InsertPembelianItemData[] = transaksiItems.map((item) => ({
-    idbarang: item.idbarang,
-    qty     : item.qty,
-    harga   : item.harga,
-    pakaippn: item.pakaiPpn,
-    diskon  : item.diskon,
-    ppn     : item.ppn,
-    subtotal: item.subtotal,
-  }));
+  const items = toInsertItems(transaksiItems);
 
   const tgltrans = new Date(input.tanggal);
 
@@ -123,6 +143,52 @@ export async function createPembelian(db: DatabasePerusahaanClient, input: Creat
   const created = await findPembelianByKode(db, kodebeli);
 
   return created!;
+}
+
+export async function updatePembelian(
+  db      : DatabasePerusahaanClient,
+  kodebeli: string,
+  input   : UpdatePembelianInput,
+): Promise<Pembelian> {
+  const existing = await findPembelianByKode(db, kodebeli);
+  if (!existing) {
+    throw new Error(pesanTidakDitemukan(kodebeli), { cause: "TIDAK_DITEMUKAN" });
+  }
+  if (existing.status === "D") {
+    throw new Error(`Pembelian "${kodebeli}" sudah dibatalkan`, { cause: "SUDAH_DIBATALKAN" });
+  }
+
+  const supplier = await findSupplierByKode(db, input.kodesupplier);
+  if (!supplier) {
+    throw new Error(`Supplier dengan kode "${input.kodesupplier}" tidak ditemukan`, { cause: "TIDAK_DITEMUKAN" });
+  }
+  if (supplier.status !== 1) {
+    throw new Error(`Supplier dengan kode "${input.kodesupplier}" nonaktif, tidak bisa dipakai transaksi baru`, { cause: "INPUT_TIDAK_SAH" });
+  }
+
+  if (input.items.length === 0) {
+    throw new Error("Pembelian harus memiliki minimal 1 baris barang", { cause: "INPUT_TIDAK_SAH" });
+  }
+
+  const ppnRate = await bacaPpnRate(db);
+
+  const transaksiItems = await cekDanHitungItems(db, input.items, ppnRate);
+  const { diskon, grandtotal, ppn, total } = calculateHeaderTotals(transaksiItems);
+
+  await db.$transaction(async (tx) => {
+    await updatePembelianLengkap(tx, kodebeli, {
+      idsupplier: supplier.idsupplier,
+      total     : total,
+      diskon    : diskon,
+      ppn       : ppn,
+      grandtotal: grandtotal,
+      items     : toInsertItems(transaksiItems),
+    });
+  });
+
+  const terbaru = await findPembelianByKode(db, kodebeli);
+
+  return terbaru!;
 }
 
 export async function cancelPembelian(

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import KasForm from "@/app/transaksi/kas/components/KasForm";
 import type { KasFormValues } from "@/app/transaksi/kas/lib/types";
-import { fetchKasByKode } from "@/lib/client/kas";
+import { fetchKasByKode, updateKas } from "@/lib/client/kas";
 import type { Kas } from "@/lib/server/kas/types";
 
 function toFormValues(kas: Kas): KasFormValues {
@@ -22,6 +22,7 @@ export default function KasDetailPage() {
   const router = useRouter();
   const params = useParams<{ idkas: string }>();
   const [kas, setKas] = useState<Kas | null>(null);
+  const [mode, setMode] = useState<"view" | "edit">("view");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -52,6 +53,21 @@ export default function KasDetailPage() {
       isMounted = false;
     };
   }, [params.idkas]);
+
+  async function handleUpdate(values: KasFormValues) {
+    if (!kas) return;
+
+    const updated = await updateKas(kas.kodekas, {
+      jenis  : values.jenis,
+      rincian: values.rincian.map((item) => ({
+        keterangan: item.keterangan,
+        nominal   : item.nominal,
+      })),
+    });
+
+    setKas(updated);
+    setMode("view");
+  }
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Memuat data...</p>;
@@ -93,6 +109,16 @@ export default function KasDetailPage() {
             Dibatalkan
           </span>
         )}
+
+        {!isCancelled && mode === "view" && (
+          <button
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+            onClick={() => setMode("edit")}
+            type="button"
+          >
+            Ubah
+          </button>
+        )}
       </div>
 
       {isCancelled && (
@@ -104,7 +130,12 @@ export default function KasDetailPage() {
         </div>
       )}
 
-      <KasForm initialValues={toFormValues(kas)} mode="view" />
+      <KasForm
+        initialValues = {toFormValues(kas)}
+        key          = {`${kas.kodekas}:${mode}`}
+        mode          = {mode}
+        onSubmit      = {mode === "edit" ? handleUpdate : undefined}
+      />
     </>
   );
 }

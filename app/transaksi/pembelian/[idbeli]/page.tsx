@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import PembelianForm from "@/app/transaksi/pembelian/components/PembelianForm";
 import type { PembelianFormValues } from "@/app/transaksi/pembelian/lib/types";
-import { fetchPembelianByKode } from "@/lib/client/pembelian";
+import { fetchPembelianByKode, updatePembelian } from "@/lib/client/pembelian";
 import type { Pembelian } from "@/lib/server/pembelian/types";
 
 function toFormValues(pembelian: Pembelian): PembelianFormValues {
@@ -23,6 +23,7 @@ export default function PembelianDetailPage() {
   const router = useRouter();
   const params = useParams<{ idbeli: string }>();
   const [pembelian, setPembelian] = useState<Pembelian | null>(null);
+  const [mode, setMode] = useState<"view" | "edit">("view");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -53,6 +54,24 @@ export default function PembelianDetailPage() {
       isMounted = false;
     };
   }, [params.idbeli]);
+
+  async function handleUpdate(values: PembelianFormValues) {
+    if (!pembelian) return;
+
+    const updated = await updatePembelian(pembelian.kodebeli, {
+      kodesupplier: values.kodesupplier,
+      items: values.items.map((item) => ({
+        kodebarang: item.kodebarang,
+        qty       : item.qty,
+        harga     : item.harga,
+        pakaiPpn  : item.pakaiPpn,
+        diskon    : item.diskon,
+      })),
+    });
+
+    setPembelian(updated);
+    setMode("view");
+  }
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Memuat data...</p>;
@@ -94,6 +113,16 @@ export default function PembelianDetailPage() {
             Dibatalkan
           </span>
         )}
+
+        {!isCancelled && mode === "view" && (
+          <button
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+            onClick={() => setMode("edit")}
+            type="button"
+          >
+            Ubah
+          </button>
+        )}
       </div>
 
       {isCancelled && (
@@ -105,7 +134,12 @@ export default function PembelianDetailPage() {
         </div>
       )}
 
-      <PembelianForm initialValues={toFormValues(pembelian)} mode="view" />
+      <PembelianForm
+        initialValues = {toFormValues(pembelian)}
+        key          = {`${pembelian.kodebeli}:${mode}`}
+        mode          = {mode}
+        onSubmit      = {mode === "edit" ? handleUpdate : undefined}
+      />
     </>
   );
 }

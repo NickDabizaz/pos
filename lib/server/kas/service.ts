@@ -3,15 +3,40 @@ import {
   findAllKas,
   findKasByKode,
   insertKasLengkap,
+  updateKasLengkap,
   updateStatusKasByKode,
   type InsertKasRincianData,
 } from "@/lib/server/kas/repository";
 import { simpanDenganKode } from "@/lib/server/kodedokumen/service";
-import type { CreateKasInput, Kas } from "@/lib/server/kas/types";
+import type { CreateKasInput, CreateKasRincianInput, JenisKas, Kas, UpdateKasInput } from "@/lib/server/kas/types";
 import { findLokasiByKode } from "@/lib/server/lokasi/repository";
 
 function pesanTidakDitemukan(kodekas: string): string {
   return `Kas dengan kode "${kodekas}" tidak ditemukan`;
+}
+
+function cekJenisKas(jenis: JenisKas): void {
+  if (jenis !== "MASUK" && jenis !== "KELUAR") {
+    throw new Error(`Jenis kas "${jenis}" tidak sah, harus MASUK atau KELUAR`, { cause: "INPUT_TIDAK_SAH" });
+  }
+}
+
+function cekDanHitungRincian(rincian: CreateKasRincianInput[]): InsertKasRincianData[] {
+  if (rincian.length === 0) {
+    throw new Error("Kas harus memiliki minimal 1 baris rincian", { cause: "INPUT_TIDAK_SAH" });
+  }
+
+  const hasil: InsertKasRincianData[] = [];
+
+  for (const item of rincian) {
+    if (!(item.nominal > 0)) {
+      throw new Error(`Nominal rincian "${item.keterangan}" harus lebih dari nol`, { cause: "INPUT_TIDAK_SAH" });
+    }
+
+    hasil.push({ keterangan: item.keterangan, nominal: item.nominal });
+  }
+
+  return hasil;
 }
 
 export async function listKas(db: DatabasePerusahaanClient): Promise<Kas[]> {
@@ -27,13 +52,9 @@ export async function findKas(db: DatabasePerusahaanClient, kodekas: string): Pr
 }
 
 export async function createKas(db: DatabasePerusahaanClient, input: CreateKasInput): Promise<Kas> {
-  if (input.jenis !== "MASUK" && input.jenis !== "KELUAR") {
-    throw new Error(`Jenis kas "${input.jenis}" tidak sah, harus MASUK atau KELUAR`, { cause: "INPUT_TIDAK_SAH" });
-  }
+  cekJenisKas(input.jenis);
 
-  if (input.rincian.length === 0) {
-    throw new Error("Kas harus memiliki minimal 1 baris rincian", { cause: "INPUT_TIDAK_SAH" });
-  }
+  const rincian = cekDanHitungRincian(input.rincian);
 
   const lokasi = await findLokasiByKode(db, input.kodelokasi);
   if (!lokasi) {
@@ -41,15 +62,6 @@ export async function createKas(db: DatabasePerusahaanClient, input: CreateKasIn
   }
   if (lokasi.status !== 1) {
     throw new Error(`Lokasi dengan kode "${input.kodelokasi}" nonaktif, tidak bisa dipakai transaksi baru`, { cause: "INPUT_TIDAK_SAH" });
-  }
-
-  const rincian: InsertKasRincianData[] = [];
-  for (const item of input.rincian) {
-    if (!(item.nominal > 0)) {
-      throw new Error(`Nominal rincian "${item.keterangan}" harus lebih dari nol`, { cause: "INPUT_TIDAK_SAH" });
-    }
-
-    rincian.push({ keterangan: item.keterangan, nominal: item.nominal });
   }
 
   const grandtotal = rincian.reduce((total, item) => total + item.nominal, 0);
@@ -74,6 +86,37 @@ export async function createKas(db: DatabasePerusahaanClient, input: CreateKasIn
   const created = await findKasByKode(db, kodekas);
 
   return created!;
+}
+
+export async function updateKas(
+  db     : DatabasePerusahaanClient,
+  kodekas: string,
+  input  : UpdateKasInput,
+): Promise<Kas> {
+  const existing = await findKasByKode(db, kodekas);
+  if (!existing) {
+    throw new Error(pesanTidakDitemukan(kodekas), { cause: "TIDAK_DITEMUKAN" });
+  }
+  if (existing.status === "D") {
+    throw new Error(`Kas "${kodekas}" sudah dibatalkan`, { cause: "SUDAH_DIBATALKAN" });
+  }
+
+  cekJenisKas(input.jenis);
+
+  const rincian = cekDanHitungRincian(input.rincian);
+  const grandtotal = rincian.reduce((total, item) => total + item.nominal, 0);
+
+  await db.$transaction(async (tx) => {
+    await updateKasLengkap(tx, kodekas, {
+      jenis   : input.jenis,
+      grandtotal,
+      rincian,
+    });
+  });
+
+  const terbaru = await findKasByKode(db, kodekas);
+
+  return terbaru!;
 }
 
 export async function cancelKas(

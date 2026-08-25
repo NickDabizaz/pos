@@ -32,3 +32,8 @@ export type CreateKasInput = {
   kodelokasi: string;
   rincian   : CreateKasRincianInput[];
 };
+
+export type UpdateKasInput = {
+  jenis  : JenisKas;
+  rincian: CreateKasRincianInput[];
+};

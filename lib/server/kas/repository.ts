@@ -97,3 +97,34 @@ export async function updateStatusKasByKode(
 ): Promise<void> {
   await db.kas.update({ where: { kodekas }, data: { status: "D", alasanbatal } });
 }
+
+export type UpdateKasData = {
+  jenis     : JenisKas;
+  grandtotal: number;
+  rincian   : InsertKasRincianData[];
+};
+
+export async function updateKasLengkap(
+  db      : DatabasePerusahaanClient,
+  kodekas : string,
+  data    : UpdateKasData,
+): Promise<void> {
+  const kas = await db.kas.update({
+    where: { kodekas },
+    data : {
+      jenis     : data.jenis,
+      grandtotal: data.grandtotal,
+    },
+  });
+
+  await db.kasdtl.deleteMany({ where: { idkas: kas.idkas } });
+
+  await db.kasdtl.createMany({
+    data: data.rincian.map((item, index) => ({
+      idkas     : kas.idkas,
+      urutan    : index + 1,
+      keterangan: item.keterangan,
+      nominal   : item.nominal,
+    })),
+  });
+}
