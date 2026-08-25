@@ -382,6 +382,286 @@ describe("config berkunci modul + config, tanpa kolom idperusahaan", () => {
   });
 });
 
+describe("kartustok dan jurnal ikut migration init Database Perusahaan", () => {
+  it("listTables memuat kartustok dan jurnal tanpa migration incremental tambahan", async () => {
+    const tables = await listTables(dbName);
+
+    expect(tables).toContain("kartustok");
+    expect(tables).toContain("jurnal");
+  });
+
+  it("kartustok dan jurnal sama-sama punya kolom tgltrans dan idlokasi", async () => {
+    const kartustok = await listColumns(dbName, "kartustok");
+    const jurnal = await listColumns(dbName, "jurnal");
+
+    expect(kartustok).toContain("tgltrans");
+    expect(kartustok).toContain("idlokasi");
+    expect(jurnal).toContain("tgltrans");
+    expect(jurnal).toContain("idlokasi");
+  });
+});
+
+describe("kunci utama kartustok gabungan jenistransaksi + idtrans + urutan", () => {
+  const barangKst = {
+    kodebarang: "B-KSTOK",
+    namabarang: "Barang Kartu Stok",
+    satuan    : "PCS",
+    hargabeli : 1000,
+    hargajual : 1500,
+  };
+
+  function baris(idbarang: number, jenistransaksi: string, idtrans: number, urutan: number) {
+    const data = {
+      jenistransaksi,
+      idtrans,
+      urutan,
+      kodetrans   : "JL2608240001",
+      tgltrans    : new Date("2026-08-24"),
+      idlokasi    : 1,
+      idbarang,
+      jml         : 1,
+      mk          : "K",
+      catatan     : "PENJUALAN BARANG KARTU STOK KE TOKO MAJU",
+    };
+
+    return data;
+  }
+
+  it('menyisipkan dua baris ("PENJUALAN", 11, 1) ditolak database sebagai duplikat kunci', async () => {
+    const barang = await prisma.barang.create({ data: barangKst });
+
+    await expect(prisma.kartustok.create({ data: baris(barang.idbarang, "PENJUALAN", 11, 1) })).resolves.toBeDefined();
+
+    await expect(prisma.kartustok.create({ data: baris(barang.idbarang, "PENJUALAN", 11, 1) })).rejects.toThrow();
+  });
+
+  it('baris ("PENJUALAN", 21, 1) dan ("POS", 21, 1) sama-sama diterima', async () => {
+    const barang = await prisma.barang.findFirstOrThrow({ where: { kodebarang: "B-KSTOK" } });
+
+    await expect(prisma.kartustok.create({ data: baris(barang.idbarang, "PENJUALAN", 21, 1) })).resolves.toBeDefined();
+    await expect(prisma.kartustok.create({ data: baris(barang.idbarang, "POS", 21, 1) })).resolves.toBeDefined();
+  });
+
+  it('baris ("PENJUALAN", 12, 1) sama-sama diterima di samping ("PENJUALAN", 11, 1)', async () => {
+    const barang = await prisma.barang.findFirstOrThrow({ where: { kodebarang: "B-KSTOK" } });
+
+    await expect(prisma.kartustok.create({ data: baris(barang.idbarang, "PENJUALAN", 12, 1) })).resolves.toBeDefined();
+  });
+
+  it("dua baris dengan idbarang berbeda tapi kunci yang sama tetap ditolak — idbarang bukan bagian identitas", async () => {
+    const barangLain = await prisma.barang.create({
+      data: { ...barangKst, kodebarang: "B-KSTOK-2", namabarang: "Barang Kartu Stok Kedua" },
+    });
+
+    await expect(prisma.kartustok.create({ data: baris(barangLain.idbarang, "PENJUALAN", 11, 1) })).rejects.toThrow();
+  });
+});
+
+describe("idtrans dan idlokasi sengaja tanpa foreign key, idbarang dengan foreign key", () => {
+  it("baris Kartu Stok dengan idtrans 999999 yang tidak menunjuk jual, beli, maupun kas tetap tersimpan", async () => {
+    const barang = await prisma.barang.findFirstOrThrow({ where: { kodebarang: "B-KSTOK" } });
+
+    await expect(
+      prisma.kartustok.create({
+        data: {
+          jenistransaksi: "PEMBELIAN",
+          idtrans       : 999999,
+          urutan        : 1,
+          kodetrans     : "PB2608240001",
+          tgltrans      : new Date("2026-08-24"),
+          idlokasi      : 1,
+          idbarang      : barang.idbarang,
+          jml           : 10,
+          mk            : "M",
+          catatan       : "PEMBELIAN BARANG KARTU STOK DARI PT SUMBER PANGAN",
+        },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it("baris Jurnal dengan idtrans 999999 tetap tersimpan", async () => {
+    await expect(
+      prisma.jurnal.create({
+        data: {
+          jenistransaksi: "KAS MASUK",
+          idtrans       : 999999,
+          urutan        : 1,
+          kodetrans     : "KS2608240001",
+          tgltrans      : new Date("2026-08-24"),
+          idlokasi      : 1,
+          saldo         : "DEBET",
+          amount        : 100000,
+          catatan       : "KAS MASUK SETORAN MODAL",
+        },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it("menghapus Barang yang masih punya baris Kartu Stok ditolak database", async () => {
+    const barang = await prisma.barang.findFirstOrThrow({ where: { kodebarang: "B-KSTOK" } });
+
+    await expect(prisma.barang.delete({ where: { idbarang: barang.idbarang } })).rejects.toThrow();
+  });
+
+  it("menghapus Lokasi yang masih dirujuk baris Kartu Stok tidak ditolak — idlokasi tanpa FK", async () => {
+    const lokasi = await prisma.lokasi.create({ data: { kodelokasi: "L-KSTOK-TANPA-FK", namalokasi: "Lokasi Tanpa FK" } });
+    const barang = await prisma.barang.findFirstOrThrow({ where: { kodebarang: "B-KSTOK" } });
+
+    await prisma.kartustok.create({
+      data: {
+        jenistransaksi: "POS",
+        idtrans       : 888888,
+        urutan        : 1,
+        kodetrans     : "JL2608240002",
+        tgltrans      : new Date("2026-08-24"),
+        idlokasi      : lokasi.idlokasi,
+        idbarang      : barang.idbarang,
+        jml           : 1,
+        mk            : "K",
+        catatan       : "POS BARANG KARTU STOK KE TOKO MAJU",
+      },
+    });
+
+    await expect(prisma.lokasi.delete({ where: { idlokasi: lokasi.idlokasi } })).resolves.toBeDefined();
+  });
+});
+
+describe("lebar dan presisi kolom kartustok dan jurnal sesuai desain", () => {
+  it("jml dan amount menyimpan 999999999999.99 utuh — batas atas Decimal(14,2)", async () => {
+    const barang = await prisma.barang.findFirstOrThrow({ where: { kodebarang: "B-KSTOK" } });
+
+    const kartustok = await prisma.kartustok.create({
+      data: {
+        jenistransaksi: "PEMBELIAN",
+        idtrans       : 777777,
+        urutan        : 1,
+        kodetrans     : "PB2608240002",
+        tgltrans      : new Date("2026-08-24"),
+        idlokasi      : 1,
+        idbarang      : barang.idbarang,
+        jml           : 999999999999.99,
+        mk            : "M",
+        catatan       : "PEMBELIAN STOK MAKSIMAL DARI PT SUMBER PANGAN",
+      },
+    });
+    await prisma.jurnal.create({
+      data: {
+        jenistransaksi: "KAS MASUK",
+        idtrans       : 777777,
+        urutan        : 1,
+        kodetrans     : "KS2608240002",
+        tgltrans      : new Date("2026-08-24"),
+        idlokasi      : 1,
+        saldo         : "DEBET",
+        amount        : 999999999999.99,
+        catatan       : "KAS MASUK NOMINAL MAKSIMAL",
+      },
+    });
+
+    expect(kartustok.jml.toString()).toBe("999999999999.99");
+
+    const jurnalTersimpan = await prisma.jurnal.findUniqueOrThrow({
+      where: { jenistransaksi_idtrans_urutan: { jenistransaksi: "KAS MASUK", idtrans: 777777, urutan: 1 } },
+    });
+    expect(jurnalTersimpan.amount.toString()).toBe("999999999999.99");
+  });
+
+  it("catatan sepanjang tepat 255 karakter tersimpan utuh", async () => {
+    const catatan = "C".repeat(255);
+
+    await prisma.jurnal.create({
+      data: {
+        jenistransaksi: "KAS KELUAR",
+        idtrans       : 666666,
+        urutan        : 1,
+        kodetrans     : "KS2608240003",
+        tgltrans      : new Date("2026-08-24"),
+        idlokasi      : 1,
+        saldo         : "KREDIT",
+        amount        : 50000,
+        catatan,
+      },
+    });
+
+    const row = await prisma.jurnal.findUniqueOrThrow({
+      where: { jenistransaksi_idtrans_urutan: { jenistransaksi: "KAS KELUAR", idtrans: 666666, urutan: 1 } },
+    });
+    expect(row.catatan).toBe(catatan);
+    expect(row.catatan.length).toBe(255);
+  });
+
+  it('jenistransaksi menampung "KAS KELUAR" dan saldo menampung "KREDIT" utuh, tidak terpotong', async () => {
+    await prisma.jurnal.create({
+      data: {
+        jenistransaksi: "KAS KELUAR",
+        idtrans       : 555555,
+        urutan        : 1,
+        kodetrans     : "KS2608240004",
+        tgltrans      : new Date("2026-08-24"),
+        idlokasi      : 1,
+        saldo         : "KREDIT",
+        amount        : 25000,
+        catatan       : "KAS KELUAR BAYAR LISTRIK",
+      },
+    });
+
+    const row = await prisma.jurnal.findUniqueOrThrow({
+      where: { jenistransaksi_idtrans_urutan: { jenistransaksi: "KAS KELUAR", idtrans: 555555, urutan: 1 } },
+    });
+    expect(row.jenistransaksi).toBe("KAS KELUAR");
+    expect(row.saldo).toBe("KREDIT");
+  });
+
+  it("kodetrans menampung Kode Dokumen JL2608240001 dan string 30 karakter sekalipun", async () => {
+    const kodetransPanjang = "X".repeat(30);
+    const barang = await prisma.barang.findFirstOrThrow({ where: { kodebarang: "B-KSTOK" } });
+
+    await prisma.kartustok.create({
+      data: {
+        jenistransaksi: "PENJUALAN",
+        idtrans       : 444444,
+        urutan        : 1,
+        kodetrans     : "JL2608240001",
+        tgltrans      : new Date("2026-08-24"),
+        idlokasi      : 1,
+        idbarang      : barang.idbarang,
+        jml           : 2,
+        mk            : "K",
+        catatan       : "PENJUALAN BARANG KARTU STOK KE TOKO MAJU",
+      },
+    });
+
+    await prisma.kartustok.create({
+      data: {
+        jenistransaksi: "PENJUALAN",
+        idtrans       : 444444,
+        urutan        : 2,
+        kodetrans     : kodetransPanjang,
+        tgltrans      : new Date("2026-08-24"),
+        idlokasi      : 1,
+        idbarang      : barang.idbarang,
+        jml           : 1,
+        mk            : "K",
+        catatan       : "PENJUALAN BARANG KARTU STOK KE TOKO MAJU",
+      },
+    });
+
+    const rows = await prisma.kartustok.findMany({ where: { jenistransaksi: "PENJUALAN", idtrans: 444444 } });
+    expect(rows.map((row) => row.urutan).sort()).toEqual([1, 2]);
+  });
+});
+
+describe("barang punya relasi balik kartustok", () => {
+  it("membaca satu Barang beserta seluruh baris Kartu Stok-nya lewat satu query Prisma", async () => {
+    const barang = await prisma.barang.findFirstOrThrow({
+      where   : { kodebarang: "B-KSTOK" },
+      include : { kartustok: true },
+    });
+
+    expect(barang.kartustok.length).toBeGreaterThan(0);
+  });
+});
+
 describe("migration Database Perusahaan aman dijalankan berulang, dari keadaan kosong maupun sudah terisi", () => {
   it("menjalankan migration Database Perusahaan terhadap database kosong selesai tanpa error dan seluruh tabel yang disyaratkan ada", async () => {
     const tables = await listTables(dbName);

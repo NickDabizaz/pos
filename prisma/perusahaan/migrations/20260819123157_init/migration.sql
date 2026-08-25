@@ -111,6 +111,40 @@ CREATE TABLE `jualdtl` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `jurnal` (
+    `jenistransaksi` VARCHAR(15) NOT NULL,
+    `idtrans` INTEGER NOT NULL,
+    `urutan` INTEGER NOT NULL,
+    `kodetrans` VARCHAR(30) NOT NULL,
+    `tgltrans` DATE NOT NULL,
+    `idlokasi` INTEGER NOT NULL,
+    `saldo` VARCHAR(6) NOT NULL,
+    `amount` DECIMAL(14, 2) NOT NULL,
+    `catatan` VARCHAR(255) NOT NULL,
+
+    INDEX `jurnal_tgltrans_idx`(`tgltrans`),
+    PRIMARY KEY (`jenistransaksi`, `idtrans`, `urutan`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `kartustok` (
+    `jenistransaksi` VARCHAR(15) NOT NULL,
+    `idtrans` INTEGER NOT NULL,
+    `urutan` INTEGER NOT NULL,
+    `kodetrans` VARCHAR(30) NOT NULL,
+    `tgltrans` DATE NOT NULL,
+    `idlokasi` INTEGER NOT NULL,
+    `idbarang` INTEGER NOT NULL,
+    `jml` DECIMAL(14, 2) NOT NULL,
+    `mk` VARCHAR(1) NOT NULL,
+    `catatan` VARCHAR(255) NOT NULL,
+
+    INDEX `idbarang`(`idbarang`),
+    INDEX `kartustok_idbarang_idlokasi_tgltrans_idx`(`idbarang`, `idlokasi`, `tgltrans`),
+    PRIMARY KEY (`jenistransaksi`, `idtrans`, `urutan`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `bayar` (
     `idbayar` INTEGER NOT NULL AUTO_INCREMENT,
     `idjual` INTEGER NOT NULL,
@@ -237,6 +271,9 @@ ALTER TABLE `kas` ADD CONSTRAINT `kas_idlokasi_fkey` FOREIGN KEY (`idlokasi`) RE
 
 -- AddForeignKey
 ALTER TABLE `kasdtl` ADD CONSTRAINT `kasdtl_idkas_fkey` FOREIGN KEY (`idkas`) REFERENCES `kas`(`idkas`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `kartustok` ADD CONSTRAINT `kartustok_idbarang_fkey` FOREIGN KEY (`idbarang`) REFERENCES `barang`(`idbarang`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `modalawal` ADD CONSTRAINT `modalawal_idlokasi_fkey` FOREIGN KEY (`idlokasi`) REFERENCES `lokasi`(`idlokasi`) ON DELETE RESTRICT ON UPDATE CASCADE;

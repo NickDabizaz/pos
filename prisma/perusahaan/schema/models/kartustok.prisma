@@ -1,0 +1,21 @@
+/// Pergerakan stok per Barang per transaksi. idtrans polimorfik tanpa FK — jenistransaksi yang
+/// menentukan tabel sumbernya (jual/beli). tgltrans + idlokasi disalin dari transaksi induk agar
+/// Kartu Stok bisa menjawab saldo per periode dan per Lokasi tanpa join.
+model kartustok {
+  jenistransaksi String   @db.VarChar(15)
+  idtrans        Int
+  urutan         Int
+  kodetrans      String   @db.VarChar(30)
+  tgltrans       DateTime @db.Date
+  idlokasi       Int
+  idbarang       Int
+  jml            Decimal  @db.Decimal(14, 2)
+  mk             String   @db.VarChar(1)
+  catatan        String   @db.VarChar(255)
+
+  barang barang @relation(fields: [idbarang], references: [idbarang])
+
+  @@id([jenistransaksi, idtrans, urutan])
+  @@index([idbarang], map: "idbarang")
+  @@index([idbarang, idlokasi, tgltrans])
+}
