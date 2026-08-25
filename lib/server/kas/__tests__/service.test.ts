@@ -563,7 +563,7 @@ describe("Edit Kas — field terkunci tidak bergeser", () => {
 });
 
 describe("Kas menulis Jurnal sebagai turunannya", () => {
-  it("create Kas MASUK menulis satu baris Jurnal DEBET per rincian, nominal dan keterangannya mengikuti", async () => {
+  it("create Kas MASUK menulis KREDIT total dan DEBET per rincian — balance", async () => {
     await buatLokasi(db);
 
     const created = await createKas(db, buildInput({
@@ -575,9 +575,10 @@ describe("Kas menulis Jurnal sebagai turunannya", () => {
     }));
 
     const jurnal = await db.jurnal.findMany({ orderBy: { urutan: "asc" } });
-    expect(jurnal.map((row) => row.saldo)).toEqual(["DEBET", "DEBET"]);
-    expect(jurnal.map((row) => row.amount.toString())).toEqual(["100000", "50000"]);
+    expect(jurnal.map((row) => row.saldo)).toEqual(["KREDIT", "DEBET", "DEBET"]);
+    expect(jurnal.map((row) => row.amount.toString())).toEqual(["150000", "100000", "50000"]);
     expect(jurnal.map((row) => row.catatan)).toEqual([
+      "KAS MASUK",
       "KAS MASUK SETORAN MODAL",
       "KAS MASUK HASIL PENJUALAN ONLINE",
     ]);
@@ -585,15 +586,25 @@ describe("Kas menulis Jurnal sebagai turunannya", () => {
     expect(await db.kartustok.count()).toBe(0);
   });
 
-  it("create Kas KELUAR menulis baris Jurnal sisi KREDIT", async () => {
+  it("create Kas KELUAR menulis DEBET total dan KREDIT per rincian — balance", async () => {
     await buatLokasi(db);
 
-    await createKas(db, buildInput({ jenis: "KELUAR" as JenisKas }));
+    await createKas(db, buildInput({
+      jenis     : "KELUAR" as JenisKas,
+      rincian   : [
+        { keterangan: "Bayar listrik", nominal: 100 },
+        { keterangan: "Bayar internet", nominal: 200 },
+      ],
+    }));
 
-    const jurnal = await db.jurnal.findMany();
-    expect(jurnal.map((row) => row.saldo)).toEqual(["KREDIT"]);
-    expect(jurnal[0].jenistransaksi).toBe("KAS KELUAR");
-    expect(jurnal[0].catatan).toBe("KAS KELUAR SETORAN MODAL");
+    const jurnal = await db.jurnal.findMany({ orderBy: { urutan: "asc" } });
+    expect(jurnal.map((row) => row.saldo)).toEqual(["DEBET", "KREDIT", "KREDIT"]);
+    expect(jurnal.map((row) => row.amount.toString())).toEqual(["300", "100", "200"]);
+    expect(jurnal.map((row) => row.catatan)).toEqual([
+      "KAS KELUAR",
+      "KAS KELUAR BAYAR LISTRIK",
+      "KAS KELUAR BAYAR INTERNET",
+    ]);
   });
 
   it("edit Kas mengganti isi Jurnal, tidak menduplikasi — termasuk saat jenis berganti MASUK ke KELUAR", async () => {
@@ -605,12 +616,14 @@ describe("Kas menulis Jurnal sebagai turunannya", () => {
       rincian: [{ keterangan: "Bayar listrik", nominal: 75000 }],
     }));
 
-    const jurnal = await db.jurnal.findMany();
-    expect(jurnal).toHaveLength(1);
+    const jurnal = await db.jurnal.findMany({ orderBy: { urutan: "asc" } });
+    expect(jurnal).toHaveLength(2);
     expect(jurnal[0].jenistransaksi).toBe("KAS KELUAR");
-    expect(jurnal[0].saldo).toBe("KREDIT");
+    expect(jurnal[0].saldo).toBe("DEBET");
     expect(jurnal[0].amount.toString()).toBe("75000");
-    expect(jurnal[0].catatan).toBe("KAS KELUAR BAYAR LISTRIK");
+    expect(jurnal[0].catatan).toBe("KAS KELUAR");
+    expect(jurnal[1].saldo).toBe("KREDIT");
+    expect(jurnal[1].catatan).toBe("KAS KELUAR BAYAR LISTRIK");
   });
 
   it("batal Kas menghapus Jurnal secara keras, header tetap ada", async () => {

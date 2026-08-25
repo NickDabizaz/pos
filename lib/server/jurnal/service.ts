@@ -100,13 +100,18 @@ export async function insertJurnalKas(
   rincian : { keterangan: string; nominal: number }[],
 ): Promise<void> {
   const jenistransaksi = petakanJenisKas(jenis);
-  const saldo: SaldoJurnal = jenis === "MASUK" ? "DEBET" : "KREDIT";
+  const total = rincian.reduce((jumlah, item) => jumlah + item.nominal, 0);
+  const saldoTotal: SaldoJurnal = jenis === "MASUK" ? "KREDIT" : "DEBET";
+  const saldoRincian: SaldoJurnal = jenis === "MASUK" ? "DEBET" : "KREDIT";
 
-  const baris = rincian.map((item) => ({
-    saldo,
-    amount : item.nominal,
-    catatan: buatCatatanJurnal({ jenistransaksi, keterangan: item.keterangan }),
-  }));
+  const baris: InsertJurnalBaris[] = [
+    { saldo: saldoTotal, amount: total, catatan: jenistransaksi },
+    ...rincian.map((item) => ({
+      saldo  : saldoRincian,
+      amount : item.nominal,
+      catatan: buatCatatanJurnal({ jenistransaksi, keterangan: item.keterangan }),
+    })),
+  ];
 
   await insertJurnal(
     db,
