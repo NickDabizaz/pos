@@ -7,7 +7,7 @@ import type { CreatePembelianInput, UpdatePembelianInput } from "@/lib/server/pe
 import { getTestDb, resetTables } from "@/lib/test/db";
 import { dropDatabase, uniqueDatabaseName } from "@/prisma/__tests__/testDatabase";
 
-const DOMAIN_TABLES = ["belidtl", "beli", "barang", "lokasi", "supplier"];
+const DOMAIN_TABLES = ["belidtl", "beli", "kartustok", "jurnal", "barang", "lokasi", "supplier"];
 
 let db: DatabasePerusahaanClient;
 
@@ -27,9 +27,9 @@ async function buatSupplier(target: DatabasePerusahaanClient, kode = "SUP01", st
   return target.supplier.create({ data: { kodesupplier: kode, namasupplier: "Supplier Test", status } });
 }
 
-async function buatBarang(target: DatabasePerusahaanClient, kode = "BRG01", hargajual = 10000) {
+async function buatBarang(target: DatabasePerusahaanClient, kode = "BRG01", hargajual = 10000, pakaistok = false) {
   return target.barang.create({
-    data: { kodebarang: kode, namabarang: "Barang Test", satuan: "Pcs", hargabeli: hargajual - 1000, hargajual },
+    data: { kodebarang: kode, namabarang: "Barang Test", satuan: "Pcs", hargabeli: hargajual - 1000, hargajual, pakaistok },
   });
 }
 
@@ -739,5 +739,73 @@ describe("Guard edit Pembelian — status dan keberadaan dokumen", () => {
     expect(baris.map((barisItem) => barisItem.urutan)).toEqual([1, 2]);
     expect(baris[0].harga.toString()).toBe("7000");
     expect(baris[1].harga.toString()).toBe("10000");
+  });
+});
+
+describe("Pembelian menulis Kartu Stok dan Jurnal sebagai turunannya", () => {
+  it("create Pembelian menulis Kartu Stok mk M dan Jurnal DEBET + KREDIT sebesar grandtotal", async () => {
+    await siapkanDasar();
+    await buatBarang(db, "BRGSTOK", 10000, true);
+
+    const created = await createPembelian(db, buildInput({
+      items: [{ kodebarang: "BRGSTOK", qty: 3, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    }));
+
+    const kartustok = await db.kartustok.findMany();
+    expect(kartustok).toHaveLength(1);
+    expect(kartustok[0].jenistransaksi).toBe("PEMBELIAN");
+    expect(kartustok[0].kodetrans).toBe(created.kodebeli);
+    expect(kartustok[0].jml.toString()).toBe("3");
+    expect(kartustok[0].mk).toBe("M");
+    expect(kartustok[0].catatan).toBe("PEMBELIAN BARANG TEST DARI SUPPLIER TEST");
+
+    const jurnal = await db.jurnal.findMany({ orderBy: { urutan: "asc" } });
+    expect(jurnal.map((row) => row.saldo)).toEqual(["DEBET", "KREDIT"]);
+    expect(jurnal.map((row) => row.amount.toString())).toEqual(["30000", "30000"]);
+    expect(jurnal.map((row) => row.jenistransaksi)).toEqual(["PEMBELIAN", "PEMBELIAN"]);
+    expect(jurnal[0].catatan).toBe("PEMBELIAN DARI SUPPLIER TEST");
+  });
+
+  it("barang tanpa pakaistok tidak menulis Kartu Stok, Jurnal tetap ditulis", async () => {
+    await siapkanDasar();
+
+    await createPembelian(db, buildInput());
+
+    expect(await db.kartustok.count()).toBe(0);
+    expect(await db.jurnal.count()).toBe(2);
+  });
+
+  it("edit Pembelian mengganti isi turunan, tidak menduplikasi", async () => {
+    await siapkanDasar();
+    await buatBarang(db, "BRGSTOK", 10000, true);
+    const created = await createPembelian(db, buildInput({
+      items: [{ kodebarang: "BRGSTOK", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    }));
+
+    await updatePembelian(db, created.kodebeli, buildUpdateInput({
+      items: [{ kodebarang: "BRGSTOK", qty: 9, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    }));
+
+    const kartustok = await db.kartustok.findMany();
+    expect(kartustok).toHaveLength(1);
+    expect(kartustok[0].jml.toString()).toBe("9");
+
+    const jurnal = await db.jurnal.findMany();
+    expect(jurnal).toHaveLength(2);
+    expect(jurnal.every((row) => row.amount.toString() === "90000")).toBe(true);
+  });
+
+  it("batal Pembelian menghapus Kartu Stok dan Jurnal secara keras, header tetap ada", async () => {
+    await siapkanDasar();
+    await buatBarang(db, "BRGSTOK", 10000, true);
+    const created = await createPembelian(db, buildInput({
+      items: [{ kodebarang: "BRGSTOK", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    }));
+
+    await cancelPembelian(db, created.kodebeli, "salah input");
+
+    expect(await db.beli.count()).toBe(1);
+    expect(await db.kartustok.count()).toBe(0);
+    expect(await db.jurnal.count()).toBe(0);
   });
 });

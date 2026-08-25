@@ -10,6 +10,8 @@ import {
 import { simpanDenganKode } from "@/lib/server/kodedokumen/service";
 import type { CreateKasInput, CreateKasRincianInput, JenisKas, Kas, UpdateKasInput } from "@/lib/server/kas/types";
 import { findLokasiByKode } from "@/lib/server/lokasi/repository";
+import { deleteJurnal } from "@/lib/server/jurnal/repository";
+import { insertJurnalKas, petakanJenisKas } from "@/lib/server/jurnal/service";
 
 function pesanTidakDitemukan(kodekas: string): string {
   return `Kas dengan kode "${kodekas}" tidak ditemukan`;
@@ -69,13 +71,20 @@ export async function createKas(db: DatabasePerusahaanClient, input: CreateKasIn
 
   const kodekas = await db.$transaction(async (tx) => {
     const kode = await simpanDenganKode(tx, "kas", tgltrans, async (kode) => {
-      await insertKasLengkap(tx, kode, {
+      const idkas = await insertKasLengkap(tx, kode, {
         tgltrans,
         jenis   : input.jenis,
         idlokasi: lokasi.idlokasi,
         grandtotal,
         rincian,
       });
+
+      await insertJurnalKas(
+        tx,
+        { idkas, kodekas: kode, tgltrans, idlokasi: lokasi.idlokasi },
+        input.jenis,
+        rincian,
+      );
 
       return kode;
     });
@@ -107,11 +116,20 @@ export async function updateKas(
   const grandtotal = rincian.reduce((total, item) => total + item.nominal, 0);
 
   await db.$transaction(async (tx) => {
-    await updateKasLengkap(tx, kodekas, {
+    const induk = await updateKasLengkap(tx, kodekas, {
       jenis   : input.jenis,
       grandtotal,
       rincian,
     });
+
+    await deleteJurnal(tx, petakanJenisKas(existing.jenis), induk.idkas);
+
+    await insertJurnalKas(
+      tx,
+      { idkas: induk.idkas, kodekas, tgltrans: induk.tgltrans, idlokasi: induk.idlokasi },
+      input.jenis,
+      rincian,
+    );
   });
 
   const terbaru = await findKasByKode(db, kodekas);
@@ -132,7 +150,11 @@ export async function cancelKas(
     throw new Error(`Kas "${kodekas}" sudah dibatalkan`, { cause: "SUDAH_DIBATALKAN" });
   }
 
-  await updateStatusKasByKode(db, kodekas, alasanbatal?.trim() || null);
+  await db.$transaction(async (tx) => {
+    const idkas = await updateStatusKasByKode(tx, kodekas, alasanbatal?.trim() || null);
+
+    await deleteJurnal(tx, petakanJenisKas(existing.jenis), idkas);
+  });
 
   const updated = await findKasByKode(db, kodekas);
 

@@ -115,7 +115,7 @@ export async function insertPenjualanLengkap(
   db      : DatabasePerusahaanClient,
   kodejual: string,
   data    : InsertPenjualanData,
-): Promise<void> {
+): Promise<number> {
   const jual = await db.jual.create({
     data: {
       kodejual,
@@ -152,6 +152,8 @@ export async function insertPenjualanLengkap(
       kembalian: data.pembayaran.kembalian,
     },
   });
+
+  return jual.idjual;
 }
 
 export type UpdatePenjualanData = {
@@ -164,11 +166,17 @@ export type UpdatePenjualanData = {
   pembayaran: { tunai: number; nontunai: number; kembalian: number };
 };
 
+export type UpdatePenjualanInduk = {
+  idjual  : number;
+  tgltrans: Date;
+  idlokasi: number;
+};
+
 export async function updatePenjualanLengkap(
   db      : DatabasePerusahaanClient,
   kodejual: string,
   data    : UpdatePenjualanData,
-): Promise<void> {
+): Promise<UpdatePenjualanInduk> {
   const jual = await db.jual.update({
     where: { kodejual },
     data : {
@@ -206,12 +214,16 @@ export async function updatePenjualanLengkap(
       kembalian: data.pembayaran.kembalian,
     },
   });
+
+  return { idjual: jual.idjual, tgltrans: jual.tgltrans, idlokasi: jual.idlokasi };
 }
 
 export async function updateStatusPenjualanByKode(
   db         : DatabasePerusahaanClient,
   kodejual   : string,
   alasanbatal: string | null,
-): Promise<void> {
-  await db.jual.update({ where: { kodejual }, data: { status: "D", alasanbatal } });
+): Promise<number> {
+  const jual = await db.jual.update({ where: { kodejual }, data: { status: "D", alasanbatal } });
+
+  return jual.idjual;
 }

@@ -103,7 +103,7 @@ export async function insertPembelianLengkap(
   db      : DatabasePerusahaanClient,
   kodebeli: string,
   data    : InsertPembelianData,
-): Promise<void> {
+): Promise<number> {
   const beli = await db.beli.create({
     data: {
       kodebeli,
@@ -130,6 +130,8 @@ export async function insertPembelianLengkap(
       subtotal: item.subtotal,
     })),
   });
+
+  return beli.idbeli;
 }
 
 export type UpdatePembelianData = {
@@ -141,11 +143,17 @@ export type UpdatePembelianData = {
   items     : InsertPembelianItemData[];
 };
 
+export type UpdatePembelianInduk = {
+  idbeli  : number;
+  tgltrans: Date;
+  idlokasi: number;
+};
+
 export async function updatePembelianLengkap(
   db      : DatabasePerusahaanClient,
   kodebeli: string,
   data    : UpdatePembelianData,
-): Promise<void> {
+): Promise<UpdatePembelianInduk> {
   const beli = await db.beli.update({
     where: { kodebeli },
     data : {
@@ -172,12 +180,16 @@ export async function updatePembelianLengkap(
       subtotal: item.subtotal,
     })),
   });
+
+  return { idbeli: beli.idbeli, tgltrans: beli.tgltrans, idlokasi: beli.idlokasi };
 }
 
 export async function updateStatusPembelianByKode(
   db         : DatabasePerusahaanClient,
   kodebeli   : string,
   alasanbatal: string | null,
-): Promise<void> {
-  await db.beli.update({ where: { kodebeli }, data: { status: "D", alasanbatal } });
+): Promise<number> {
+  const beli = await db.beli.update({ where: { kodebeli }, data: { status: "D", alasanbatal } });
+
+  return beli.idbeli;
 }

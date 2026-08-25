@@ -2,6 +2,10 @@ import { findBarangByKode } from "@/lib/server/barang/repository";
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import { simpanDenganKode } from "@/lib/server/kodedokumen/service";
 import { findLokasiByKode } from "@/lib/server/lokasi/repository";
+import { deleteJurnal } from "@/lib/server/jurnal/repository";
+import { insertJurnalPembelian } from "@/lib/server/jurnal/service";
+import { deleteKartuStok } from "@/lib/server/kartustok/repository";
+import { insertKartuStokPembelian } from "@/lib/server/kartustok/service";
 import {
   findAllPembelian,
   findConfigPpn,
@@ -30,7 +34,7 @@ async function bacaPpnRate(db: DatabasePerusahaanClient): Promise<number> {
   return rate;
 }
 
-type TransaksiItemDenganBarang = TransaksiItem & { idbarang: number };
+type TransaksiItemDenganBarang = TransaksiItem & { idbarang: number; pakaistok: boolean };
 
 async function cekDanHitungItems(
   db      : DatabasePerusahaanClient,
@@ -58,6 +62,7 @@ async function cekDanHitungItems(
         ppnRate,
       ),
       idbarang: barang.idbarang,
+      pakaistok: barang.pakaistok,
     });
   }
 
@@ -123,7 +128,7 @@ export async function createPembelian(db: DatabasePerusahaanClient, input: Creat
 
   const kodebeli = await db.$transaction(async (tx) => {
     const kode = await simpanDenganKode(tx, "beli", tgltrans, async (kode) => {
-      await insertPembelianLengkap(tx, kode, {
+      const idbeli = await insertPembelianLengkap(tx, kode, {
         tgltrans,
         idsupplier: supplier.idsupplier,
         idlokasi  : lokasi.idlokasi,
@@ -133,6 +138,19 @@ export async function createPembelian(db: DatabasePerusahaanClient, input: Creat
         grandtotal,
         items,
       });
+
+      await insertKartuStokPembelian(
+        tx,
+        { idbeli, kodebeli: kode, tgltrans, idlokasi: lokasi.idlokasi },
+        supplier.namasupplier,
+        transaksiItems,
+      );
+      await insertJurnalPembelian(
+        tx,
+        { idbeli, kodebeli: kode, tgltrans, idlokasi: lokasi.idlokasi },
+        supplier.namasupplier,
+        grandtotal,
+      );
 
       return kode;
     });
@@ -176,7 +194,7 @@ export async function updatePembelian(
   const { diskon, grandtotal, ppn, total } = calculateHeaderTotals(transaksiItems);
 
   await db.$transaction(async (tx) => {
-    await updatePembelianLengkap(tx, kodebeli, {
+    const induk = await updatePembelianLengkap(tx, kodebeli, {
       idsupplier: supplier.idsupplier,
       total     : total,
       diskon    : diskon,
@@ -184,6 +202,22 @@ export async function updatePembelian(
       grandtotal: grandtotal,
       items     : toInsertItems(transaksiItems),
     });
+
+    await deleteKartuStok(tx, "PEMBELIAN", induk.idbeli);
+    await deleteJurnal(tx, "PEMBELIAN", induk.idbeli);
+
+    await insertKartuStokPembelian(
+      tx,
+      { idbeli: induk.idbeli, kodebeli, tgltrans: induk.tgltrans, idlokasi: induk.idlokasi },
+      supplier.namasupplier,
+      transaksiItems,
+    );
+    await insertJurnalPembelian(
+      tx,
+      { idbeli: induk.idbeli, kodebeli, tgltrans: induk.tgltrans, idlokasi: induk.idlokasi },
+      supplier.namasupplier,
+      grandtotal,
+    );
   });
 
   const terbaru = await findPembelianByKode(db, kodebeli);
@@ -204,7 +238,12 @@ export async function cancelPembelian(
     throw new Error(`Pembelian "${kodebeli}" sudah dibatalkan`, { cause: "SUDAH_DIBATALKAN" });
   }
 
-  await updateStatusPembelianByKode(db, kodebeli, alasanbatal?.trim() || null);
+  await db.$transaction(async (tx) => {
+    const idbeli = await updateStatusPembelianByKode(tx, kodebeli, alasanbatal?.trim() || null);
+
+    await deleteKartuStok(tx, "PEMBELIAN", idbeli);
+    await deleteJurnal(tx, "PEMBELIAN", idbeli);
+  });
 
   const updated = await findPembelianByKode(db, kodebeli);
 

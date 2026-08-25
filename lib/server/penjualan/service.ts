@@ -3,6 +3,10 @@ import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/t
 import { findCustomerByKode } from "@/lib/server/customer/repository";
 import { simpanDenganKode } from "@/lib/server/kodedokumen/service";
 import { findLokasiByKode } from "@/lib/server/lokasi/repository";
+import { deleteJurnal } from "@/lib/server/jurnal/repository";
+import { insertJurnalPenjualan } from "@/lib/server/jurnal/service";
+import { deleteKartuStok } from "@/lib/server/kartustok/repository";
+import { insertKartuStokPenjualan, petakanJenisPenjualan } from "@/lib/server/kartustok/service";
 import {
   findAllPenjualan,
   findConfigPpn,
@@ -30,7 +34,7 @@ async function bacaPpnRate(db: DatabasePerusahaanClient): Promise<number> {
   return rate;
 }
 
-type TransaksiItemDenganBarang = TransaksiItem & { idbarang: number };
+type TransaksiItemDenganBarang = TransaksiItem & { idbarang: number; pakaistok: boolean };
 
 async function cekDanHitungItems(
   db      : DatabasePerusahaanClient,
@@ -55,6 +59,7 @@ async function cekDanHitungItems(
         ppnRate,
       ),
       idbarang: barang.idbarang,
+      pakaistok: barang.pakaistok,
     });
   }
 
@@ -138,7 +143,7 @@ export async function createPenjualan(db: DatabasePerusahaanClient, input: Creat
 
   const kodejual = await db.$transaction(async (tx) => {
     const kode = await simpanDenganKode(tx, "jual", tgltrans, async (kode) => {
-      await insertPenjualanLengkap(tx, kode, {
+      const idjual = await insertPenjualanLengkap(tx, kode, {
         tgltrans,
         jenistransaksi: input.jenistransaksi,
         idcustomer    : customer.idcustomer,
@@ -150,6 +155,19 @@ export async function createPenjualan(db: DatabasePerusahaanClient, input: Creat
         items,
         pembayaran: pembayaran,
       });
+
+      await insertKartuStokPenjualan(
+        tx,
+        { idjual, kodejual: kode, tgltrans, idlokasi: lokasi.idlokasi, jenistransaksi: input.jenistransaksi },
+        customer.namacustomer,
+        transaksiItems,
+      );
+      await insertJurnalPenjualan(
+        tx,
+        { idjual, kodejual: kode, tgltrans, idlokasi: lokasi.idlokasi, jenistransaksi: input.jenistransaksi },
+        customer.namacustomer,
+        grandtotal,
+      );
 
       return kode;
     });
@@ -194,7 +212,7 @@ export async function updatePenjualan(
   const pembayaran = cekDanHitungPembayaran(input.pembayaran, grandtotal);
 
   await db.$transaction(async (tx) => {
-    await updatePenjualanLengkap(tx, kodejual, {
+    const induk = await updatePenjualanLengkap(tx, kodejual, {
       idcustomer: customer.idcustomer,
       total     : total,
       diskon    : diskon,
@@ -203,6 +221,23 @@ export async function updatePenjualan(
       items     : toInsertItems(transaksiItems),
       pembayaran: pembayaran,
     });
+
+    const jenis = petakanJenisPenjualan(existing.jenistransaksi);
+    await deleteKartuStok(tx, jenis, induk.idjual);
+    await deleteJurnal(tx, jenis, induk.idjual);
+
+    await insertKartuStokPenjualan(
+      tx,
+      { idjual: induk.idjual, kodejual, tgltrans: induk.tgltrans, idlokasi: induk.idlokasi, jenistransaksi: existing.jenistransaksi },
+      customer.namacustomer,
+      transaksiItems,
+    );
+    await insertJurnalPenjualan(
+      tx,
+      { idjual: induk.idjual, kodejual, tgltrans: induk.tgltrans, idlokasi: induk.idlokasi, jenistransaksi: existing.jenistransaksi },
+      customer.namacustomer,
+      grandtotal,
+    );
   });
 
   const terbaru = await findPenjualanByKode(db, kodejual);
@@ -223,7 +258,13 @@ export async function cancelPenjualan(
     throw new Error(`Penjualan "${kodejual}" sudah dibatalkan`, { cause: "SUDAH_DIBATALKAN" });
   }
 
-  await updateStatusPenjualanByKode(db, kodejual, alasanbatal?.trim() || null);
+  await db.$transaction(async (tx) => {
+    const idjual = await updateStatusPenjualanByKode(tx, kodejual, alasanbatal?.trim() || null);
+
+    const jenis = petakanJenisPenjualan(existing.jenistransaksi);
+    await deleteKartuStok(tx, jenis, idjual);
+    await deleteJurnal(tx, jenis, idjual);
+  });
 
   const updated = await findPenjualanByKode(db, kodejual);
 

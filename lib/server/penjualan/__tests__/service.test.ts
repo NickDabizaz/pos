@@ -7,7 +7,7 @@ import type { CreatePenjualanInput, UpdatePenjualanInput } from "@/lib/server/pe
 import { getTestDb, resetTables } from "@/lib/test/db";
 import { dropDatabase, uniqueDatabaseName } from "@/prisma/__tests__/testDatabase";
 
-const DOMAIN_TABLES = ["bayar", "jualdtl", "jual", "barang", "lokasi", "customer"];
+const DOMAIN_TABLES = ["bayar", "jualdtl", "jual", "kartustok", "jurnal", "barang", "lokasi", "customer"];
 
 let db: DatabasePerusahaanClient;
 
@@ -27,9 +27,9 @@ async function buatCustomer(target: DatabasePerusahaanClient, kode = "CUST01", s
   return target.customer.create({ data: { kodecustomer: kode, namacustomer: "Customer Test", status } });
 }
 
-async function buatBarang(target: DatabasePerusahaanClient, kode = "BRG01", hargajual = 10000) {
+async function buatBarang(target: DatabasePerusahaanClient, kode = "BRG01", hargajual = 10000, pakaistok = false) {
   return target.barang.create({
-    data: { kodebarang: kode, namabarang: "Barang Test", satuan: "Pcs", hargabeli: hargajual - 1000, hargajual },
+    data: { kodebarang: kode, namabarang: "Barang Test", satuan: "Pcs", hargabeli: hargajual - 1000, hargajual, pakaistok },
   });
 }
 
@@ -873,5 +873,96 @@ describe("Guard edit Penjualan — status dan keberadaan dokumen", () => {
     expect(baris.map((barisItem) => barisItem.urutan)).toEqual([1, 2]);
     expect(baris[0].harga.toString()).toBe("5000");
     expect(baris[1].harga.toString()).toBe("10000");
+  });
+});
+
+describe("Penjualan menulis Kartu Stok dan Jurnal sebagai turunannya", () => {
+  it("create POS menulis Kartu Stok mk K dan Jurnal DEBET + KREDIT sebesar grandtotal", async () => {
+    await siapkanDasar();
+    await buatBarang(db, "BRGSTOK", 10000, true);
+
+    const created = await createPenjualan(db, buildInput({
+      items     : [{ kodebarang: "BRGSTOK", qty: 2, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+      pembayaran: { tunai: 20000, nontunai: 0 },
+    }));
+
+    const kartustok = await db.kartustok.findMany();
+    expect(kartustok).toHaveLength(1);
+    expect(kartustok[0].jenistransaksi).toBe("POS");
+    expect(kartustok[0].kodetrans).toBe(created.kodejual);
+    expect(kartustok[0].jml.toString()).toBe("2");
+    expect(kartustok[0].mk).toBe("K");
+    expect(kartustok[0].catatan).toBe("POS BARANG TEST KE CUSTOMER TEST");
+
+    const jurnal = await db.jurnal.findMany({ orderBy: { urutan: "asc" } });
+    expect(jurnal.map((row) => row.saldo)).toEqual(["DEBET", "KREDIT"]);
+    expect(jurnal.map((row) => row.amount.toString())).toEqual(["20000", "20000"]);
+    expect(jurnal.map((row) => row.catatan)).toEqual([
+      "POS KEPADA CUSTOMER TEST",
+      "POS KEPADA CUSTOMER TEST",
+    ]);
+  });
+
+  it("barang tanpa pakaistok tidak menulis Kartu Stok, Jurnal tetap ditulis", async () => {
+    await siapkanDasar();
+
+    await createPenjualan(db, buildInput());
+
+    expect(await db.kartustok.count()).toBe(0);
+    expect(await db.jurnal.count()).toBe(2);
+  });
+
+  it("Penjualan PESANAN dicatat sebagai PENJUALAN di Kartu Stok dan Jurnal", async () => {
+    await siapkanDasar();
+    await buatBarang(db, "BRGSTOK", 10000, true);
+
+    const created = await createPenjualan(db, buildInput({
+      jenistransaksi: "PESANAN",
+      items         : [{ kodebarang: "BRGSTOK", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+      pembayaran    : undefined,
+    }));
+
+    const kartustok = await db.kartustok.findFirstOrThrow();
+    expect(kartustok.jenistransaksi).toBe("PENJUALAN");
+    expect(kartustok.catatan).toBe("PENJUALAN BARANG TEST KE CUSTOMER TEST");
+
+    const jurnal = await db.jurnal.findMany();
+    expect(jurnal.map((row) => row.jenistransaksi)).toEqual(["PENJUALAN", "PENJUALAN"]);
+    expect(jurnal.every((row) => row.kodetrans === created.kodejual)).toBe(true);
+  });
+
+  it("edit Penjualan mengganti isi turunan, tidak menduplikasi", async () => {
+    await siapkanDasar();
+    await buatBarang(db, "BRGSTOK", 10000, true);
+    const created = await createPenjualan(db, buildInput({
+      items: [{ kodebarang: "BRGSTOK", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    }));
+
+    await updatePenjualan(db, created.kodejual, buildUpdateInput({
+      items     : [{ kodebarang: "BRGSTOK", qty: 7, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+      pembayaran: { tunai: 70000, nontunai: 0 },
+    }));
+
+    const kartustok = await db.kartustok.findMany();
+    expect(kartustok).toHaveLength(1);
+    expect(kartustok[0].jml.toString()).toBe("7");
+
+    const jurnal = await db.jurnal.findMany();
+    expect(jurnal).toHaveLength(2);
+    expect(jurnal.every((row) => row.amount.toString() === "70000")).toBe(true);
+  });
+
+  it("batal Penjualan menghapus Kartu Stok dan Jurnal secara keras, header tetap ada", async () => {
+    await siapkanDasar();
+    await buatBarang(db, "BRGSTOK", 10000, true);
+    const created = await createPenjualan(db, buildInput({
+      items: [{ kodebarang: "BRGSTOK", qty: 1, harga: 10000, pakaiPpn: "TIDAK", diskon: 0 }],
+    }));
+
+    await cancelPenjualan(db, created.kodejual, "salah input");
+
+    expect(await db.jual.count()).toBe(1);
+    expect(await db.kartustok.count()).toBe(0);
+    expect(await db.jurnal.count()).toBe(0);
   });
 });

@@ -69,7 +69,7 @@ export async function insertKasLengkap(
   db      : DatabasePerusahaanClient,
   kodekas : string,
   data    : InsertKasData,
-): Promise<void> {
+): Promise<number> {
   const kas = await db.kas.create({
     data: {
       kodekas,
@@ -88,14 +88,18 @@ export async function insertKasLengkap(
       nominal   : item.nominal,
     })),
   });
+
+  return kas.idkas;
 }
 
 export async function updateStatusKasByKode(
   db         : DatabasePerusahaanClient,
   kodekas    : string,
   alasanbatal: string | null,
-): Promise<void> {
-  await db.kas.update({ where: { kodekas }, data: { status: "D", alasanbatal } });
+): Promise<number> {
+  const kas = await db.kas.update({ where: { kodekas }, data: { status: "D", alasanbatal } });
+
+  return kas.idkas;
 }
 
 export type UpdateKasData = {
@@ -104,11 +108,17 @@ export type UpdateKasData = {
   rincian   : InsertKasRincianData[];
 };
 
+export type UpdateKasInduk = {
+  idkas   : number;
+  tgltrans: Date;
+  idlokasi: number;
+};
+
 export async function updateKasLengkap(
   db      : DatabasePerusahaanClient,
   kodekas : string,
   data    : UpdateKasData,
-): Promise<void> {
+): Promise<UpdateKasInduk> {
   const kas = await db.kas.update({
     where: { kodekas },
     data : {
@@ -127,4 +137,6 @@ export async function updateKasLengkap(
       nominal   : item.nominal,
     })),
   });
+
+  return { idkas: kas.idkas, tgltrans: kas.tgltrans, idlokasi: kas.idlokasi };
 }
