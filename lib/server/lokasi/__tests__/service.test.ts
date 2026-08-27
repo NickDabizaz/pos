@@ -112,7 +112,7 @@ describe("Kode Lokasi dibuat oleh generator Kode Dokumen sesuai Config", () => {
   });
 
   it("createLokasi ditolak dengan pesan yang menyebut Config hilang saat Config Kode Dokumen modul Lokasi belum ada", async () => {
-    await db.config.deleteMany({ where: { modul: "lokasi" } });
+    await db.config.deleteMany({ where: { modul: "LOKASI" } });
 
     try {
       await expect(createLokasi(db, { namalokasi: "Toko Utama" })).rejects.toThrow(/[Cc]onfig/);
@@ -123,9 +123,9 @@ describe("Kode Lokasi dibuat oleh generator Kode Dokumen sesuai Config", () => {
     } finally {
       await db.config.createMany({
         data: [
-          { modul: "lokasi", config: "awalan", nilai: "L" },
-          { modul: "lokasi", config: "pakaitanggal", nilai: "0" },
-          { modul: "lokasi", config: "panjangnomor", nilai: "4" },
+          { modul: "LOKASI", config: "AWALAN", nilai: "L" },
+          { modul: "LOKASI", config: "PAKAITANGGAL", nilai: "0" },
+          { modul: "LOKASI", config: "PANJANGNOMOR", nilai: "4" },
         ],
       });
     }

@@ -64,7 +64,7 @@
   --status-info-dot: #3b82f6;
 }
 
-[data-tema="gelap"] {
+[data-tema="DARK"] {
   /* Core Base & Surface */
   --background: #0b1220;
   --foreground: #e2e8f0;

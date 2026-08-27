@@ -5,7 +5,11 @@ import { useEffect } from "react";
 import { fetchTema, type Tema } from "@/lib/client/pengaturan";
 
 export function terapkanTema(tema: Tema): void {
-  document.documentElement.dataset.tema = tema;
+  if (tema === "DARK") {
+    document.documentElement.dataset.tema = "DARK";
+  } else {
+    delete document.documentElement.dataset.tema;
+  }
 }
 
 export default function TemaApplier() {

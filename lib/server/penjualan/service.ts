@@ -27,8 +27,8 @@ function pesanTidakDitemukan(kodejual: string): string {
 async function bacaPpnRate(db: DatabasePerusahaanClient): Promise<number> {
   const rows = await findConfigPpn(db);
   const nilai = Object.fromEntries(rows.map((row) => [row.config, row.nilai]));
-  const aktif = nilai.status === "1";
-  const persentase = Number(nilai.persentase) || 0;
+  const aktif = nilai.STATUS === "1";
+  const persentase = Number(nilai.PERSENTASE) || 0;
   const rate = aktif ? persentase / 100 : 0;
 
   return rate;
@@ -142,7 +142,7 @@ export async function createPenjualan(db: DatabasePerusahaanClient, input: Creat
   const tgltrans = new Date(input.tanggal);
 
   const kodejual = await db.$transaction(async (tx) => {
-    const kode = await simpanDenganKode(tx, "jual", tgltrans, async (kode) => {
+    const kode = await simpanDenganKode(tx, "JUAL", tgltrans, async (kode) => {
       const idjual = await insertPenjualanLengkap(tx, kode, {
         tgltrans,
         jenistransaksi: input.jenistransaksi,

@@ -159,7 +159,7 @@ describe("Total, PPN, diskon, dan grand total dihitung server sesuai Config", ()
 
   it("Config ppn.status 1 dengan persentase 11 menambahkan PPN EXCLUDE di atas subtotal", async () => {
     await siapkanDasar();
-    await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "1" } });
+    await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "1" } });
 
     try {
       const created = await createPembelian(
@@ -170,13 +170,13 @@ describe("Total, PPN, diskon, dan grand total dihitung server sesuai Config", ()
       expect(created.ppn).toBeCloseTo(1100);
       expect(created.grandtotal).toBeCloseTo(11100);
     } finally {
-      await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "0" } });
+      await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "0" } });
     }
   });
 
   it("baris pakaiPpn INCLUDE mengekstrak PPN dari harga, subtotal tidak berubah dari qty*harga-diskon", async () => {
     await siapkanDasar();
-    await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "1" } });
+    await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "1" } });
 
     try {
       const created = await createPembelian(
@@ -187,14 +187,14 @@ describe("Total, PPN, diskon, dan grand total dihitung server sesuai Config", ()
       expect(created.items[0].subtotal).toBe(11100);
       expect(created.items[0].ppn).toBeCloseTo(1100);
     } finally {
-      await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "0" } });
+      await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "0" } });
     }
   });
 
   it("Config ppn.persentase yang diubah mengubah hasil hitung PPN, bukan angka hardcode", async () => {
     await siapkanDasar();
-    await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "1" } });
-    await db.config.update({ where: { modul_config: { modul: "ppn", config: "persentase" } }, data: { nilai: "10" } });
+    await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "1" } });
+    await db.config.update({ where: { modul_config: { modul: "PPN", config: "PERSENTASE" } }, data: { nilai: "10" } });
 
     try {
       const created = await createPembelian(
@@ -204,8 +204,8 @@ describe("Total, PPN, diskon, dan grand total dihitung server sesuai Config", ()
 
       expect(created.ppn).toBeCloseTo(1000);
     } finally {
-      await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "0" } });
-      await db.config.update({ where: { modul_config: { modul: "ppn", config: "persentase" } }, data: { nilai: "11" } });
+      await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "0" } });
+      await db.config.update({ where: { modul_config: { modul: "PPN", config: "PERSENTASE" } }, data: { nilai: "11" } });
     }
   });
 
@@ -626,7 +626,7 @@ describe("Edit Pembelian — validasi create dipakai ulang", () => {
 describe("Edit Pembelian — angka otoritatif server", () => {
   it("angka fiktif kiriman client diabaikan — baris dan header tersimpan hasil hitung server dari rate PPN config", async () => {
     const created = await buatPembelianSiapEdit();
-    await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "1" } });
+    await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "1" } });
 
     try {
       const hasil = await updatePembelian(db, created.kodebeli, {
@@ -642,7 +642,7 @@ describe("Edit Pembelian — angka otoritatif server", () => {
       expect(hasil.ppn).toBeCloseTo(1100);
       expect(hasil.grandtotal).toBeCloseTo(11100);
     } finally {
-      await db.config.update({ where: { modul_config: { modul: "ppn", config: "status" } }, data: { nilai: "0" } });
+      await db.config.update({ where: { modul_config: { modul: "PPN", config: "STATUS" } }, data: { nilai: "0" } });
     }
   });
 

@@ -138,7 +138,7 @@ describe("Kode Barang dibuat oleh generator Kode Dokumen sesuai Config", () => {
   });
 
   it("createBarang ditolak dengan pesan yang menyebut Config hilang saat Config Kode Dokumen modul barang belum ada", async () => {
-    await db.config.deleteMany({ where: { modul: "barang" } });
+    await db.config.deleteMany({ where: { modul: "BARANG" } });
 
     try {
       await expect(createBarang(db, inputBarang)).rejects.toThrow(/[Cc]onfig/);
@@ -149,9 +149,9 @@ describe("Kode Barang dibuat oleh generator Kode Dokumen sesuai Config", () => {
     } finally {
       await db.config.createMany({
         data: [
-          { modul: "barang", config: "awalan", nilai: "B" },
-          { modul: "barang", config: "pakaitanggal", nilai: "0" },
-          { modul: "barang", config: "panjangnomor", nilai: "4" },
+          { modul: "BARANG", config: "AWALAN", nilai: "B" },
+          { modul: "BARANG", config: "PAKAITANGGAL", nilai: "0" },
+          { modul: "BARANG", config: "PANJANGNOMOR", nilai: "4" },
         ],
       });
     }

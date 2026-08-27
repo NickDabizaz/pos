@@ -46,7 +46,7 @@ export async function createLokasi(db: DatabasePerusahaanClient, input: CreateLo
 
   const keterangan = input.keterangan?.trim() || null;
 
-  const lokasi = await simpanDenganKode(db, "lokasi", new Date(), (kode) =>
+  const lokasi = await simpanDenganKode(db, "LOKASI", new Date(), (kode) =>
     insertLokasi(db, kode, namalokasi, keterangan),
   );
 

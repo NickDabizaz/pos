@@ -14,7 +14,9 @@ export type ConfigRow = {
   nilai : string;
 };
 
-export type Tema = "terang" | "gelap";
+export type Tema = "LIGHT" | "DARK";
+
+export type Kelompok = "GLOBAL" | "MASTER" | "TRANSAKSI";
 
 export type TipeInput = "teks" | "pilihan";
 

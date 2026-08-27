@@ -112,7 +112,7 @@ describe("Kode Supplier dibuat oleh generator Kode Dokumen sesuai Config", () =>
   });
 
   it("createSupplier ditolak dengan pesan yang menyebut Config hilang saat Config Kode Dokumen modul supplier belum ada", async () => {
-    await db.config.deleteMany({ where: { modul: "supplier" } });
+    await db.config.deleteMany({ where: { modul: "SUPPLIER" } });
 
     try {
       await expect(createSupplier(db, inputSupplier)).rejects.toThrow(/[Cc]onfig/);
@@ -123,9 +123,9 @@ describe("Kode Supplier dibuat oleh generator Kode Dokumen sesuai Config", () =>
     } finally {
       await db.config.createMany({
         data: [
-          { modul: "supplier", config: "awalan", nilai: "S" },
-          { modul: "supplier", config: "pakaitanggal", nilai: "0" },
-          { modul: "supplier", config: "panjangnomor", nilai: "4" },
+          { modul: "SUPPLIER", config: "AWALAN", nilai: "S" },
+          { modul: "SUPPLIER", config: "PAKAITANGGAL", nilai: "0" },
+          { modul: "SUPPLIER", config: "PANJANGNOMOR", nilai: "4" },
         ],
       });
     }

@@ -143,17 +143,17 @@ describe("createDatabasePerusahaan mengisi Config default", () => {
       const dbName = newDatabaseName();
       const client = await createDatabasePerusahaan(dbName);
 
-      const barangRows = await client.config.findMany({ where: { modul: "barang" } });
+      const barangRows = await client.config.findMany({ where: { modul: "BARANG" } });
       const asMap = (rows: { config: string; nilai: string }[]) =>
         Object.fromEntries(rows.map((row) => [row.config, row.nilai]));
-      expect(asMap(barangRows)).toEqual({ awalan: "B", pakaitanggal: "0", panjangnomor: "4" });
+      expect(asMap(barangRows)).toEqual({ AWALAN: "B", PAKAITANGGAL: "0", PANJANGNOMOR: "4" });
 
-      const jualRows = await client.config.findMany({ where: { modul: "jual" } });
-      expect(asMap(jualRows)).toEqual({ awalan: "JL", pakaitanggal: "1", panjangnomor: "4" });
+      const jualRows = await client.config.findMany({ where: { modul: "JUAL" } });
+      expect(asMap(jualRows)).toEqual({ AWALAN: "JL", PAKAITANGGAL: "1", PANJANGNOMOR: "4" });
 
-      for (const modul of ["lokasi", "customer", "supplier", "beli", "kas"]) {
+      for (const modul of ["LOKASI", "CUSTOMER", "SUPPLIER", "BELI", "KAS"]) {
         const rows = await client.config.findMany({ where: { modul } });
-        expect(rows.map((row) => row.config).sort()).toEqual(["awalan", "pakaitanggal", "panjangnomor"]);
+        expect(rows.map((row) => row.config).sort()).toEqual(["AWALAN", "PAKAITANGGAL", "PANJANGNOMOR"]);
       }
     },
     30_000,
@@ -165,8 +165,8 @@ describe("createDatabasePerusahaan mengisi Config default", () => {
       const dbName = newDatabaseName();
       const client = await createDatabasePerusahaan(dbName);
 
-      const persentase = await client.config.findUnique({ where: { modul_config: { modul: "ppn", config: "persentase" } } });
-      const status = await client.config.findUnique({ where: { modul_config: { modul: "ppn", config: "status" } } });
+      const persentase = await client.config.findUnique({ where: { modul_config: { modul: "PPN", config: "PERSENTASE" } } });
+      const status = await client.config.findUnique({ where: { modul_config: { modul: "PPN", config: "STATUS" } } });
 
       expect(persentase?.nilai).toBe("11");
       expect(status?.nilai).toBe("0");
@@ -180,7 +180,7 @@ describe("createDatabasePerusahaan mengisi Config default", () => {
       const dbName = newDatabaseName();
       const client = await createDatabasePerusahaan(dbName);
 
-      const tema = await client.config.findUnique({ where: { modul_config: { modul: "tampilan", config: "tema" } } });
+      const tema = await client.config.findUnique({ where: { modul_config: { modul: "TAMPILAN", config: "TEMA" } } });
 
       expect(tema?.nilai).toBeTruthy();
     },

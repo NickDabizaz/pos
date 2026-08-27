@@ -51,7 +51,7 @@ export async function createBarang(db: DatabasePerusahaanClient, input: CreateBa
 
   const barcode = input.barcode?.trim() || null;
 
-  const barang = await simpanDenganKode(db, "barang", new Date(), (kode) =>
+  const barang = await simpanDenganKode(db, "BARANG", new Date(), (kode) =>
     insertBarang(db, kode, {
       namabarang,
       barcode,

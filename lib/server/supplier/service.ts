@@ -49,7 +49,7 @@ export async function createSupplier(db: DatabasePerusahaanClient, input: Create
   const email = input.email?.trim() || null;
   const alamat = input.alamat?.trim() || null;
 
-  const supplier = await simpanDenganKode(db, "supplier", new Date(), (kode) =>
+  const supplier = await simpanDenganKode(db, "SUPPLIER", new Date(), (kode) =>
     insertSupplier(db, kode, namasupplier, kontakperson, telepon, email, alamat),
   );
 

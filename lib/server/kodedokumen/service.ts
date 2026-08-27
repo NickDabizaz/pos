@@ -32,19 +32,19 @@ async function bacaConfigModul(db: DatabasePerusahaanClient, modul: ModulKodeDok
 
   const nilai = Object.fromEntries(rows.map((row) => [row.config, row.nilai]));
 
-  const awalan = nilai.awalan?.trim();
+  const awalan = nilai.AWALAN?.trim();
   if (!awalan) {
-    throw new Error(`Config "awalan" untuk modul "${modul}" kosong atau tidak ditemukan`);
+    throw new Error(`Config "AWALAN" untuk modul "${modul}" kosong atau tidak ditemukan`);
   }
 
-  const pakaitanggal = nilai.pakaitanggal;
+  const pakaitanggal = nilai.PAKAITANGGAL;
   if (pakaitanggal !== "0" && pakaitanggal !== "1") {
-    throw new Error(`Config "pakaitanggal" untuk modul "${modul}" harus "0" atau "1"`);
+    throw new Error(`Config "PAKAITANGGAL" untuk modul "${modul}" harus "0" atau "1"`);
   }
 
-  const panjangnomor = Number(nilai.panjangnomor);
-  if (!nilai.panjangnomor || !Number.isInteger(panjangnomor) || panjangnomor <= 0) {
-    throw new Error(`Config "panjangnomor" untuk modul "${modul}" harus bilangan bulat positif`);
+  const panjangnomor = Number(nilai.PANJANGNOMOR);
+  if (!nilai.PANJANGNOMOR || !Number.isInteger(panjangnomor) || panjangnomor <= 0) {
+    throw new Error(`Config "PANJANGNOMOR" untuk modul "${modul}" harus bilangan bulat positif`);
   }
 
   const config: KonfigurasiKodeDokumen = { awalan, pakaitanggal, panjangnomor };
@@ -94,15 +94,16 @@ export async function simpanDenganKode<T>(
   tgltrans: Date,
   simpan  : (kode: string) => Promise<T>,
 ): Promise<T> {
-  if (!isModulKodeDokumen(modul)) {
+  const modulKode = modul.toUpperCase();
+  if (!isModulKodeDokumen(modulKode)) {
     throw new Error(`Modul "${modul}" tidak dikenal generator Kode Dokumen`);
   }
 
-  const config = await bacaConfigModul(db, modul);
+  const config = await bacaConfigModul(db, modulKode);
   const prefix = config.pakaitanggal === "1" ? `${config.awalan}${periodeAsiaJakarta(tgltrans)}` : config.awalan;
 
-  let nomor = await nomorBerikutnya(db, modul, prefix);
-  const kolomKode = MODUL_KODE_FIELD[modul];
+  let nomor = await nomorBerikutnya(db, modulKode, prefix);
+  const kolomKode = MODUL_KODE_FIELD[modulKode];
 
   for (let percobaan = 0; percobaan < MAX_PERCOBAAN; percobaan++) {
     const kode = `${prefix}${String(nomor).padStart(config.panjangnomor, "0")}`;

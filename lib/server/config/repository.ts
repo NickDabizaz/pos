@@ -1,6 +1,6 @@
 import { Prisma } from "@/lib/generated/prisma-perusahaan/client";
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
-import type { ConfigRow } from "@/lib/server/config/types";
+import type { ConfigRow, ItemConfig } from "@/lib/server/config/types";
 
 export async function findAllConfig(db: DatabasePerusahaanClient): Promise<ConfigRow[]> {
   const rows = await db.config.findMany({ orderBy: [{ modul: "asc" }, { config: "asc" }] });
@@ -10,6 +10,24 @@ export async function findAllConfig(db: DatabasePerusahaanClient): Promise<Confi
 
 export async function findConfigRowsByModul(db: DatabasePerusahaanClient, modul: string): Promise<ConfigRow[]> {
   const rows = await db.config.findMany({ where: { modul }, orderBy: { config: "asc" } });
+
+  return rows;
+}
+
+export async function upsertManyConfigRows(
+  db   : DatabasePerusahaanClient,
+  modul: string,
+  items: ItemConfig[],
+): Promise<ConfigRow[]> {
+  const rows = await db.$transaction(
+    items.map((item) =>
+      db.config.upsert({
+        where : { modul_config: { modul, config: item.config } },
+        update: { nilai: item.nilai },
+        create: { modul, config: item.config, nilai: item.nilai },
+      }),
+    ),
+  );
 
   return rows;
 }

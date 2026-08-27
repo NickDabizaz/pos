@@ -71,7 +71,7 @@ function toPenjualan(row: JualRow): Penjualan {
 }
 
 export async function findConfigPpn(db: DatabasePerusahaanClient): Promise<{ config: string; nilai: string }[]> {
-  const rows = await db.config.findMany({ where: { modul: "ppn" }, select: { config: true, nilai: true } });
+  const rows = await db.config.findMany({ where: { modul: "PPN" }, select: { config: true, nilai: true } });
 
   return rows;
 }

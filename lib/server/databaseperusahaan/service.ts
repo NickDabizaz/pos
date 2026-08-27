@@ -12,13 +12,13 @@ import type { ConfigRow, DatabasePerusahaanClient } from "@/lib/server/databasep
 const VALID_DATABASE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
 export const KODE_DOKUMEN_MODULES: Record<string, { awalan: string; pakaitanggal: "0" | "1"; panjangnomor: string }> = {
-  lokasi  : { awalan: "L",  pakaitanggal: "0", panjangnomor: "4" },
-  barang  : { awalan: "B",  pakaitanggal: "0", panjangnomor: "4" },
-  customer: { awalan: "C",  pakaitanggal: "0", panjangnomor: "4" },
-  supplier: { awalan: "S",  pakaitanggal: "0", panjangnomor: "4" },
-  jual    : { awalan: "JL", pakaitanggal: "1", panjangnomor: "4" },
-  beli    : { awalan: "PB", pakaitanggal: "1", panjangnomor: "4" },
-  kas     : { awalan: "KS", pakaitanggal: "1", panjangnomor: "4" },
+  LOKASI  : { awalan: "L",  pakaitanggal: "0", panjangnomor: "4" },
+  BARANG  : { awalan: "B",  pakaitanggal: "0", panjangnomor: "4" },
+  CUSTOMER: { awalan: "C",  pakaitanggal: "0", panjangnomor: "4" },
+  SUPPLIER: { awalan: "S",  pakaitanggal: "0", panjangnomor: "4" },
+  JUAL    : { awalan: "JL", pakaitanggal: "1", panjangnomor: "4" },
+  BELI    : { awalan: "PB", pakaitanggal: "1", panjangnomor: "4" },
+  KAS     : { awalan: "KS", pakaitanggal: "1", panjangnomor: "4" },
 };
 
 function cekValidNamaDatabase(namadatabase: string): void {
@@ -29,16 +29,16 @@ function cekValidNamaDatabase(namadatabase: string): void {
 
 export function buildDefaultConfigRows(): ConfigRow[] {
   const kodeDokumenRows: ConfigRow[] = Object.entries(KODE_DOKUMEN_MODULES).flatMap(([modul, format]) => [
-    { modul, config: "awalan", nilai: format.awalan },
-    { modul, config: "pakaitanggal", nilai: format.pakaitanggal },
-    { modul, config: "panjangnomor", nilai: format.panjangnomor },
+    { modul, config: "AWALAN", nilai: format.awalan },
+    { modul, config: "PAKAITANGGAL", nilai: format.pakaitanggal },
+    { modul, config: "PANJANGNOMOR", nilai: format.panjangnomor },
   ]);
 
   const rows = [
     ...kodeDokumenRows,
-    { modul: "ppn", config: "persentase", nilai: "11" },
-    { modul: "ppn", config: "status", nilai: "0" },
-    { modul: "tampilan", config: "tema", nilai: "terang" },
+    { modul: "PPN", config: "PERSENTASE", nilai: "11" },
+    { modul: "PPN", config: "STATUS", nilai: "0" },
+    { modul: "TAMPILAN", config: "TEMA", nilai: "LIGHT" },
   ];
 
   return rows;

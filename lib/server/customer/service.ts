@@ -48,7 +48,7 @@ export async function createCustomer(db: DatabasePerusahaanClient, input: Create
   const email = input.email?.trim() || null;
   const alamat = input.alamat?.trim() || null;
 
-  const customer = await simpanDenganKode(db, "customer", new Date(), (kode) =>
+  const customer = await simpanDenganKode(db, "CUSTOMER", new Date(), (kode) =>
     insertCustomer(db, kode, namacustomer, telepon, email, alamat),
   );
 

@@ -70,7 +70,7 @@ export async function createKas(db: DatabasePerusahaanClient, input: CreateKasIn
   const tgltrans = new Date(input.tanggal);
 
   const kodekas = await db.$transaction(async (tx) => {
-    const kode = await simpanDenganKode(tx, "kas", tgltrans, async (kode) => {
+    const kode = await simpanDenganKode(tx, "KAS", tgltrans, async (kode) => {
       const idkas = await insertKasLengkap(tx, kode, {
         tgltrans,
         jenis   : input.jenis,

@@ -4,6 +4,7 @@ export type ConfigRow = {
   nilai : string;
 };
 
+/** Pasangan kunci-nilai satu baris config, tanpa modulnya. */
 export type ItemConfig = {
   config: string;
   nilai : string;
@@ -20,4 +21,4 @@ export type UpdateConfigInput = {
   nilai : string;
 };
 
-export type Tema = "terang" | "gelap";
+export type Tema = "LIGHT" | "DARK";
