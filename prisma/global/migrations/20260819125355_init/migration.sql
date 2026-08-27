@@ -90,7 +90,8 @@ INSERT INTO `menu` (`kodemenu`, `kodeinduk`, `namamenu`, `jenis`, `urutan`, `sta
     ('TRANS-KAS', 'TRANS', 'Kas',         'DETAIL', '3.3', 1),
     ('KASIR-TTP', NULL,    'Tutup Kasir', 'DETAIL', '4', 1),
     ('LANGGANAN', NULL,    'Subscription',   'DETAIL', '5', 1),
-    ('PENGGUNA',  NULL,    'Manajemen User', 'DETAIL', '6', 1);
+    ('PENGGUNA',  NULL,    'Manajemen User', 'DETAIL', '6', 1),
+    ('PENGATURAN', NULL,   'Pengaturan',     'DETAIL', '7', 1);
 
 -- CreateTable
 CREATE TABLE `perusahaan` (

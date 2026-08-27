@@ -10,6 +10,7 @@ export const menuRoutes: Record<string, string> = {
   "TRANS-KAS": "/transaksi/kas",
   LANGGANAN  : "/subscription",
   PENGGUNA   : "/manajemen-user",
+  PENGATURAN : "/pengaturan",
 };
 
 export function findKodemenuForPath(pathname: string): string | undefined {

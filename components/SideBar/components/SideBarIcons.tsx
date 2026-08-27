@@ -72,20 +72,20 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
     );
   }
 
-  if (name.includes("jual") || name.includes("penjualan") || name.includes("kasir") || name.includes("pos") || name.includes("transaksi") || code.includes("trx") || code.includes("jual")) {
-    return (
-      <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
-        <rect height="14" rx="2" width="20" x="2" y="5" />
-        <path d="M2 10h20M6 15h4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
   if (name.includes("tutup kasir") || name.includes("shift") || name.includes("closing") || code.includes("tutup")) {
     return (
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
         <rect height="11" rx="2" width="18" x="3" y="11" />
         <path d="M7 11V7a5 5 0 0 1 10 0v4M12 15v2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (name.includes("jual") || name.includes("penjualan") || name.includes("kasir") || name.includes("pos") || name.includes("transaksi") || code.includes("trx") || code.includes("jual")) {
+    return (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
+        <rect height="14" rx="2" width="20" x="2" y="5" />
+        <path d="M2 10h20M6 15h4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -131,6 +131,26 @@ export function getMenuIcon(namamenu: string, kodemenu = "", className = "size-4
       <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
         <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
         <path d="m19 9-5 5-4-4-3 3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (name.includes("subscription") || name.includes("langganan") || name.includes("paket") || code.includes("langgan")) {
+    return (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
+        <rect height="16" rx="2" width="20" x="2" y="4" />
+        <path d="M2 10h20M6 15h4M15 15h3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="m17 3-2 3M22 3l-2 3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (name.includes("manajemen user") || name.includes("pengguna") || name.includes("user") || name.includes("staff") || name.includes("karyawan") || code.includes("user") || code.includes("pengguna")) {
+    return (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="m19 8 2 2 3-3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }

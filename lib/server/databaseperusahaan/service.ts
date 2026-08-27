@@ -11,7 +11,7 @@ import type { ConfigRow, DatabasePerusahaanClient } from "@/lib/server/databasep
 
 const VALID_DATABASE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
-const KODE_DOKUMEN_MODULES: Record<string, { awalan: string; pakaitanggal: "0" | "1"; panjangnomor: string }> = {
+export const KODE_DOKUMEN_MODULES: Record<string, { awalan: string; pakaitanggal: "0" | "1"; panjangnomor: string }> = {
   lokasi  : { awalan: "L",  pakaitanggal: "0", panjangnomor: "4" },
   barang  : { awalan: "B",  pakaitanggal: "0", panjangnomor: "4" },
   customer: { awalan: "C",  pakaitanggal: "0", panjangnomor: "4" },
@@ -27,7 +27,7 @@ function cekValidNamaDatabase(namadatabase: string): void {
   }
 }
 
-function buildDefaultConfigRows(): ConfigRow[] {
+export function buildDefaultConfigRows(): ConfigRow[] {
   const kodeDokumenRows: ConfigRow[] = Object.entries(KODE_DOKUMEN_MODULES).flatMap(([modul, format]) => [
     { modul, config: "awalan", nilai: format.awalan },
     { modul, config: "pakaitanggal", nilai: format.pakaitanggal },
