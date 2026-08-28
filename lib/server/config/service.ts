@@ -23,6 +23,7 @@ const LEBAR_KOLOM_KODE: Record<string, number> = {
   JUAL    : 30,
   BELI    : 30,
   KAS     : 30,
+  "OPNAME STOK": 30,
 };
 
 const KUNCI_KODE_DOKUMEN: Record<string, ValidasiNilai> = {

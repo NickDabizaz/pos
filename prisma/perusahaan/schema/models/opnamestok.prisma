@@ -1,0 +1,36 @@
+/// Opname Stok: hasil hitung fisik Barang di satu Lokasi pada satu tanggal, dibandingkan dengan
+/// saldo menurut Kartu Stok. status: "S" = tersimpan, "D" = dibatalkan. Menerbitkan Kartu Stok
+/// sebesar selisih tiap baris (masuk bila fisik lebih, keluar bila fisik kurang); tidak pernah
+/// menerbitkan Jurnal. tgltrans & idlokasi terkunci setelah dibuat.
+model opnamestok {
+  idopnamestok Int      @id @default(autoincrement())
+  kodeopname   String   @unique @db.VarChar(30)
+  tgltrans     DateTime @db.Date
+  idlokasi     Int
+  status       String   @default("S") @db.VarChar(1)
+  alasanbatal  String?  @db.VarChar(255)
+
+  lokasi  lokasi          @relation(fields: [idlokasi], references: [idlokasi])
+  details opnamestokdtl[]
+
+  @@index([idlokasi], map: "idlokasi")
+}
+
+/// Satu baris per Barang yang dihitung. jmlsistem dibekukan saat simpan (lihat ADR 0008),
+/// selisih = jmlfisik - jmlsistem. Baris berselisih nol tetap disimpan sebagai bukti Barang
+/// itu sudah dihitung, tetapi tidak menerbitkan Kartu Stok. satuan disalin dari Barang saat simpan.
+model opnamestokdtl {
+  idopnamestok Int
+  urutan       Int
+  idbarang     Int
+  satuan       String  @db.VarChar(20)
+  jmlsistem    Decimal @db.Decimal(14, 2)
+  jmlfisik     Decimal @db.Decimal(14, 2)
+  selisih      Decimal @db.Decimal(14, 2)
+
+  opnamestok opnamestok @relation(fields: [idopnamestok], references: [idopnamestok])
+  barang     barang     @relation(fields: [idbarang], references: [idbarang])
+
+  @@id([idopnamestok, urutan])
+  @@index([idbarang], map: "idbarang")
+}

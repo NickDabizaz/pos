@@ -1,9 +1,33 @@
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import { buatCatatanKartuStok } from "@/lib/server/kartustok/catatan";
-import { insertKartuStok } from "@/lib/server/kartustok/repository";
-import type { InsertKartuStokBaris, KepalaTransaksi } from "@/lib/server/kartustok/repository";
+import { hitungSaldoStok, insertKartuStok } from "@/lib/server/kartustok/repository";
+import type { InsertKartuStokBaris, KepalaTransaksi, SaldoStokBarang } from "@/lib/server/kartustok/repository";
+import { findLokasiByKode } from "@/lib/server/lokasi/repository";
 import type { JenisTransaksiStok, MasukKeluar } from "@/lib/server/kartustok/types";
 import type { JenisTransaksiPenjualan } from "@/lib/server/penjualan/types";
+
+export type { SaldoStokBarang };
+
+/**
+ * Saldo stok terpublikasi untuk satu Lokasi pada satu tanggal. Endpoint saldo stok berdiri
+ * sendiri — bukan milik Opname Stok — dan menjadi fondasi laporan Kartu Stok nanti.
+ */
+export async function bacaSaldoStok(
+  db        : DatabasePerusahaanClient,
+  kodelokasi: string,
+  tanggal   : Date,
+): Promise<SaldoStokBarang[]> {
+  if (!kodelokasi.trim()) {
+    throw new Error("Lokasi wajib diisi untuk membaca saldo stok", { cause: "INPUT_TIDAK_SAH" });
+  }
+
+  const lokasi = await findLokasiByKode(db, kodelokasi);
+  if (!lokasi) {
+    throw new Error(`Lokasi dengan kode "${kodelokasi}" tidak ditemukan`, { cause: "TIDAK_DITEMUKAN" });
+  }
+
+  return hitungSaldoStok(db, lokasi.idlokasi, tanggal);
+}
 
 export function petakanJenisPenjualan(jenistransaksi: JenisTransaksiPenjualan): Extract<JenisTransaksiStok, "POS" | "PENJUALAN"> {
   const jenis = jenistransaksi === "POS" ? "POS" : "PENJUALAN";

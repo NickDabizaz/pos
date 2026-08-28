@@ -15,6 +15,7 @@ const LABEL_MODUL: Record<string, string> = {
   CUSTOMER: "Customer",
   JUAL    : "Penjualan",
   KAS     : "Kas",
+  "OPNAME STOK": "Opname Stok",
   LOKASI  : "Lokasi",
   PPN     : "PPN",
   SUPPLIER: "Supplier",
@@ -35,7 +36,7 @@ export const KELOMPOK_URUT: Kelompok[] = ["GLOBAL", "MASTER", "TRANSAKSI"];
 export const URUT_MODUL_KODE: Record<Kelompok, string[]> = {
   GLOBAL   : ["PPN", "TAMPILAN"],
   MASTER   : ["LOKASI", "BARANG", "CUSTOMER", "SUPPLIER"],
-  TRANSAKSI: ["JUAL", "BELI", "KAS"],
+  TRANSAKSI: ["JUAL", "BELI", "KAS", "OPNAME STOK"],
 };
 
 const KELOMPOK_MODUL: Record<string, Kelompok> = Object.fromEntries(

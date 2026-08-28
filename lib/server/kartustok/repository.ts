@@ -50,3 +50,51 @@ export async function deleteKartuStok(
 ): Promise<void> {
   await db.kartustok.deleteMany({ where: { jenistransaksi, idtrans } });
 }
+
+export type SaldoStokBarang = {
+  idbarang  : number;
+  kodebarang: string;
+  namabarang: string;
+  satuan    : string;
+  jmlsistem : number;
+};
+
+/**
+ * Saldo stok menurut Kartu Stok untuk setiap Barang berstok aktif di satu Lokasi, sampai
+ * dengan `tanggal` (inklusif). jmlsistem = jumlah pergerakan masuk dikurangi keluar. Barang
+ * berstok aktif yang belum pernah bergerak ikut dikembalikan dengan jmlsistem 0. Barang dengan
+ * `pakaistok` mati atau berstatus nonaktif tidak pernah muncul. Pembaca `kartustok` pertama di
+ * codebase; sengaja tidak lewat tabel induk transaksi (lihat komentar model kartustok).
+ */
+export async function hitungSaldoStok(
+  db      : DatabasePerusahaanClient,
+  idlokasi: number,
+  tanggal : Date,
+): Promise<SaldoStokBarang[]> {
+  const barang = await db.barang.findMany({
+    where  : { pakaistok: true, status: 1 },
+    orderBy: { idbarang: "asc" },
+    select : { idbarang: true, kodebarang: true, namabarang: true, satuan: true },
+  });
+
+  const gerak = await db.kartustok.groupBy({
+    by   : ["idbarang", "mk"],
+    where: { idlokasi, tgltrans: { lte: tanggal } },
+    _sum : { jml: true },
+  });
+
+  const saldoPerBarang = new Map<number, number>();
+  for (const row of gerak) {
+    const jml = Number(row._sum.jml ?? 0);
+    const berarah = row.mk === "M" ? jml : -jml;
+    saldoPerBarang.set(row.idbarang, (saldoPerBarang.get(row.idbarang) ?? 0) + berarah);
+  }
+
+  return barang.map((item) => ({
+    idbarang  : item.idbarang,
+    kodebarang: item.kodebarang,
+    namabarang: item.namabarang,
+    satuan    : item.satuan,
+    jmlsistem : saldoPerBarang.get(item.idbarang) ?? 0,
+  }));
+}

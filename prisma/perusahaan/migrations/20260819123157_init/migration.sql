@@ -239,6 +239,34 @@ CREATE TABLE `supplier` (
     PRIMARY KEY (`idsupplier`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `opnamestok` (
+    `idopnamestok` INTEGER NOT NULL AUTO_INCREMENT,
+    `kodeopname` VARCHAR(30) NOT NULL,
+    `tgltrans` DATE NOT NULL,
+    `idlokasi` INTEGER NOT NULL,
+    `status` VARCHAR(1) NOT NULL DEFAULT 'S',
+    `alasanbatal` VARCHAR(255) NULL,
+
+    UNIQUE INDEX `opnamestok_kodeopname_key`(`kodeopname`),
+    INDEX `idlokasi`(`idlokasi`),
+    PRIMARY KEY (`idopnamestok`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `opnamestokdtl` (
+    `idopnamestok` INTEGER NOT NULL,
+    `urutan` INTEGER NOT NULL,
+    `idbarang` INTEGER NOT NULL,
+    `satuan` VARCHAR(20) NOT NULL,
+    `jmlsistem` DECIMAL(14, 2) NOT NULL,
+    `jmlfisik` DECIMAL(14, 2) NOT NULL,
+    `selisih` DECIMAL(14, 2) NOT NULL,
+
+    INDEX `idbarang`(`idbarang`),
+    PRIMARY KEY (`idopnamestok`, `urutan`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `beli` ADD CONSTRAINT `beli_idsupplier_fkey` FOREIGN KEY (`idsupplier`) REFERENCES `supplier`(`idsupplier`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -274,6 +302,15 @@ ALTER TABLE `kasdtl` ADD CONSTRAINT `kasdtl_idkas_fkey` FOREIGN KEY (`idkas`) RE
 
 -- AddForeignKey
 ALTER TABLE `kartustok` ADD CONSTRAINT `kartustok_idbarang_fkey` FOREIGN KEY (`idbarang`) REFERENCES `barang`(`idbarang`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `opnamestok` ADD CONSTRAINT `opnamestok_idlokasi_fkey` FOREIGN KEY (`idlokasi`) REFERENCES `lokasi`(`idlokasi`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `opnamestokdtl` ADD CONSTRAINT `opnamestokdtl_idopnamestok_fkey` FOREIGN KEY (`idopnamestok`) REFERENCES `opnamestok`(`idopnamestok`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `opnamestokdtl` ADD CONSTRAINT `opnamestokdtl_idbarang_fkey` FOREIGN KEY (`idbarang`) REFERENCES `barang`(`idbarang`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `modalawal` ADD CONSTRAINT `modalawal_idlokasi_fkey` FOREIGN KEY (`idlokasi`) REFERENCES `lokasi`(`idlokasi`) ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -9,6 +9,7 @@ export const MODUL_KODE_FIELD: Record<ModulKodeDokumen, string> = {
   JUAL    : "kodejual",
   BELI    : "kodebeli",
   KAS     : "kodekas",
+  "OPNAME STOK": "kodeopname",
 };
 
 const FIND_KODE_BY_PREFIX: Record<ModulKodeDokumen, (db: DatabasePerusahaanClient, prefix: string) => Promise<string[]>> = {
@@ -51,6 +52,12 @@ const FIND_KODE_BY_PREFIX: Record<ModulKodeDokumen, (db: DatabasePerusahaanClien
   KAS: async (db, prefix) => {
     const rows = await db.kas.findMany({ where: { kodekas: { startsWith: prefix } }, select: { kodekas: true } });
     const kode = rows.map((row) => row.kodekas);
+
+    return kode;
+  },
+  "OPNAME STOK": async (db, prefix) => {
+    const rows = await db.opnamestok.findMany({ where: { kodeopname: { startsWith: prefix } }, select: { kodeopname: true } });
+    const kode = rows.map((row) => row.kodeopname);
 
     return kode;
   },

@@ -11,7 +11,8 @@ model barang {
   pakaistok  Boolean @default(false)
   status     Int     @default(1) @db.SmallInt
 
-  jualdtl   jualdtl[]
-  belidtl   belidtl[]
-  kartustok kartustok[]
+  jualdtl       jualdtl[]
+  belidtl       belidtl[]
+  kartustok     kartustok[]
+  opnamestokdtl opnamestokdtl[]
 }

@@ -88,6 +88,7 @@ INSERT INTO `menu` (`kodemenu`, `kodeinduk`, `namamenu`, `jenis`, `urutan`, `sta
     ('TRANS-JUL', 'TRANS', 'Penjualan',   'DETAIL', '3.1', 1),
     ('TRANS-BEL', 'TRANS', 'Pembelian',   'DETAIL', '3.2', 1),
     ('TRANS-KAS', 'TRANS', 'Kas',         'DETAIL', '3.3', 1),
+    ('TRANS-OPS', 'TRANS', 'Opname Stok', 'DETAIL', '3.4', 1),
     ('KASIR-TTP', NULL,    'Tutup Kasir', 'DETAIL', '4', 1),
     ('LANGGANAN', NULL,    'Subscription',   'DETAIL', '5', 1),
     ('PENGGUNA',  NULL,    'Manajemen User', 'DETAIL', '6', 1),

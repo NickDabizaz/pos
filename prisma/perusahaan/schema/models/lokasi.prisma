@@ -11,4 +11,5 @@ model lokasi {
   kas           kas[]
   modalawal     modalawal[]
   setorankasir  setorankasir[]
+  opnamestok    opnamestok[]
 }

@@ -19,6 +19,7 @@ export const KODE_DOKUMEN_MODULES: Record<string, { awalan: string; pakaitanggal
   JUAL    : { awalan: "JL", pakaitanggal: "1", panjangnomor: "4" },
   BELI    : { awalan: "PB", pakaitanggal: "1", panjangnomor: "4" },
   KAS     : { awalan: "KS", pakaitanggal: "1", panjangnomor: "4" },
+  "OPNAME STOK": { awalan: "OS", pakaitanggal: "1", panjangnomor: "4" },
 };
 
 function cekValidNamaDatabase(namadatabase: string): void {

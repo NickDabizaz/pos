@@ -380,16 +380,16 @@ describe("Isolasi antar Perusahaan dan provisioning segar", () => {
     expect(await bacaTema(clientBaru)).toBe("DARK");
   });
 
-  it("listConfig pada Database Perusahaan hasil provisioning mengembalikan 24 baris dalam 9 kelompok modul", async () => {
+  it("listConfig pada Database Perusahaan hasil provisioning mengembalikan 27 baris dalam 10 kelompok modul", async () => {
     const kelompok = await listConfig(dbLain);
 
     expect(kelompok.map((k) => k.modul)).toEqual([
-      "BARANG", "BELI", "CUSTOMER", "JUAL", "KAS", "LOKASI", "PPN", "SUPPLIER", "TAMPILAN",
+      "BARANG", "BELI", "CUSTOMER", "JUAL", "KAS", "LOKASI", "OPNAME STOK", "PPN", "SUPPLIER", "TAMPILAN",
     ]);
     const jumlahBaris = kelompok.reduce((acc, k) => acc + k.items.length, 0);
-    expect(jumlahBaris).toBe(24);
+    expect(jumlahBaris).toBe(27);
     for (const grup of kelompok) {
-      if (["BELI", "BARANG", "CUSTOMER", "JUAL", "KAS", "LOKASI", "SUPPLIER"].includes(grup.modul)) {
+      if (["BELI", "BARANG", "CUSTOMER", "JUAL", "KAS", "LOKASI", "OPNAME STOK", "SUPPLIER"].includes(grup.modul)) {
         expect(grup.items.map((i) => i.config)).toEqual(["AWALAN", "PAKAITANGGAL", "PANJANGNOMOR"]);
       }
     }
