@@ -64,6 +64,12 @@ export async function findNamadatabaseAktif(db: GlobalClient, idperusahaan: numb
   return perusahaan?.namadatabase ?? null;
 }
 
+export async function findNamaperusahaanAktif(db: GlobalClient, idperusahaan: number): Promise<string | null> {
+  const perusahaan = await db.perusahaan.findUnique({ where: { idperusahaan }, select: { namaperusahaan: true } });
+
+  return perusahaan?.namaperusahaan ?? null;
+}
+
 export async function nomorKodeOtomatisBerikutnya(db: GlobalClient): Promise<number> {
   const rows = await db.perusahaan.findMany({ select: { kodeperusahaan: true } });
 

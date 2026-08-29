@@ -89,10 +89,18 @@ INSERT INTO `menu` (`kodemenu`, `kodeinduk`, `namamenu`, `jenis`, `urutan`, `sta
     ('TRANS-BEL', 'TRANS', 'Pembelian',   'DETAIL', '3.2', 1),
     ('TRANS-KAS', 'TRANS', 'Kas',         'DETAIL', '3.3', 1),
     ('TRANS-OPS', 'TRANS', 'Opname Stok', 'DETAIL', '3.4', 1),
-    ('KASIR-TTP', NULL,    'Tutup Kasir', 'DETAIL', '4', 1),
-    ('LANGGANAN', NULL,    'Subscription',   'DETAIL', '5', 1),
-    ('PENGGUNA',  NULL,    'Manajemen User', 'DETAIL', '6', 1),
-    ('PENGATURAN', NULL,   'Pengaturan',     'DETAIL', '7', 1);
+    ('LAPOR',     NULL,    'Laporan',     'HEADER', '5', 1),
+    ('LAP-JUL',   'LAPOR', 'Penjualan',          'DETAIL', '5.1', 1),
+    ('LAP-BEL',   'LAPOR', 'Pembelian',          'DETAIL', '5.2', 1),
+    ('LAP-KAS',   'LAPOR', 'Kas',                'DETAIL', '5.3', 1),
+    ('LAP-OPS',   'LAPOR', 'Opname Stok',        'DETAIL', '5.4', 1),
+    ('LAP-KST',   'LAPOR', 'Kartu Stok',         'DETAIL', '5.5', 1),
+    ('LAP-PST',   'LAPOR', 'Posisi Stok',        'DETAIL', '5.6', 1),
+    ('LAP-JRN',   'LAPOR', 'Jurnal Transaksi',   'DETAIL', '5.7', 1),
+    ('KASIR-TTP', NULL,    'Tutup Kasir', 'DETAIL', '6', 1),
+    ('LANGGANAN', NULL,    'Subscription',   'DETAIL', '7', 1),
+    ('PENGGUNA',  NULL,    'Manajemen User', 'DETAIL', '8', 1),
+    ('PENGATURAN', NULL,   'Pengaturan',     'DETAIL', '9', 1);
 
 -- CreateTable
 CREATE TABLE `perusahaan` (
