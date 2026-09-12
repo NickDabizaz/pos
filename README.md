@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# POS Boilerplate
 
-## Getting Started
+Boilerplate [Next.js](https://nextjs.org) untuk membangun aplikasi
+Point of Sale (POS). Repositori ini bukan aplikasi POS jadi, melainkan
+fondasi (struktur modul, autentikasi, multi-tenant database, dsb.) yang
+siap dipakai sebagai titik awal.
 
-First, run the development server:
+Silakan **fork** repo ini untuk membuat versi POS milikmu sendiri.
+
+## Teknologi
+
+- **Next.js** (App Router) + TypeScript
+- **Tailwind CSS** untuk styling
+- **Prisma** dengan dua skema database: `global` dan `perusahaan` (multi-tenant)
+- **Better Auth** untuk autentikasi
+- **Vitest** untuk testing
+
+## Memulai
+
+Salin `.env.example` (jika ada) menjadi `.env`, sesuaikan koneksi database,
+lalu jalankan generate & migrasi Prisma:
+
+```bash
+npm install
+npm run db:generate
+npm run db:migrate
+```
+
+Jalankan development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Struktur modul
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Modul global dengan behavior kompleks diletakkan di `components/<NamaModul>/`,
+dipisah antara UI (`components/`) dan logika non-UI (`lib/`). Lihat
+[AGENTS.md](AGENTS.md) untuk konvensi lengkap penamaan, struktur folder,
+dan modul global yang sudah tersedia (`DataTable`, `ConfirmDialog`, dll).
 
-## Learn More
+## Testing
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm test
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Test menggunakan Vitest dan ditempatkan di folder `__tests__/` di samping
+kode yang diuji, bukan langsung bersebelahan dengan file sumbernya.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Database
 
-## Deploy on Vercel
+Proyek ini memakai dua skema Prisma terpisah:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `prisma/global` — data lintas perusahaan (mis. autentikasi, konfigurasi global)
+- `prisma/perusahaan` — data milik satu perusahaan (multi-tenant)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Gunakan `npm run db:migrate` saat development dan `npm run db:deploy` saat
+deploy ke production.
+
+## Kontribusi & Fork
+
+Karena ini adalah boilerplate, setiap orang dipersilakan fork dan
+mengembangkannya sesuai kebutuhan masing-masing (fitur POS, integrasi
+pembayaran, laporan, dsb.) tanpa perlu meminta izin ke repo asal.
