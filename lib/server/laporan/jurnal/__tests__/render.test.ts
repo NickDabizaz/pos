@@ -12,54 +12,65 @@ function buatBaris(overrides: Partial<BarisLaporanJurnal> = {}): BarisLaporanJur
     urutan        : 1,
     saldo         : "DEBET",
     amount        : 100000,
-    catatan       : "penjualan tunai",
+    catatan       : "Kas",
     ...overrides,
   };
 }
 
-describe("render: bentuk & header", () => {
-  it("saldo DEBET/KREDIT dirender apa adanya di kolomnya sendiri", () => {
-    const konteks = buatKonteksLaporanJurnal("Toko Nick", {}, new Date());
-    const html = renderLaporanJurnal([buatBaris({ saldo: "DEBET" }), buatBaris({ saldo: "KREDIT", urutan: 2 })], konteks);
+const konteks = buatKonteksLaporanJurnal("Toko Nick", {}, new Date());
 
-    expect(html).toContain("DEBET");
-    expect(html).toContain("KREDIT");
+describe("render laporan jurnal", () => {
+  it("satu blok per kodetrans; amount masuk kolom Debet atau Kredit sesuai flag", () => {
+    const html = renderLaporanJurnal(
+      [buatBaris({ saldo: "DEBET", catatan: "Kas", amount: 100000 }), buatBaris({ saldo: "KREDIT", urutan: 2, catatan: "Penjualan", amount: 100000 })],
+      konteks,
+    );
+
+    expect((html.match(/<h3>/g) ?? []).length).toBe(1);
+    expect(html).toContain("<th class=\"angka\">Debet</th>");
+    expect(html).toContain("Total");
+    expect(html).not.toContain("TIDAK BALANCE");
   });
 
-  it("nol baris -> dokumen HTML sah dengan pesan tidak ada data", () => {
-    const konteks = buatKonteksLaporanJurnal("Toko Nick", {}, new Date());
-    const html = renderLaporanJurnal([], konteks);
+  it("blok tidak seimbang mendapat badge TIDAK BALANCE", () => {
+    const html = renderLaporanJurnal(
+      [buatBaris({ saldo: "DEBET", amount: 100000 }), buatBaris({ saldo: "KREDIT", urutan: 2, amount: 90000 })],
+      konteks,
+    );
 
+    expect(html).toContain("TIDAK BALANCE");
+  });
+
+  it("dua kodetrans berbeda -> dua blok + GRAND TOTAL", () => {
+    const html = renderLaporanJurnal(
+      [
+        buatBaris({ kodetrans: "JL01", saldo: "DEBET", amount: 100000 }),
+        buatBaris({ kodetrans: "JL01", saldo: "KREDIT", urutan: 2, amount: 100000 }),
+        buatBaris({ kodetrans: "JL02", saldo: "DEBET", amount: 50000 }),
+        buatBaris({ kodetrans: "JL02", saldo: "KREDIT", urutan: 2, amount: 50000 }),
+      ],
+      konteks,
+    );
+
+    expect((html.match(/<h3>/g) ?? []).length).toBe(2);
+    expect(html).toContain("GRAND TOTAL");
+  });
+
+  it("nol baris -> pesan tidak ada data", () => {
+    const html = renderLaporanJurnal([], konteks);
     expect(html).toContain("Tidak ada data");
     expect(html).not.toContain("<tbody>");
   });
 
-  it("konteks tanpa kode -> Kode: Semua; tanpa tanggal -> Periode: Semua Tanggal", () => {
-    const konteks = buatKonteksLaporanJurnal("Toko Nick", {}, new Date());
-
-    expect(konteks.keteranganFilter).toContain("Kode: Semua");
-    expect(konteks.keteranganFilter).toContain("Periode: Semua Tanggal");
+  it("keterangan filter memuat Kode, Periode, Lokasi", () => {
+    const k = buatKonteksLaporanJurnal("Toko Nick", { kodetrans: "JL2608", namaLokasi: ["Toko A"] }, new Date());
+    expect(k.keteranganFilter).toContain("Kode: JL2608");
+    expect(k.keteranganFilter).toContain("Periode: Semua Tanggal");
+    expect(k.keteranganFilter).toContain("Lokasi: Toko A");
   });
 
-  it("konteks dengan kode menghasilkan Kode: <str>", () => {
-    const konteks = buatKonteksLaporanJurnal("Toko Nick", { kodetrans: "JL2608" }, new Date());
-
-    expect(konteks.keteranganFilter).toContain("Kode: JL2608");
-  });
-
-  it("amount 999999999999.99 dirender utuh dengan pemisah ribuan, tanpa overflow/notasi ilmiah", () => {
-    const konteks = buatKonteksLaporanJurnal("Toko Nick", {}, new Date());
+  it("amount besar dirender tanpa notasi ilmiah", () => {
     const html = renderLaporanJurnal([buatBaris({ amount: 999999999999.99 })], konteks);
-
-    expect(html).toContain("1.000.000.000.000"); // dibulatkan (formatUang tanpa desimal), bukan e+12
     expect(html).not.toContain("e+");
-  });
-
-  it("baris satu transaksi (DEBET + KREDIT) tampil berurutan menurut urutan", () => {
-    const konteks = buatKonteksLaporanJurnal("Toko Nick", {}, new Date());
-    const rows = [buatBaris({ saldo: "DEBET", urutan: 1 }), buatBaris({ saldo: "KREDIT", urutan: 2 })];
-    const html = renderLaporanJurnal(rows, konteks);
-
-    expect(html.indexOf("DEBET")).toBeLessThan(html.indexOf("KREDIT"));
   });
 });

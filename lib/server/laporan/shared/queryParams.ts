@@ -15,3 +15,19 @@ export function parseTanggalQuery(value: string | null): Date | undefined {
 export function parseFlagQuery(value: string | null): boolean {
   return value === "1" || value === "true";
 }
+
+/**
+ * Daftar `idlokasi` dari query `idlokasi=1,2,3`. `null`/kosong = tak ada filter Lokasi
+ * (semua Lokasi). Nilai bukan angka dibuang; hasil kosong setelah parse tetap dikembalikan
+ * sebagai `[]` sehingga pemanggil bisa membedakan "semua" (undefined) dari "tak satu pun" (`[]`).
+ */
+export function parseIdlokasiQuery(value: string | null): number[] | undefined {
+  if (value === null || value.trim() === "") {
+    return undefined;
+  }
+
+  return value
+    .split(",")
+    .map((bagian) => Number(bagian.trim()))
+    .filter((angka) => Number.isInteger(angka) && angka > 0);
+}

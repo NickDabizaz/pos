@@ -26,6 +26,10 @@ export async function findBarisLaporanJurnal(
     };
   }
 
+  if (filter.idlokasi) {
+    where.idlokasi = { in: filter.idlokasi };
+  }
+
   const rows = await db.jurnal.findMany({
     where,
     orderBy: [{ tgltrans: "asc" }, { kodetrans: "asc" }, { urutan: "asc" }],

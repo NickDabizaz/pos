@@ -1,55 +1,85 @@
 import { escapeHtml, bungkusDokumenLaporan, pesanTidakAdaData } from "@/lib/server/laporan/shared/dokumen";
-import { formatPeriode, formatUang, formatTanggal } from "@/lib/server/laporan/shared/format";
+import { formatLokasi, formatPeriode, formatUang, formatTanggal } from "@/lib/server/laporan/shared/format";
 import type { KonteksLaporan } from "@/lib/server/laporan/shared/types";
-import type { BarisLaporanKas } from "@/lib/server/laporan/kas/types";
+import type { TransaksiLaporanKas } from "@/lib/server/laporan/kas/types";
 
 export type KonteksFilterKas = {
-  dari?              : Date;
-  sampai?            : Date;
-  termasukDibatalkan?: boolean;
+  dari?      : Date;
+  sampai?    : Date;
+  namaLokasi?: string[] | null;
 };
 
 export function buatKonteksLaporanKas(namaPerusahaan: string, filter: KonteksFilterKas, waktuCetak: Date): KonteksLaporan {
   return {
     namaPerusahaan,
     judul           : "Laporan Kas",
-    keteranganFilter: [formatPeriode(filter.dari, filter.sampai)],
+    keteranganFilter: [formatPeriode(filter.dari, filter.sampai), formatLokasi(filter.namaLokasi)],
     waktuCetak,
   };
 }
 
-/** `render` murni: baris `kasdtl` flatten + konteks -> dokumen HTML lengkap. */
-export function renderLaporanKas(rows: BarisLaporanKas[], konteks: KonteksLaporan): string {
-  if (rows.length === 0) {
+/** `render` murni: transaksi `kas` terkelompok + konteks -> dokumen HTML lengkap. */
+export function renderLaporanKas(transaksi: TransaksiLaporanKas[], konteks: KonteksLaporan): string {
+  if (transaksi.length === 0) {
     return bungkusDokumenLaporan(konteks, pesanTidakAdaData());
   }
 
-  const baris = rows
-    .map((row) => {
-      const kelas = row.status === "D" ? ' class="dibatalkan"' : "";
-      const badge = row.status === "D" ? ' <span class="badge">DIBATALKAN</span>' : "";
+  let masukSemua = 0;
+  let keluarSemua = 0;
 
-      return `<tr${kelas}>
-  <td>${escapeHtml(row.kodekas)}${badge}</td>
-  <td>${escapeHtml(formatTanggal(row.tgltrans))}</td>
-  <td>${escapeHtml(row.namalokasi)}</td>
-  <td>${row.jenis === "MASUK" ? "MASUK" : "KELUAR"}</td>
-  <td>${escapeHtml(row.keterangan)}</td>
-  <td class="angka">${formatUang(row.nominal)}</td>
-  <td class="angka">${formatUang(row.grandtotal)}</td>
+  const bagian = transaksi
+    .map((trx) => {
+      if (trx.jenis === "MASUK") {
+        masukSemua += trx.grandtotal;
+      } else {
+        keluarSemua += trx.grandtotal;
+      }
+
+      const kelas = trx.status === "D" ? ' class="grup dibatalkan"' : ' class="grup"';
+      const badge = trx.status === "D" ? ' <span class="badge">DIBATALKAN</span>' : "";
+
+      const grup = `<tr${kelas}>
+  <td>${escapeHtml(trx.kodekas)}${badge}</td>
+  <td>${escapeHtml(formatTanggal(trx.tgltrans))}</td>
+  <td>${escapeHtml(trx.namalokasi)}</td>
+  <td>${trx.jenis === "MASUK" ? "MASUK" : "KELUAR"}</td>
+  <td></td>
+  <td class="angka">${formatUang(trx.grandtotal)}</td>
 </tr>`;
+
+      const detail = trx.detail
+        .map(
+          (row) => `<tr>
+  <td class="detail">${escapeHtml(row.keterangan)}</td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td class="angka">${formatUang(row.nominal)}</td>
+  <td></td>
+</tr>`,
+        )
+        .join("\n");
+
+      return `${grup}\n${detail}`;
     })
     .join("\n");
+
+  const total = `<tr class="total">
+  <td colspan="4">TOTAL (${transaksi.length} transaksi). Masuk ${formatUang(masukSemua)}, Keluar ${formatUang(keluarSemua)}</td>
+  <td></td>
+  <td class="angka">${formatUang(masukSemua - keluarSemua)}</td>
+</tr>`;
 
   const tabel = `<table>
 <thead>
 <tr>
-  <th>Kode</th><th>Tgl</th><th>Lokasi</th><th>Jenis</th>
-  <th>Keterangan</th><th class="angka">Nominal</th><th class="angka">Grandtotal</th>
+  <th>Kode / Keterangan</th><th>Tgl</th><th>Lokasi</th><th>Jenis</th>
+  <th class="angka">Nominal</th><th class="angka">Grandtotal</th>
 </tr>
 </thead>
 <tbody>
-${baris}
+${bagian}
+${total}
 </tbody>
 </table>`;
 

@@ -1,11 +1,11 @@
+import type { Prisma } from "@/lib/generated/prisma-perusahaan/client";
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
 import type { FilterLaporanKartuStok, GrupLaporanKartuStok } from "@/lib/server/laporan/kartustok/types";
 
 /**
- * Mutasi kronologis lintas semua Lokasi, dikelompokkan per Barang, dengan saldo berjalan
- * dihitung dari nol sepanjang seluruh riwayat Barang itu (tak ada saldo awal periode — tak ada
- * filter tanggal di laporan ini). Pola baca sama seperti `hitungSaldoStok` di
- * `lib/server/kartustok/repository.ts`, tapi lintas Lokasi dan mempertahankan tiap baris mutasi.
+ * Mutasi kronologis per Barang untuk Lokasi terpilih. **Saldo Awal** = akumulasi seluruh mutasi
+ * sebelum `dari` (tanpa `dari` = 0); baris yang dijabarkan hanya mutasi di dalam periode
+ * `dari`..`sampai` (inklusif). Barang tanpa mutasi periode **dan** Saldo Awal 0 tidak muncul.
  */
 export async function findLaporanKartuStok(
   db    : DatabasePerusahaanClient,
@@ -22,9 +22,13 @@ export async function findLaporanKartuStok(
   }
 
   const idbarangList = barangList.map((barang) => barang.idbarang);
+  const where: Prisma.kartustokWhereInput = { idbarang: { in: idbarangList } };
+  if (filter.idlokasi) {
+    where.idlokasi = { in: filter.idlokasi };
+  }
 
   const kartustokRows = await db.kartustok.findMany({
-    where  : { idbarang: { in: idbarangList } },
+    where,
     orderBy: [{ tgltrans: "asc" }, { kodetrans: "asc" }, { urutan: "asc" }],
   });
 
@@ -41,31 +45,57 @@ export async function findLaporanKartuStok(
     rowsPerBarang.set(row.idbarang, arr);
   }
 
-  return barangList.map((barang) => {
+  const hasil: GrupLaporanKartuStok[] = [];
+
+  for (const barang of barangList) {
     const rows = rowsPerBarang.get(barang.idbarang) ?? [];
 
-    let saldo = 0;
-    const baris = rows.map((row) => {
-      const jml = Number(row.jml);
-      saldo += row.mk === "M" ? jml : -jml;
+    let saldoAwal = 0;
+    const baris: GrupLaporanKartuStok["baris"] = [];
 
-      return {
+    for (const row of rows) {
+      const jml = Number(row.jml);
+      const berarah = row.mk === "M" ? jml : -jml;
+
+      if (filter.dari && row.tgltrans < filter.dari) {
+        saldoAwal += berarah;
+        continue;
+      }
+      if (filter.sampai && row.tgltrans > filter.sampai) {
+        continue;
+      }
+
+      baris.push({
         tgltrans      : row.tgltrans,
         kodetrans     : row.kodetrans,
         jenistransaksi: row.jenistransaksi,
         namalokasi    : namaLokasi.get(row.idlokasi) ?? "-",
         masuk         : row.mk === "M" ? jml : null,
         keluar        : row.mk === "K" ? jml : null,
-        saldoBerjalan : saldo,
+        saldoBerjalan : 0,
         catatan       : row.catatan,
-      };
-    });
+      });
+    }
 
-    return {
+    if (saldoAwal === 0 && baris.length === 0) {
+      continue;
+    }
+
+    let saldo = saldoAwal;
+    for (const item of baris) {
+      saldo += (item.masuk ?? 0) - (item.keluar ?? 0);
+      item.saldoBerjalan = saldo;
+    }
+
+    hasil.push({
       idbarang  : barang.idbarang,
       namabarang: barang.namabarang,
       satuan    : barang.satuan,
+      saldoAwal,
+      saldoAkhir: saldo,
       baris,
-    };
-  });
+    });
+  }
+
+  return hasil;
 }

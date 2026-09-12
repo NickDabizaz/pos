@@ -77,8 +77,21 @@ describe("repository laporan pembelian", () => {
 
     const rows = await findBarisLaporanPembelian(db);
 
-    expect(rows).toHaveLength(2);
-    expect(rows.every((row) => row.namasupplier === "PT Sumber Pangan" && row.grandtotal === 40000)).toBe(true);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].detail).toHaveLength(2);
+    expect(rows[0].namasupplier).toBe("PT Sumber Pangan");
+    expect(rows[0].grandtotal).toBe(40000);
+  });
+
+  it("idlokasi menyaring ke Lokasi terpilih", async () => {
+    const master = await buatMasterData();
+    const lain = await db.lokasi.create({ data: { kodelokasi: "LOK02", namalokasi: "Gudang" } });
+    await buatPembelian("PB2608240001", new Date("2026-08-24"), master);
+    await buatPembelian("PB2608240002", new Date("2026-08-24"), { ...master, idlokasi: lain.idlokasi });
+
+    const rows = await findBarisLaporanPembelian(db, { idlokasi: [master.idlokasi] });
+
+    expect(rows.map((row) => row.kodebeli)).toEqual(["PB2608240001"]);
   });
 
   it("dari/sampai inklusif di tanggal batas", async () => {

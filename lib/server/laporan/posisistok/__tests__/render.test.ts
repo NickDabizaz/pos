@@ -30,6 +30,22 @@ describe("render laporan posisi stok", () => {
     expect(konteks.keteranganFilter.some((baris) => baris.includes("28/08/2026"))).toBe(true);
   });
 
+  it("dikelompokkan per Lokasi dengan sub-judul; keterangan memuat Lokasi", () => {
+    const konteks = buatKonteksLaporanPosisiStok(
+      "Toko Nick",
+      { namabarang: null, tanggal: new Date("2026-08-28"), namaLokasi: ["Toko Pusat", "Gudang"] },
+      new Date(),
+    );
+    const html = renderLaporanPosisiStok(
+      [buatBaris({ namalokasi: "Toko Pusat" }), buatBaris({ namalokasi: "Gudang", namabarang: "Beras" })],
+      konteks,
+    );
+
+    expect(html).toContain("<h3>Toko Pusat</h3>");
+    expect(html).toContain("<h3>Gudang</h3>");
+    expect(konteks.keteranganFilter).toContain("Lokasi: Toko Pusat, Gudang");
+  });
+
   it("angka pecahan 1500.25 tampil utuh, bukan dibulatkan", () => {
     const konteks = buatKonteksLaporanPosisiStok("Toko Nick", { namabarang: null, tanggal: new Date() }, new Date());
     const html = renderLaporanPosisiStok([buatBaris({ saldo: 1500.25 })], konteks);

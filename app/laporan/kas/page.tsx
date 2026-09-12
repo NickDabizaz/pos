@@ -1,75 +1,55 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import { buatUrlLaporanKas, type FilterKasState } from "@/lib/client/laporan/kas";
+import FilterLokasi from "@/app/laporan/components/FilterLokasi";
+import LaporanShell from "@/app/laporan/components/LaporanShell";
+import { useOpsiLokasi } from "@/app/laporan/components/useLaporanView";
+import { buatUrlLaporanKas } from "@/lib/client/laporan/kas";
+import { rentangMingguTerakhir } from "@/lib/client/laporan/shared";
 
-const filterAwal: FilterKasState = { dari: "", sampai: "", termasukDibatalkan: false };
+const rentangAwal = rentangMingguTerakhir();
 
 export default function LaporanKasPage() {
-  const [filter, setFilter] = useState<FilterKasState>(filterAwal);
-  const [src, setSrc] = useState(() => buatUrlLaporanKas(filterAwal));
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  function handleTampilkan() {
-    setSrc(buatUrlLaporanKas(filter));
-  }
-
-  function handleCetak() {
-    iframeRef.current?.contentWindow?.print();
-  }
+  const [dari, setDari] = useState(rentangAwal.dari);
+  const [sampai, setSampai] = useState(rentangAwal.sampai);
+  const [termasukDibatalkan, setTermasukDibatalkan] = useState(false);
+  const { opsi, terpilih, setTerpilih } = useOpsiLokasi();
 
   return (
-    <div className="flex h-screen flex-col gap-3 p-4">
-      <h1 className="text-lg font-semibold tracking-tight text-foreground">Laporan Kas</h1>
-
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3">
-        <label className="flex flex-col gap-1 text-sm text-foreground">
-          Dari Tanggal
-          <input
-            className="rounded-lg border border-border px-3 py-1.5 text-sm"
-            onChange={(event) => setFilter((current) => ({ ...current, dari: event.target.value }))}
-            type="date"
-            value={filter.dari}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-foreground">
-          Sampai Tanggal
-          <input
-            className="rounded-lg border border-border px-3 py-1.5 text-sm"
-            onChange={(event) => setFilter((current) => ({ ...current, sampai: event.target.value }))}
-            type="date"
-            value={filter.sampai}
-          />
-        </label>
-        <label className="flex items-center gap-2 pb-1.5 text-sm text-foreground">
-          <input
-            checked={filter.termasukDibatalkan}
-            onChange={(event) => setFilter((current) => ({ ...current, termasukDibatalkan: event.target.checked }))}
-            type="checkbox"
-          />
-          Tampilkan dibatalkan
-        </label>
-
-        <div className="ml-auto flex gap-2">
-          <button
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
-            onClick={handleTampilkan}
-            type="button"
-          >
-            Tampilkan
-          </button>
-          <button
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            onClick={handleCetak}
-            type="button"
-          >
-            Cetak
-          </button>
-        </div>
-      </div>
-
-      <iframe className="w-full flex-1 rounded-lg border border-border bg-white" ref={iframeRef} src={src} title="Laporan Kas" />
-    </div>
+    <LaporanShell
+      buatUrl={() =>
+        buatUrlLaporanKas({ dari, sampai, termasukDibatalkan, idlokasi: terpilih, totalLokasi: opsi.length })
+      }
+      judul="Laporan Kas"
+    >
+      <label className="flex flex-col gap-1 text-sm text-foreground">
+        Dari Tanggal
+        <input
+          className="rounded-lg border border-border px-3 py-1.5 text-sm"
+          onChange={(event) => setDari(event.target.value)}
+          type="date"
+          value={dari}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm text-foreground">
+        Sampai Tanggal
+        <input
+          className="rounded-lg border border-border px-3 py-1.5 text-sm"
+          onChange={(event) => setSampai(event.target.value)}
+          type="date"
+          value={sampai}
+        />
+      </label>
+      <FilterLokasi onChangeAction={setTerpilih} opsi={opsi} terpilih={terpilih} />
+      <label className="flex items-center gap-2 pb-1.5 text-sm text-foreground">
+        <input
+          checked={termasukDibatalkan}
+          onChange={(event) => setTermasukDibatalkan(event.target.checked)}
+          type="checkbox"
+        />
+        Tampilkan dibatalkan
+      </label>
+    </LaporanShell>
   );
 }

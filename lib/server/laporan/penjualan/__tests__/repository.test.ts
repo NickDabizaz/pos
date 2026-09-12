@@ -72,7 +72,18 @@ describe("repository: filter", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].namacustomer).toBe("Toko Maju");
     expect(rows[0].namalokasi).toBe("Toko Pusat");
-    expect(rows[0].namabarang).toBe("Indomie Goreng");
+    expect(rows[0].detail[0].namabarang).toBe("Indomie Goreng");
+  });
+
+  it("idlokasi menyaring transaksi ke Lokasi terpilih", async () => {
+    const master = await buatMasterData();
+    const lokasiLain = await db.lokasi.create({ data: { kodelokasi: "LOK02", namalokasi: "Gudang" } });
+    await buatPenjualan("JL2608240001", new Date("2026-08-24"), master);
+    await buatPenjualan("JL2608240002", new Date("2026-08-24"), { ...master, idlokasi: lokasiLain.idlokasi });
+
+    const rows = await findBarisLaporanPenjualan(db, { idlokasi: [master.idlokasi] });
+
+    expect(rows.map((row) => row.kodejual)).toEqual(["JL2608240001"]);
   });
 
   it("dari/sampai menyaring inklusif; transaksi tepat di tanggal batas ikut", async () => {

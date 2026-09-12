@@ -1,13 +1,24 @@
 import type { StatusTransaksi } from "@/lib/server/transaksi/types";
 
 export type FilterLaporanPenjualan = {
-  dari?              : Date;
-  sampai?            : Date;
+  dari              ?: Date;
+  sampai            ?: Date;
   termasukDibatalkan?: boolean;
+  idlokasi          ?: number[];
 };
 
-/** Satu baris = satu `jualdtl`. Nilai level-transaksi diulang identik di tiap baris transaksi itu. */
-export type BarisLaporanPenjualan = {
+/** Satu baris detail = satu `jualdtl`. */
+export type DetailLaporanPenjualan = {
+  namabarang: string;
+  satuan    : string;
+  qty       : number;
+  harga     : number;
+  subtotal  : number;
+  ppnBaris  : number;
+};
+
+/** Satu transaksi `jual` beserta detail-detailnya — laporan dikelompokkan per transaksi. */
+export type TransaksiLaporanPenjualan = {
   kodejual    : string;
   tgltrans    : Date;
   namalokasi  : string;
@@ -17,10 +28,5 @@ export type BarisLaporanPenjualan = {
   ppn         : number;
   grandtotal  : number;
   status      : StatusTransaksi;
-  namabarang  : string;
-  satuan      : string;
-  qty         : number;
-  harga       : number;
-  subtotal    : number;
-  ppnBaris    : number;
+  detail      : DetailLaporanPenjualan[];
 };

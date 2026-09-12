@@ -20,12 +20,18 @@ const STYLE = `
   .header .filter span { display: inline-block; margin-right: 16px; }
   .header .waktu-cetak { margin-top: 4px; font-size: 11px; color: #666; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  table.tetap { table-layout: fixed; }
   th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; vertical-align: top; }
   th { background: #eee; font-weight: bold; }
   td.angka, th.angka { text-align: right; }
   .kosong { padding: 24px; text-align: center; color: #666; font-style: italic; }
   .dibatalkan { color: #b91c1c; }
   .dibatalkan .badge { display: inline-block; font-size: 10px; font-weight: bold; border: 1px solid #b91c1c; border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+  h3 { margin: 16px 0 4px; font-size: 13px; }
+  tr.grup > td { background: #f3f4f6; font-weight: bold; }
+  td.detail { padding-left: 18px; }
+  tr.total > td { border-top: 2px solid #111; font-weight: bold; background: #fafafa; }
+  .badge-nonbalance { display: inline-block; font-size: 10px; font-weight: bold; color: #fff; background: #b91c1c; border-radius: 3px; padding: 0 4px; margin-left: 6px; }
   @media print {
     body { margin: 8mm; }
     .no-print { display: none; }

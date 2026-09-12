@@ -1,8 +1,11 @@
 export type FilterLaporanKartuStok = {
   idbarang?: number;
+  dari    ?: Date;
+  sampai  ?: Date;
+  idlokasi?: number[];
 };
 
-/** Satu baris = satu `kartustok`, dengan saldo berjalan sudah dihitung dari nol per Barang. */
+/** Satu baris = satu `kartustok` dalam periode, saldo berjalan meneruskan Saldo Awal. */
 export type BarisMutasiKartuStok = {
   tgltrans      : Date;
   kodetrans     : string;
@@ -18,5 +21,7 @@ export type GrupLaporanKartuStok = {
   idbarang  : number;
   namabarang: string;
   satuan    : string;
+  saldoAwal : number;
+  saldoAkhir: number;
   baris     : BarisMutasiKartuStok[];
 };

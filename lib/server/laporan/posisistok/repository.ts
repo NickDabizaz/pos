@@ -14,7 +14,7 @@ export async function findLaporanPosisiStok(
   filter : FilterLaporanPosisiStok = {},
 ): Promise<BarisLaporanPosisiStok[]> {
   const lokasiList = await db.lokasi.findMany({
-    where  : { status: 1 },
+    where  : filter.idlokasi ? { status: 1, idlokasi: { in: filter.idlokasi } } : { status: 1 },
     orderBy: { idlokasi: "asc" },
     select : { idlokasi: true, namalokasi: true },
   });

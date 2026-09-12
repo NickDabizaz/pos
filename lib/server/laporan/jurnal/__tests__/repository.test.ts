@@ -93,6 +93,17 @@ describe("repository: filter", () => {
     expect(rows.map((row) => row.kodetrans)).toEqual(["JL2608240001"]);
   });
 
+  it("idlokasi menyaring baris ke Lokasi terpilih", async () => {
+    const idlokasi = await buatLokasi();
+    const lain = await db.lokasi.create({ data: { kodelokasi: "LOK02", namalokasi: "Gudang" } });
+    await insertJurnal(db, kepala({ idlokasi, idtrans: 1, kodetrans: "KS2608240001" }), [baris()]);
+    await insertJurnal(db, kepala({ idlokasi: lain.idlokasi, idtrans: 2, kodetrans: "KS2608240002" }), [baris()]);
+
+    const rows = await findBarisLaporanJurnal(db, { idlokasi: [idlokasi] });
+
+    expect(rows.map((row) => row.kodetrans)).toEqual(["KS2608240001"]);
+  });
+
   it("baris milik transaksi berstatus D dikecualikan — pembatalan menghapus keras baris jurnal, jadi baris yang tersisa selalu milik transaksi hidup", async () => {
     const idlokasi = await buatLokasi();
     await insertJurnal(db, kepala({ idlokasi, idtrans: 1, kodetrans: "KS2608240001" }), [baris()]);

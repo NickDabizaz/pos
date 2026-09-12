@@ -1,13 +1,16 @@
 import type { Prisma } from "@/lib/generated/prisma-perusahaan/client";
 import type { DatabasePerusahaanClient } from "@/lib/server/databaseperusahaan/types";
-import type { BarisLaporanOpnameStok, FilterLaporanOpnameStok } from "@/lib/server/laporan/opnamestok/types";
+import type { TransaksiLaporanOpnameStok, FilterLaporanOpnameStok } from "@/lib/server/laporan/opnamestok/types";
 import type { StatusTransaksi } from "@/lib/server/transaksi/types";
 
-/** Baris `opnamestokdtl` flatten dengan nilai transaksi induk, diurut `tgltrans`, `kodeopname`, `urutan`. */
+/**
+ * Transaksi `opnamestok` + detail, dikelompokkan per transaksi. Default hanya detail berselisih
+ * (`tampilkanSemua` untuk seluruh barang); jumlah baris sesuai yang disembunyikan tetap dilaporkan.
+ */
 export async function findBarisLaporanOpnameStok(
   db    : DatabasePerusahaanClient,
   filter: FilterLaporanOpnameStok = {},
-): Promise<BarisLaporanOpnameStok[]> {
+): Promise<TransaksiLaporanOpnameStok[]> {
   const where: Prisma.opnamestokWhereInput = {
     status: filter.termasukDibatalkan ? undefined : "S",
   };
@@ -19,6 +22,10 @@ export async function findBarisLaporanOpnameStok(
     };
   }
 
+  if (filter.idlokasi) {
+    where.idlokasi = { in: filter.idlokasi };
+  }
+
   const rows = await db.opnamestok.findMany({
     where,
     include: {
@@ -28,22 +35,24 @@ export async function findBarisLaporanOpnameStok(
     orderBy: [{ tgltrans: "asc" }, { kodeopname: "asc" }],
   });
 
-  const baris: BarisLaporanOpnameStok[] = [];
-  for (const opname of rows) {
-    for (const detail of opname.details) {
-      baris.push({
-        kodeopname: opname.kodeopname,
-        tgltrans  : opname.tgltrans,
-        namalokasi: opname.lokasi.namalokasi,
-        status    : opname.status as StatusTransaksi,
-        namabarang: detail.barang.namabarang,
-        satuan    : detail.satuan,
-        jmlsistem : Number(detail.jmlsistem),
-        jmlfisik  : Number(detail.jmlfisik),
-        selisih   : Number(detail.selisih),
-      });
-    }
-  }
+  return rows.map((opname) => {
+    const semua = opname.details.map((detail) => ({
+      namabarang: detail.barang.namabarang,
+      satuan    : detail.satuan,
+      jmlsistem : Number(detail.jmlsistem),
+      jmlfisik  : Number(detail.jmlfisik),
+      selisih   : Number(detail.selisih),
+    }));
 
-  return baris;
+    const detail = filter.tampilkanSemua ? semua : semua.filter((row) => row.selisih !== 0);
+
+    return {
+      kodeopname     : opname.kodeopname,
+      tgltrans       : opname.tgltrans,
+      namalokasi     : opname.lokasi.namalokasi,
+      status         : opname.status as StatusTransaksi,
+      detail,
+      jmlDisembunyikan: semua.length - detail.length,
+    };
+  });
 }

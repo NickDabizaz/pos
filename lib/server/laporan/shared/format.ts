@@ -34,3 +34,12 @@ export function formatPeriode(dari?: Date | null, sampai?: Date | null): string 
 
   return `Periode: ${formatTanggal(dari)} – ${formatTanggal(sampai)}`;
 }
+
+/** `Lokasi: Semua` bila `null`/kosong, selain itu `Lokasi: A, B`. */
+export function formatLokasi(namaLokasi?: string[] | null): string {
+  if (!namaLokasi || namaLokasi.length === 0) {
+    return "Lokasi: Semua";
+  }
+
+  return `Lokasi: ${namaLokasi.join(", ")}`;
+}

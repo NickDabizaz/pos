@@ -1,20 +1,27 @@
 import type { StatusTransaksi } from "@/lib/server/transaksi/types";
 
 export type FilterLaporanOpnameStok = {
-  dari?              : Date;
-  sampai?            : Date;
+  dari              ?: Date;
+  sampai            ?: Date;
   termasukDibatalkan?: boolean;
+  idlokasi          ?: number[];
+  tampilkanSemua    ?: boolean;
 };
 
-/** Satu baris = satu `opnamestokdtl`, termasuk baris berselisih nol. */
-export type BarisLaporanOpnameStok = {
-  kodeopname: string;
-  tgltrans  : Date;
-  namalokasi: string;
-  status    : StatusTransaksi;
+export type DetailLaporanOpnameStok = {
   namabarang: string;
   satuan    : string;
   jmlsistem : number;
   jmlfisik  : number;
   selisih   : number;
+};
+
+/** Satu transaksi `opnamestok` beserta detail-detailnya — laporan dikelompokkan per transaksi. */
+export type TransaksiLaporanOpnameStok = {
+  kodeopname   : string;
+  tgltrans     : Date;
+  namalokasi   : string;
+  status       : StatusTransaksi;
+  detail       : DetailLaporanOpnameStok[];
+  jmlDisembunyikan: number;
 };

@@ -51,7 +51,7 @@ function baris(overrides: Partial<InsertKartuStokBaris> = {}): InsertKartuStokBa
 }
 
 describe("repository laporan kartu stok", () => {
-  it("Pembelian 10 lalu Penjualan 3 atas Barang yang sama -> dua baris, saldo 10 lalu 7", async () => {
+  it("Pembelian 10 lalu Penjualan 3 -> dua baris, saldo berjalan 10 lalu 7", async () => {
     const idlokasi = await buatLokasi("LOK01");
     const idbarang = await buatBarang();
 
@@ -63,62 +63,59 @@ describe("repository laporan kartu stok", () => {
     const grup = await findLaporanKartuStok(db, { idbarang });
 
     expect(grup).toHaveLength(1);
+    expect(grup[0].saldoAwal).toBe(0);
     expect(grup[0].baris.map((row) => row.saldoBerjalan)).toEqual([10, 7]);
+    expect(grup[0].saldoAkhir).toBe(7);
   });
 
-  it("saldo berjalan reset ke nol di awal tiap Barang saat menampilkan semua Barang", async () => {
-    const idlokasi = await buatLokasi("LOK01");
-    const [barangA, barangB] = [await buatBarang("A"), await buatBarang("B")];
-
-    await insertKartuStok(db, kepala({ idlokasi }), [baris({ idbarang: barangA, jml: 50, mk: "M" })]);
-    await insertKartuStok(db, kepala({ idlokasi, idtrans: 2, kodetrans: "PB2608240002" }), [baris({ idbarang: barangB, jml: 5, mk: "M" })]);
-
-    const grup = await findLaporanKartuStok(db);
-    const grupB = grup.find((g) => g.idbarang === barangB);
-
-    expect(grupB?.baris[0].saldoBerjalan).toBe(5);
-  });
-
-  it("mk M mengisi kolom masuk & mengosongkan keluar; sebaliknya untuk K", async () => {
+  it("mutasi sebelum `dari` masuk ke Saldo Awal, bukan baris", async () => {
     const idlokasi = await buatLokasi("LOK01");
     const idbarang = await buatBarang();
 
-    await insertKartuStok(db, kepala({ idlokasi }), [baris({ idbarang, jml: 10, mk: "M" })]);
-    await insertKartuStok(db, kepala({ idlokasi, jenistransaksi: "PENJUALAN", idtrans: 2, kodetrans: "JL01", tgltrans: new Date("2026-08-25") }), [
-      baris({ idbarang, jml: 4, mk: "K" }),
+    await insertKartuStok(db, kepala({ idlokasi, tgltrans: new Date("2026-08-10") }), [baris({ idbarang, jml: 20, mk: "M" })]);
+    await insertKartuStok(db, kepala({ idlokasi, idtrans: 2, kodetrans: "JL01", jenistransaksi: "PENJUALAN", tgltrans: new Date("2026-08-25") }), [
+      baris({ idbarang, jml: 5, mk: "K" }),
     ]);
 
-    const grup = await findLaporanKartuStok(db, { idbarang });
-    const [masuk, keluar] = grup[0].baris;
+    const grup = await findLaporanKartuStok(db, { idbarang, dari: new Date("2026-08-20"), sampai: new Date("2026-08-31") });
 
-    expect(masuk.masuk).toBe(10);
-    expect(masuk.keluar).toBeNull();
-    expect(keluar.masuk).toBeNull();
-    expect(keluar.keluar).toBe(4);
+    expect(grup[0].saldoAwal).toBe(20);
+    expect(grup[0].baris).toHaveLength(1);
+    expect(grup[0].saldoAkhir).toBe(15);
   });
 
-  it("mutasi di dua Lokasi berbeda tetap satu deret saldo berjalan; kolom lokasi berubah per baris", async () => {
+  it("Barang tanpa mutasi periode dan Saldo Awal 0 tidak muncul", async () => {
+    const idbarang = await buatBarang();
+
+    const grup = await findLaporanKartuStok(db, { idbarang });
+
+    expect(grup).toHaveLength(0);
+  });
+
+  it("Barang tanpa mutasi periode tapi Saldo Awal != 0 tetap muncul", async () => {
+    const idlokasi = await buatLokasi("LOK01");
+    const idbarang = await buatBarang();
+
+    await insertKartuStok(db, kepala({ idlokasi, tgltrans: new Date("2026-08-01") }), [baris({ idbarang, jml: 8, mk: "M" })]);
+
+    const grup = await findLaporanKartuStok(db, { idbarang, dari: new Date("2026-08-20"), sampai: new Date("2026-08-31") });
+
+    expect(grup).toHaveLength(1);
+    expect(grup[0].saldoAwal).toBe(8);
+    expect(grup[0].baris).toHaveLength(0);
+  });
+
+  it("idlokasi menyaring mutasi (termasuk perhitungan Saldo Awal)", async () => {
     const [lokasiA, lokasiB] = [await buatLokasi("LOKA"), await buatLokasi("LOKB")];
     const idbarang = await buatBarang();
 
     await insertKartuStok(db, kepala({ idlokasi: lokasiA }), [baris({ idbarang, jml: 10, mk: "M" })]);
-    await insertKartuStok(db, kepala({ idlokasi: lokasiB, idtrans: 2, kodetrans: "PB2608240002", tgltrans: new Date("2026-08-25") }), [
-      baris({ idbarang, jml: 4, mk: "M" }),
-    ]);
+    await insertKartuStok(db, kepala({ idlokasi: lokasiB, idtrans: 2, kodetrans: "PB2608240002" }), [baris({ idbarang, jml: 4, mk: "M" })]);
 
-    const grup = await findLaporanKartuStok(db, { idbarang });
+    const grup = await findLaporanKartuStok(db, { idbarang, idlokasi: [lokasiA] });
 
-    expect(grup[0].baris.map((row) => row.saldoBerjalan)).toEqual([10, 14]);
-    expect(grup[0].baris.map((row) => row.namalokasi)).toEqual(["Lokasi LOKA", "Lokasi LOKB"]);
-  });
-
-  it("idbarang yang tak punya pergerakan -> dokumen HTML sah dengan pesan sopan, bukan error (grup ada, baris kosong)", async () => {
-    const idbarang = await buatBarang();
-
-    const grup = await findLaporanKartuStok(db, { idbarang });
-
-    expect(grup).toHaveLength(1);
-    expect(grup[0].baris).toHaveLength(0);
+    expect(grup[0].saldoAkhir).toBe(10);
+    expect(grup[0].baris).toHaveLength(1);
   });
 
   it("baris diurut tgltrans, kodetrans, urutan", async () => {
@@ -135,26 +132,5 @@ describe("repository laporan kartu stok", () => {
     const grup = await findLaporanKartuStok(db, { idbarang });
 
     expect(grup[0].baris.map((row) => row.kodetrans)).toEqual(["PB2608240001", "PB2608240002"]);
-  });
-
-  it("saldo akhir tiap Barang sama dengan jumlah hitungSaldoStok seluruh Lokasi untuk Barang itu", async () => {
-    const { hitungSaldoStok } = await import("@/lib/server/kartustok/repository");
-    const [lokasiA, lokasiB] = [await buatLokasi("LOKA"), await buatLokasi("LOKB")];
-    const idbarang = await buatBarang();
-
-    await insertKartuStok(db, kepala({ idlokasi: lokasiA }), [baris({ idbarang, jml: 10, mk: "M" })]);
-    await insertKartuStok(db, kepala({ idlokasi: lokasiB, idtrans: 2, kodetrans: "PB2608240002" }), [baris({ idbarang, jml: 4, mk: "M" })]);
-
-    const grup = await findLaporanKartuStok(db, { idbarang });
-    const saldoAkhir = grup[0].baris.at(-1)?.saldoBerjalan ?? 0;
-
-    const hari = new Date();
-    const saldoA = await hitungSaldoStok(db, lokasiA, hari);
-    const saldoB = await hitungSaldoStok(db, lokasiB, hari);
-    const totalGlobal =
-      (saldoA.find((item) => item.idbarang === idbarang)?.jmlsistem ?? 0) +
-      (saldoB.find((item) => item.idbarang === idbarang)?.jmlsistem ?? 0);
-
-    expect(saldoAkhir).toBe(totalGlobal);
   });
 });

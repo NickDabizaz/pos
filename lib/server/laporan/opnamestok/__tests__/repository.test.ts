@@ -16,8 +16,8 @@ afterEach(async () => {
   await resetTables(db, DOMAIN_TABLES);
 });
 
-async function buatLokasi() {
-  const lokasi = await db.lokasi.create({ data: { kodelokasi: "LOK01", namalokasi: "Toko Pusat" } });
+async function buatLokasi(kode = "LOK01", nama = "Toko Pusat") {
+  const lokasi = await db.lokasi.create({ data: { kodelokasi: kode, namalokasi: nama } });
 
   return lokasi.idlokasi;
 }
@@ -31,7 +31,7 @@ async function buatBarang(nama: string) {
 }
 
 describe("repository laporan opname stok", () => {
-  it("dokumen 3 barang (lebih, kurang, sama) menghasilkan 3 baris; baris selisih nol tetap tampil", async () => {
+  it("default hanya detail berselisih; tampilkanSemua memunculkan seluruh detail", async () => {
     const idlokasi = await buatLokasi();
     const [lebih, kurang, sama] = [await buatBarang("Lebih"), await buatBarang("Kurang"), await buatBarang("Sama")];
 
@@ -50,13 +50,16 @@ describe("repository laporan opname stok", () => {
       },
     });
 
-    const rows = await findBarisLaporanOpnameStok(db);
+    const ringkas = await findBarisLaporanOpnameStok(db);
+    expect(ringkas[0].detail).toHaveLength(2);
+    expect(ringkas[0].jmlDisembunyikan).toBe(1);
 
-    expect(rows).toHaveLength(3);
-    expect(rows.find((row) => row.namabarang === "Sama")?.selisih).toBe(0);
+    const semua = await findBarisLaporanOpnameStok(db, { tampilkanSemua: true });
+    expect(semua[0].detail).toHaveLength(3);
+    expect(semua[0].jmlDisembunyikan).toBe(0);
   });
 
-  it("satuan diambil dari opnamestokdtl, bukan join ke barang — perubahan satuan Barang tidak mengubah laporan lama", async () => {
+  it("satuan diambil dari opnamestokdtl, bukan join ke barang", async () => {
     const idlokasi = await buatLokasi();
     const idbarang = await buatBarang("Barang X");
 
@@ -65,14 +68,14 @@ describe("repository laporan opname stok", () => {
         kodeopname: "OP2608240001",
         tgltrans  : new Date("2026-08-24"),
         idlokasi,
-        details: { create: [{ urutan: 1, idbarang, satuan: "DUS", jmlsistem: 5, jmlfisik: 5, selisih: 0 }] },
+        details: { create: [{ urutan: 1, idbarang, satuan: "DUS", jmlsistem: 5, jmlfisik: 7, selisih: 2 }] },
       },
     });
 
     await db.barang.update({ where: { idbarang }, data: { satuan: "PCS" } });
 
     const rows = await findBarisLaporanOpnameStok(db);
-    expect(rows[0].satuan).toBe("DUS");
+    expect(rows[0].detail[0].satuan).toBe("DUS");
   });
 
   it("Opname D disembunyikan default", async () => {
@@ -85,11 +88,31 @@ describe("repository laporan opname stok", () => {
         tgltrans  : new Date("2026-08-24"),
         idlokasi,
         status    : "D",
-        details   : { create: [{ urutan: 1, idbarang, satuan: "PCS", jmlsistem: 5, jmlfisik: 5, selisih: 0 }] },
+        details   : { create: [{ urutan: 1, idbarang, satuan: "PCS", jmlsistem: 5, jmlfisik: 6, selisih: 1 }] },
       },
     });
 
     expect(await findBarisLaporanOpnameStok(db)).toHaveLength(0);
     expect(await findBarisLaporanOpnameStok(db, { termasukDibatalkan: true })).toHaveLength(1);
+  });
+
+  it("idlokasi menyaring ke Lokasi terpilih", async () => {
+    const idlokasi = await buatLokasi();
+    const lain = await buatLokasi("LOK02", "Gudang");
+    const idbarang = await buatBarang("Barang Z");
+
+    for (const [kode, lok] of [["OP2608240001", idlokasi], ["OP2608240002", lain]] as const) {
+      await db.opnamestok.create({
+        data: {
+          kodeopname: kode,
+          tgltrans  : new Date("2026-08-24"),
+          idlokasi  : lok,
+          details   : { create: [{ urutan: 1, idbarang, satuan: "PCS", jmlsistem: 5, jmlfisik: 7, selisih: 2 }] },
+        },
+      });
+    }
+
+    const rows = await findBarisLaporanOpnameStok(db, { idlokasi: [idlokasi] });
+    expect(rows.map((row) => row.kodeopname)).toEqual(["OP2608240001"]);
   });
 });

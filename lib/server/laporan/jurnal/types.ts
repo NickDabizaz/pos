@@ -4,6 +4,7 @@ export type FilterLaporanJurnal = {
   kodetrans?: string;
   dari?     : Date;
   sampai?   : Date;
+  idlokasi? : number[];
 };
 
 /** Satu baris = satu baris `jurnal`, ditampilkan apa adanya. */
